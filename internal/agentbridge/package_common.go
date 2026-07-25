@@ -8,7 +8,13 @@ import (
 )
 
 const qtermPluginName = "qterm"
-const qtermPluginVersion = "1.2.4"
+
+// qtermPluginVersion is bumped when plugin artifacts change (hooks, MCP, skills, relay).
+// Connected CLIs with an older recorded version are marked outdated and reinstalled.
+const qtermPluginVersion = "1.2.5"
+
+// PluginVersion is the qterm plugin package version shipped with this app build.
+func PluginVersion() string { return qtermPluginVersion }
 
 func userHomeDir() string {
 	home, _ := os.UserHomeDir()

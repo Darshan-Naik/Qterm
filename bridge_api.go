@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"qterm/internal/agentbridge"
+	"qterm/internal/config"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -50,19 +51,82 @@ func (a *App) startAgentBridge() {
 	a.bridge = srv
 	// Rewrite installed plugin relays so in-app-only gating ships without reconnect.
 	agentbridge.RefreshInstalledRelays(a.store.DataDir())
+	// Full reinstall when the app's plugin version moved past what was last connected.
+	a.upgradeOutdatedAgentCLIs()
 }
 
 func (a *App) ListAgentCLIs() []agentbridge.CLIInfo {
-	return agentbridge.ListPlugins(a.store.DataDir())
+	list := agentbridge.ListPlugins(a.store.DataDir())
+	recorded := a.store.Get().AgentCLIs
+	if recorded == nil {
+		recorded = map[string]string{}
+	}
+	dirty := false
+	next := map[string]string{}
+	for i := range list {
+		ver := recorded[list[i].ID]
+		list[i].ApplyConnectionVersion(ver)
+		if list[i].Installed {
+			if ver != "" {
+				next[list[i].ID] = ver
+			}
+		} else if _, ok := recorded[list[i].ID]; ok {
+			dirty = true // disk gone but config still lists it
+		}
+	}
+	if dirty || len(next) != len(recorded) {
+		_ = a.store.Update(func(cfg *config.AppConfig) {
+			cfg.AgentCLIs = next
+		})
+	}
+	return list
 }
 
 func (a *App) InstallAgentCLI(id string) (agentbridge.InstallResult, error) {
 	exe, _ := os.Executable()
-	return agentbridge.InstallPlugin(id, a.store.DataDir(), exe)
+	result, err := agentbridge.InstallPlugin(id, a.store.DataDir(), exe)
+	if err != nil {
+		return result, err
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		if cfg.AgentCLIs == nil {
+			cfg.AgentCLIs = map[string]string{}
+		}
+		cfg.AgentCLIs[id] = agentbridge.PluginVersion()
+	})
+	result.Installed = true
+	if result.Message == "" {
+		result.Message = "Connected (plugin " + agentbridge.PluginVersion() + ")"
+	}
+	return result, nil
 }
 
 func (a *App) UninstallAgentCLI(id string) error {
-	return agentbridge.UninstallPlugin(id, a.store.DataDir())
+	if err := agentbridge.UninstallPlugin(id, a.store.DataDir()); err != nil {
+		return err
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		if cfg.AgentCLIs == nil {
+			return
+		}
+		delete(cfg.AgentCLIs, id)
+	})
+	return nil
+}
+
+// upgradeOutdatedAgentCLIs reinstalls connected plugins whose recorded version
+// lags the app's current qtermPluginVersion (hooks/MCP/skills/relay changes).
+func (a *App) upgradeOutdatedAgentCLIs() {
+	for _, cli := range a.ListAgentCLIs() {
+		if !cli.Installed || !cli.Outdated {
+			continue
+		}
+		if _, err := a.InstallAgentCLI(cli.ID); err != nil {
+			println("agent plugin upgrade:", cli.ID, err.Error())
+			continue
+		}
+		println("agent plugin upgraded:", cli.ID, "→", agentbridge.PluginVersion())
+	}
 }
 
 type bridgeAPI struct{ app *App }

@@ -44,13 +44,26 @@ func (p Plugin) IsInstalled(dataDir string) bool {
 }
 
 func (p Plugin) Info(dataDir string) CLIInfo {
-	info := CLIInfo{ID: p.ID, Name: p.Name}
+	info := CLIInfo{ID: p.ID, Name: p.Name, ExpectedVersion: qtermPluginVersion}
 	if path, ok := p.IsCLIAvailable(); ok {
 		info.Available = true
 		info.Path = path
 	}
 	info.Installed = p.IsInstalled(dataDir)
 	return info
+}
+
+// ApplyConnectionVersion stamps the recorded connect version onto CLIInfo and marks outdated.
+// Empty recorded version while installed means a pre-versioning connect — treat as outdated.
+func (info *CLIInfo) ApplyConnectionVersion(recorded string) {
+	info.ExpectedVersion = qtermPluginVersion
+	if !info.Installed {
+		info.Version = ""
+		info.Outdated = false
+		return
+	}
+	info.Version = recorded
+	info.Outdated = recorded != qtermPluginVersion
 }
 
 func (p Plugin) Install(ctx InstallCtx) (InstallResult, error) {

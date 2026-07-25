@@ -15,11 +15,14 @@ type InstallResult struct {
 }
 
 type CLIInfo struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Available bool   `json:"available"`
-	Path      string `json:"path"`
-	Installed bool   `json:"installed"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Available        bool   `json:"available"`
+	Path             string `json:"path"`
+	Installed        bool   `json:"installed"`
+	Version          string `json:"version,omitempty"`          // version recorded when last connected/updated
+	ExpectedVersion  string `json:"expectedVersion,omitempty"`  // app's current qterm plugin version
+	Outdated         bool   `json:"outdated,omitempty"`         // installed but version != expected
 }
 
 func writeRelayScript(dataDir, token string) (string, error) {
