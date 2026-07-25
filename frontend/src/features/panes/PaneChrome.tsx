@@ -37,7 +37,7 @@ export function PaneChrome({
         </WithTooltip>
       )}
 
-      <PaneTitle sessionId={sessionId} />
+      <PaneTitle key={sessionId} sessionId={sessionId} />
       <PaneMenu paneId={paneId} sessionId={sessionId} />
     </div>
   );

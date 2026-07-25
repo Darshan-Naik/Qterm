@@ -11,7 +11,11 @@ export function requestSessionRename(sessionId: string) {
 }
 
 export function PaneTitle({ sessionId }: { sessionId: string }) {
-  const name = useUI((s) => s.sessions.find((x) => x.id === sessionId)?.name || "Terminal");
+  // Select sessions (not a prop-dependent slice). qortex-store-react caches by store
+  // state only — putting sessionId inside the selector leaves a stale title when the
+  // pane swaps sessions without a further store write (e.g. until you re-focus).
+  const sessions = useUI((s) => s.sessions);
+  const name = sessions.find((x) => x.id === sessionId)?.name || "Terminal";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);

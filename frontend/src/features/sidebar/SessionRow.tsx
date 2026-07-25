@@ -39,9 +39,12 @@ function agentLabel(id: string) {
 }
 
 export function SessionRow({ session }: { session: SessionInfo }) {
-  const focused = useUI((s) => s.focusedSessionId === session.id);
-  const anim = useUI((s) => s.paneAnimations[session.id] || "none");
-  const agent = useUI((s) => s.sessionAgents[session.id] || "");
+  const focusedSessionId = useUI((s) => s.focusedSessionId);
+  const paneAnimations = useUI((s) => s.paneAnimations);
+  const sessionAgents = useUI((s) => s.sessionAgents);
+  const focused = focusedSessionId === session.id;
+  const anim = paneAnimations[session.id] || "none";
+  const agent = sessionAgents[session.id] || "";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const inputRef = useRef<HTMLInputElement>(null);
