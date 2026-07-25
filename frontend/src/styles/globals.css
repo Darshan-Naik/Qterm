@@ -238,15 +238,6 @@ textarea {
     outline: 1px solid color-mix(in oklab, #3dbf7a 60%, transparent);
   }
 }
-@keyframes pulse-thinking {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.72;
-  }
-}
 @keyframes session-row-breathe {
   0%,
   100% {
@@ -271,9 +262,7 @@ textarea {
 .pane-task_complete {
   animation: pulse-complete 1s ease-in-out 3;
 }
-.pane-thinking {
-  animation: pulse-thinking 1.4s ease-in-out 2;
-}
+/* thinking stays in the sidebar row only — never opacity-pulse the terminal pane */
 .session-thinking {
   animation: session-row-breathe 1.6s ease-in-out infinite;
 }

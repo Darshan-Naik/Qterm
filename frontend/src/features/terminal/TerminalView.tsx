@@ -51,11 +51,15 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
     if (focusedPaneId === paneId) focusTerminal(sessionId);
   }, [focusedPaneId, paneId, sessionId]);
 
+  // Pane chrome only for finite attention cues. "thinking" is sidebar-only —
+  // opacity-pulsing the whole terminal on first prompt is distracting.
+  const paneAnim = anim === "action_required" || anim === "task_complete" ? anim : "none";
+
   return (
     <div
       className={cn(
         "relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-background px-2.5 pb-2.5 pt-0",
-        anim !== "none" && `pane-${anim}`
+        paneAnim !== "none" && `pane-${paneAnim}`
       )}
       onMouseDown={() => {
         uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId });
