@@ -36,6 +36,7 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	setDockIcon(appIcon)
 	store, err := config.NewStore()
 	if err != nil {
 		panic(err)
@@ -82,12 +83,25 @@ func (a *App) setupMenu() {
 		runtime.Quit(a.ctx)
 	})
 
-	appMenu := menu.NewMenuFromItems(
+	items := []*menu.MenuItem{
 		menu.SubMenu("Qterm", app),
 		menu.EditMenu(),
 		menu.WindowMenu(),
-	)
-	runtime.MenuSetApplicationMenu(a.ctx, appMenu)
+	}
+	// Developer tools only when the inspector is compiled in (wails dev / debug / --devtools).
+	if isDevBuild {
+		dev := menu.NewMenu()
+		dev.AddText(
+			"Toggle Developer Tools",
+			keys.Combo("i", keys.CmdOrCtrlKey, keys.OptionOrAltKey),
+			func(_ *menu.CallbackData) {
+				runtime.EventsEmit(a.ctx, "app:open-inspector")
+			},
+		)
+		items = append(items, menu.SubMenu("Developer", dev))
+	}
+
+	runtime.MenuSetApplicationMenu(a.ctx, menu.NewMenuFromItems(items[0], items[1:]...))
 }
 
 func (a *App) shutdown(ctx context.Context) {
