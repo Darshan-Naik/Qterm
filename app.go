@@ -165,14 +165,10 @@ func (a *App) onPtyData(sessionID string, data []byte) {
 	if a.hooks != nil {
 		a.hooks.BroadcastOutput(sessionID, data)
 	}
-	// Adopt agent/CLI window titles so the sidebar stays in sync without MCP rename.
-	// Skipped when the user has manually renamed this terminal.
-	if titles := scrollback.ExtractWindowTitles(data); len(titles) > 0 {
-		title := titles[len(titles)-1]
-		if shouldAdoptOSCTitle(title) {
-			_ = a.adoptSessionTitle(sessionID, title)
-		}
-	}
+	// Do not adopt OSC 0/2 window titles into the sidebar name.
+	// Agent CLIs set those to the process ("codex") then the project folder —
+	// that overrides Qterm's random names. Use MCP rename_terminal / hook
+	// session_title for intentional renames instead.
 }
 
 func (a *App) onPtyExit(sessionID string, code int) {
@@ -464,7 +460,52 @@ func (a *App) SetSessionName(id, name string) bool {
 }
 
 func (a *App) adoptSessionTitle(id, name string) bool {
+	if looksLikeAgentStatusTitle(name) {
+		// Don't mirror CLI chrome. If a prior sync already stuck a status title
+		// on the tab, peel it back to the suffix (e.g. "Action Required | qortex" → "qortex").
+		if sess, ok := a.pty.Get(id); ok && looksLikeAgentStatusTitle(sess.Name) {
+			if cleaned := stripAgentStatusTitle(sess.Name); cleaned != "" && cleaned != sess.Name {
+				return a.renameSession(id, cleaned, renameAuto)
+			}
+		}
+		return false
+	}
+	if !shouldAdoptAutoTitle(name) {
+		return false
+	}
+	if a.titleMatchesSessionContext(id, name) {
+		return false
+	}
 	return a.renameSession(id, name, renameAuto)
+}
+
+// titleMatchesSessionContext is true when the title is just the project or cwd
+// folder — already visible in the sidebar, not a useful terminal label.
+func (a *App) titleMatchesSessionContext(id, name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return false
+	}
+	sess, ok := a.pty.Get(id)
+	if !ok {
+		return false
+	}
+	if base := filepath.Base(sess.Cwd); base != "" && base != "." && base != "/" {
+		if strings.EqualFold(base, name) {
+			return true
+		}
+	}
+	if sess.ProjectID != "" && a.projects != nil {
+		if p, ok := a.projects.Get(sess.ProjectID); ok {
+			if strings.EqualFold(strings.TrimSpace(p.Name), name) {
+				return true
+			}
+			if base := filepath.Base(p.Path); base != "" && strings.EqualFold(base, name) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type renameMode int
@@ -551,20 +592,62 @@ func looksLikeShellTitle(name string) bool {
 	return true
 }
 
-// shouldAdoptOSCTitle filters shell/default titles that shouldn't replace session labels.
-func shouldAdoptOSCTitle(name string) bool {
+// shouldAdoptAutoTitle filters process/folder/status titles that shouldn't replace session labels.
+// Intentional renames come from MCP rename_terminal (less filtered) or multi-word hook titles.
+func shouldAdoptAutoTitle(name string) bool {
 	name = strings.TrimSpace(name)
-	if name == "" || looksLikeShellTitle(name) {
+	if name == "" || looksLikeShellTitle(name) || looksLikeAgentStatusTitle(name) {
 		return false
 	}
 	if len(name) > 80 {
 		return false
 	}
-	switch strings.ToLower(name) {
-	case "bash", "zsh", "sh", "fish", "terminal", "qterm", "tmux", "screen":
+	lower := strings.ToLower(name)
+	switch lower {
+	case "bash", "zsh", "sh", "fish", "terminal", "qterm", "tmux", "screen",
+		"codex", "claude", "claude code", "gemini", "agy", "antigravity",
+		"cursor", "cursor-agent", "agent", "node", "python", "python3", "vim", "nvim":
+		return false
+	}
+	// Bare single tokens are almost always the CLI binary or project folder
+	// ("codex", "qortex"). Prefer descriptive labels ("Fix login", "fix-auth").
+	if !strings.ContainsAny(name, " \t") && !strings.Contains(name, "-") {
 		return false
 	}
 	return true
+}
+
+// shouldAdoptOSCTitle kept as alias for tests / call sites.
+func shouldAdoptOSCTitle(name string) bool {
+	return shouldAdoptAutoTitle(name)
+}
+
+// looksLikeAgentStatusTitle matches CLI window chrome (e.g. Claude "Action Required | proj").
+// Qterm already shows needs-input via the sidebar dot/animation — don't mirror that text.
+func looksLikeAgentStatusTitle(name string) bool {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	if lower == "" {
+		return false
+	}
+	switch {
+	case strings.Contains(lower, "action required"),
+		strings.HasPrefix(lower, "needs input"),
+		strings.HasPrefix(lower, "waiting for input"),
+		strings.HasPrefix(lower, "permission required"),
+		strings.HasPrefix(lower, "awaiting"):
+		return true
+	}
+	return false
+}
+
+func stripAgentStatusTitle(name string) string {
+	if i := strings.LastIndex(name, "|"); i >= 0 {
+		rest := strings.TrimSpace(name[i+1:])
+		if rest != "" && !looksLikeAgentStatusTitle(rest) {
+			return rest
+		}
+	}
+	return ""
 }
 
 // SetFocusedSession records which terminal the UI is focused on.

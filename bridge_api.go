@@ -77,7 +77,11 @@ func (b *bridgeAPI) RenameTerminal(id, name string) error {
 	if b.app.isNameLocked(id) {
 		return fmt.Errorf("terminal name was set by the user — auto rename skipped")
 	}
-	if !b.app.adoptSessionTitle(id, name) {
+	// MCP rename is intentional — don't apply OSC heuristics (bare tokens / project names).
+	if looksLikeAgentStatusTitle(name) {
+		return fmt.Errorf("refusing status title %q", name)
+	}
+	if !b.app.renameSession(id, name, renameAuto) {
 		return fmt.Errorf("session not found")
 	}
 	return nil

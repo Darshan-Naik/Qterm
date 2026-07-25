@@ -48,3 +48,29 @@ func TestManualRenameBlocksAutoSync(t *testing.T) {
 		t.Fatal("system rename should preserve lock")
 	}
 }
+
+func TestRejectAgentStatusTitles(t *testing.T) {
+	cases := []string{
+		"Action Required | qortex",
+		"[.] Action Required | qortex",
+		"Needs input",
+		"Waiting for input",
+		"codex",
+		"qortex",
+		"claude",
+	}
+	for _, name := range cases {
+		if shouldAdoptAutoTitle(name) {
+			t.Fatalf("should reject auto title %q", name)
+		}
+	}
+	if !shouldAdoptAutoTitle("Fix login bug") {
+		t.Fatal("should allow descriptive session titles")
+	}
+	if !shouldAdoptAutoTitle("fix-auth-flow") {
+		t.Fatal("should allow hyphenated task slugs")
+	}
+	if got := stripAgentStatusTitle("Action Required | qortex"); got != "qortex" {
+		t.Fatalf("strip got %q", got)
+	}
+}
