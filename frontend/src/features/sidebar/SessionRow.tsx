@@ -87,7 +87,7 @@ export function SessionRow({ session }: { session: SessionInfo }) {
                     setEditing(false);
                   }
                 }}
-                className="min-w-0 flex-1 rounded-sm bg-secondary/60 px-1 py-0.5 text-[12.5px] text-sidebar-foreground outline-none ring-1 ring-ring/40"
+                className="min-w-0 flex-1 select-text rounded-sm bg-secondary/60 px-1 py-0.5 text-[12.5px] text-sidebar-foreground outline-none ring-1 ring-ring/40"
               />
             ) : (
               <span

@@ -80,9 +80,14 @@ export function useAppBootstrap() {
       const p = page === "terminal" || page === "plugins" || page === "appearance" ? page : "appearance";
       openSettings(p);
     });
+    const offInspector = (EventsOn as any)("app:open-inspector", () => {
+      const invoke = (window as unknown as { WailsInvoke?: (msg: string) => void }).WailsInvoke;
+      invoke?.("wails:openInspector");
+    });
     return () => {
       if (typeof offSessions === "function") offSessions();
       if (typeof offSettings === "function") offSettings();
+      if (typeof offInspector === "function") offInspector();
     };
   }, []);
 

@@ -16,7 +16,7 @@ export function SettingsSidebar({
   const page = useUI((s) => s.settingsPage);
 
   return (
-    <aside className="flex w-[240px] shrink-0 flex-col bg-sidebar text-sidebar-foreground titlebar-no-drag">
+    <aside className="flex w-[240px] shrink-0 flex-col select-none bg-sidebar text-sidebar-foreground titlebar-no-drag">
       <div
         className="h-[var(--titlebar-height)] shrink-0 titlebar-drag"
         style={{ paddingLeft: "var(--traffic-inset)" }}
@@ -38,7 +38,7 @@ export function SettingsSidebar({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search settings"
-            className="h-8 rounded-full border-0 bg-secondary/70 pl-8 text-[12.5px] shadow-none focus-visible:ring-1"
+            className="h-8 select-text rounded-full border-0 bg-secondary/70 pl-8 text-[12.5px] shadow-none focus-visible:ring-1"
           />
         </div>
 

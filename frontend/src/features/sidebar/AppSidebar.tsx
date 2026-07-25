@@ -18,7 +18,7 @@ export function AppSidebar() {
     <div className="flex h-full shrink-0">
       <aside
         style={{ width }}
-        className="flex h-full min-w-0 flex-col bg-sidebar text-sidebar-foreground titlebar-no-drag"
+        className="flex h-full min-w-0 flex-col select-none bg-sidebar text-sidebar-foreground titlebar-no-drag"
       >
         <div className="flex h-[var(--titlebar-height)] shrink-0 items-center titlebar-drag pl-[var(--traffic-inset)]">
           <Button
