@@ -1,43 +1,46 @@
 # Qterm
 
-Mac-first terminal app built with **Wails (Go + React/TypeScript)**.
+**A fast, focused terminal for people who live in the shell.**
 
-## Stack
-- Go PTY (`creack/pty`) + Wails v2
-- React, Tailwind, shadcn/ui
-- Qortex (`qortex-store`, `qortex-query`, `qortex-db`)
-- xterm.js, installable agent hooks
+Qterm keeps your projects, terminals, and splits in one calm Mac window — so you spend less time managing tabs and more time shipping.
 
-## Features
-- Sidebar: **New terminal** (default path) + **Projects** (local folders)
-- Split/grid panes (right / down), rename/close sessions
-- Dark / light / system theme
-- Git branch + dirty indicator on projects
-- Command palette + hotkeys
-- Hooks platform (demo + Claude reference hooks)
+---
 
-## Develop
-```bash
-wails dev
-```
+## Why Qterm
 
-## Build
-```bash
-wails build
-# app at build/bin/q-term.app
-```
+**Projects, not clutter.**  
+Map local folders as projects. Open as many terminals as you need under each one, rename them, and keep home / quick shells separate when you’re just experimenting.
 
-## Hotkeys
-| Shortcut | Action |
-|---|---|
-| ⌘K | Command palette |
-| ⌘T | New terminal |
-| ⌘B | Toggle sidebar |
-| ⌘⇧L | Split right |
-| ⌘⇧J | Split down |
-| ⌘⇧W | Close pane |
-| ⌘] / ⌘[ | Focus next / prev pane |
-| ⌘⇧D | Toggle dark/light |
+**Splits that feel native.**  
+Split right or down and work side by side. Each pane has its own title and menu — no crowded tab strip fighting for attention.
 
-## Hooks
-Bundled examples live in `hooks/demo-hook` and `hooks/claude-hook`. Install more from any folder with a `manifest.json` via the puzzle icon.
+**Built for flow.**  
+Command palette, thoughtful shortcuts, dark and light themes, and a sidebar that stays out of your way until you need it.
+
+**Ready for agents.**  
+Install hooks that observe your terminals and surface actions in the UI — without turning Qterm into another chat app.
+
+---
+
+## Designed for Mac
+
+Qterm is Mac-first: traffic lights, menus, and chrome that feel at home next to the tools you already use. Cross-platform support is on the roadmap.
+
+---
+
+## A quieter workspace
+
+- Simple sidebar: new terminals and projects
+- Git branch awareness on project folders
+- Sessions that remember where you left off
+- Settings that stay out of the main view until you open them
+
+---
+
+## Get started
+
+Download the latest release from [GitHub](https://github.com/Darshan-Naik/Qterm), open **Qterm**, and create a terminal — or add a project folder and go.
+
+---
+
+*Qterm — terminal, without the noise.*
