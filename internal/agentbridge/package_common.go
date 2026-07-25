@@ -8,7 +8,7 @@ import (
 )
 
 const qtermPluginName = "qterm"
-const qtermPluginVersion = "1.2.1"
+const qtermPluginVersion = "1.2.2"
 
 func userHomeDir() string {
 	home, _ := os.UserHomeDir()
@@ -77,7 +77,8 @@ func writeQtermSkill(dir string) error {
 		"",
 		"When you name or rename this session from the first user prompt or task context,",
 		"also call rename_terminal with that same short name so the Qterm tab matches.",
-		"If rename_terminal says the name was set by the user, leave it alone.",
+		"Qterm already auto-names once from the first user prompt — only rename if the user asks or /rename.",
+		"rename_terminal always works for agents (even if the user renamed earlier).",
 		"Call rename_terminal with {\"name\":\"<new name>\", \"id\":\"<id from get_terminal_id>\"}.",
 		"Do not use printf/OSC title hacks.",
 		"",

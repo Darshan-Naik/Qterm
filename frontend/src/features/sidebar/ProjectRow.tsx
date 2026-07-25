@@ -2,7 +2,6 @@ import {
   Folder,
   FolderGit2,
   MoreHorizontal,
-  GitBranch,
   Circle,
   ChevronRight,
   Plus,
@@ -73,12 +72,11 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               }}
               onDoubleClick={() => toggleProjectCollapsed(id)}
             >
-              <span className="min-w-0 flex-1 truncate font-normal">{name}</span>
+              <span className="max-w-[42%] shrink-0 truncate font-normal">{name}</span>
               {git?.isRepo && (
-                <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground group-hover:hidden">
-                  <GitBranch className="size-3 opacity-70" />
-                  <span className="max-w-16 truncate">{git.branch}</span>
-                  {git.dirty && <Circle className="size-1.5 fill-amber-400 text-amber-400" />}
+                <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-[11px] text-muted-foreground group-hover:hidden">
+                  <span className="min-w-0 truncate">{git.branch}</span>
+                  {git.dirty && <Circle className="size-1.5 shrink-0 fill-amber-400 text-amber-400" />}
                 </span>
               )}
             </button>
@@ -87,7 +85,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                className="hidden size-6 shrink-0 group-hover:inline-flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   void createTerminal(id);
@@ -103,7 +101,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                    className="hidden size-6 shrink-0 group-hover:inline-flex"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="size-3.5" />

@@ -460,23 +460,57 @@ func (a *App) SetSessionName(id, name string) bool {
 }
 
 func (a *App) adoptSessionTitle(id, name string) bool {
-	if looksLikeAgentStatusTitle(name) {
-		// Don't mirror CLI chrome. If a prior sync already stuck a status title
-		// on the tab, peel it back to the suffix (e.g. "Action Required | qortex" → "qortex").
-		if sess, ok := a.pty.Get(id); ok && looksLikeAgentStatusTitle(sess.Name) {
-			if cleaned := stripAgentStatusTitle(sess.Name); cleaned != "" && cleaned != sess.Name {
-				return a.renameSession(id, cleaned, renameAuto)
-			}
-		}
+	return a.applyAgentTitle(id, name)
+}
+
+// applyFirstPromptTitle sets the tab name once from the first user prompt.
+// Skipped when the user locked the name or an auto/agent title was already applied.
+func (a *App) applyFirstPromptTitle(id, name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" || a.isNameLocked(id) || a.isAutoTitled(id) {
 		return false
 	}
-	if !shouldAdoptAutoTitle(name) {
+	if looksLikeShellTitle(name) || looksLikeAgentStatusTitle(name) {
 		return false
 	}
 	if a.titleMatchesSessionContext(id, name) {
 		return false
 	}
-	return a.renameSession(id, name, renameAuto)
+	if !a.renameSession(id, name, renameAuto) {
+		return false
+	}
+	a.markAutoTitled(id)
+	return true
+}
+
+// applyAgentTitle applies an explicit CLI session title (/rename, customTitle).
+func (a *App) applyAgentTitle(id, name string) bool {
+	if looksLikeAgentStatusTitle(name) {
+		if sess, ok := a.pty.Get(id); ok && looksLikeAgentStatusTitle(sess.Name) {
+			if cleaned := stripAgentStatusTitle(sess.Name); cleaned != "" && cleaned != sess.Name {
+				if a.renameSession(id, cleaned, renameAuto) {
+					a.markAutoTitled(id)
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if looksLikeShellTitle(name) {
+		return false
+	}
+	if a.titleMatchesSessionContext(id, name) {
+		return false
+	}
+	// Explicit titles may be short single tokens ("auth") — allow them.
+	if a.isNameLocked(id) {
+		return false
+	}
+	if !a.renameSession(id, name, renameAuto) {
+		return false
+	}
+	a.markAutoTitled(id)
+	return true
 }
 
 // titleMatchesSessionContext is true when the title is just the project or cwd
@@ -508,12 +542,38 @@ func (a *App) titleMatchesSessionContext(id, name string) bool {
 	return false
 }
 
+func (a *App) isAutoTitled(id string) bool {
+	if a.store == nil || id == "" {
+		return false
+	}
+	for _, s := range a.store.Get().Sessions {
+		if s.ID == id {
+			return s.AutoTitled
+		}
+	}
+	return false
+}
+
+func (a *App) markAutoTitled(id string) {
+	if a.store == nil || id == "" {
+		return
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		for i := range cfg.Sessions {
+			if cfg.Sessions[i].ID == id {
+				cfg.Sessions[i].AutoTitled = true
+			}
+		}
+	})
+}
+
 type renameMode int
 
 const (
 	renameUser renameMode = iota // UI rename — locks against auto-sync
-	renameAuto                   // OSC / hooks / MCP — skip if locked
+	renameAuto                   // first-prompt / hook titles — skip if locked
 	renameSystem                 // system fix — apply, leave lock unchanged
+	renameAgent                  // MCP rename_terminal — always apply, clear user lock
 )
 
 func (a *App) isNameLocked(id string) bool {
@@ -547,15 +607,19 @@ func (a *App) renameSession(id, name string, mode renameMode) bool {
 		return false
 	}
 	if sess, ok := a.pty.Get(id); ok && sess.Name == name {
-		if mode == renameUser {
-			_ = a.store.Update(func(cfg *config.AppConfig) {
-				for i := range cfg.Sessions {
-					if cfg.Sessions[i].ID == id {
+		_ = a.store.Update(func(cfg *config.AppConfig) {
+			for i := range cfg.Sessions {
+				if cfg.Sessions[i].ID == id {
+					switch mode {
+					case renameUser:
 						cfg.Sessions[i].NameLocked = true
+					case renameAgent:
+						cfg.Sessions[i].NameLocked = false
+						cfg.Sessions[i].AutoTitled = true
 					}
 				}
-			})
-		}
+			}
+		})
 		return true
 	}
 	ok := a.pty.Rename(id, name)
@@ -564,8 +628,12 @@ func (a *App) renameSession(id, name string, mode renameMode) bool {
 			for i := range cfg.Sessions {
 				if cfg.Sessions[i].ID == id {
 					cfg.Sessions[i].Name = name
-					if mode == renameUser {
+					switch mode {
+					case renameUser:
 						cfg.Sessions[i].NameLocked = true
+					case renameAgent:
+						cfg.Sessions[i].NameLocked = false
+						cfg.Sessions[i].AutoTitled = true
 					}
 				}
 			}
