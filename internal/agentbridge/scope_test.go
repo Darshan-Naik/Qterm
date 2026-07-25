@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"qterm/internal/appmode"
 )
 
 func TestRelayScriptGatesOnQtermSessionID(t *testing.T) {
@@ -95,7 +97,7 @@ func TestHookWithTerminalIDIsAccepted(t *testing.T) {
 func TestRefreshInstalledRelaysRewritesGate(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	dataDir := filepath.Join(home, "Library", "Application Support", "q-term")
+	dataDir := filepath.Join(home, "Library", "Application Support", appmode.DataDir)
 	ctx := testInstallCtx(t, home)
 	if _, err := installClaudePlugin(ctx); err != nil {
 		t.Fatal(err)

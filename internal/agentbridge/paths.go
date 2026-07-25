@@ -6,12 +6,17 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"qterm/internal/appmode"
 )
 
 const (
-	DefaultPort = 19527
-	HookMarker  = "qterm-agent-bridge"
+	HookMarker = "qterm-agent-bridge"
 )
+
+// DefaultPort is the HTTP bridge listen port. Dev builds use a different port
+// so wails dev and the packaged app can run side by side.
+var DefaultPort = appmode.BridgePort
 
 type EndpointFile struct {
 	URL   string `json:"url"`

@@ -47,12 +47,42 @@ function isMouseReport(data: string): boolean {
   );
 }
 
+/**
+ * Auto replies xterm.js sends to the PTY (focus, DA, DECRQM). When a TUI exits
+ * without consuming them, they land in the shell as garbage like
+ * `^[[I^[[?1;2c^[[?2026;2$y`.
+ */
+function isTerminalProtocolNoise(data: string): boolean {
+  if (!data) return false;
+  // Focus in/out (DECSET 1004)
+  if (data === "\x1b[I" || data === "\x1b[O") return true;
+  // CSI ? … c  (Primary/Secondary Device Attributes)
+  if (/^\x1b\[\?[\d;]*c$/.test(data)) return true;
+  // CSI ? Pn ; Pn $ y  or colon form (DECRQM / mode status)
+  if (/^\x1b\[\?\d+[;:]\d+\$y$/.test(data)) return true;
+  // Burst of the above (common right after an agent TUI exits)
+  if (/^(?:\x1b\[[IO]|\x1b\[\?[\d;]*c|\x1b\[\?\d+[;:]\d+\$y)+$/.test(data)) return true;
+  // Same burst with stray printable crumbs left from partial parses (* bm etc.)
+  const stripped = data.replace(
+    /(?:\x1b\[[IO]|\x1b\[\?[\d;]*c|\x1b\[\?\d+[;:]\d+\$y)+/g,
+    ""
+  );
+  if (stripped !== data && /^[\x00-\x1f\s*]*$/.test(stripped)) return true;
+  return false;
+}
+
 /** Turn off DEC mouse modes in the emulator only (does not write to the PTY). */
 function disableMouseTracking(term: Terminal) {
   // Apps sometimes leave ?1000h/?1003h/?1006h on after exit; clear them locally.
   term.write(
     "\x1b[?1000l\x1b[?1001l\x1b[?1002l\x1b[?1003l\x1b[?1005l\x1b[?1006l\x1b[?1015l"
   );
+}
+
+/** Clear focus-report / mouse modes TUIs often leave enabled on the shell. */
+function disableShellLeakingModes(term: Terminal) {
+  disableMouseTracking(term);
+  term.write("\x1b[?1004l"); // focus in/out reports
 }
 
 type Pending = { data: string; seq: number };
@@ -111,15 +141,14 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   const fit = new FitAddon();
   term.loadAddon(fit);
   const dataDisposable = term.onData((data) => {
-    // If an app left mouse tracking on after returning to the normal (shell)
-    // buffer, scroll/move events would be typed into the prompt as garbage
-    // like "35;18;20M". Drop them and clear tracking; keep mouse for TUIs
-    // on the alternate screen (vim, Claude Code, etc.).
-    if (isMouseReport(data) && term.buffer.active.type === "normal") {
-      if (term.modes.mouseTrackingMode !== "none") {
-        disableMouseTracking(term);
+    // Shell (normal buffer) only: drop auto protocol replies / mouse reports that
+    // TUIs leave pending so they don't type into the prompt. Keep them on the
+    // alternate screen (vim, Claude, Antigravity, etc.).
+    if (term.buffer.active.type === "normal") {
+      if (isMouseReport(data) || isTerminalProtocolNoise(data)) {
+        disableShellLeakingModes(term);
+        return;
       }
-      return;
     }
     const bytes = new TextEncoder().encode(data);
     void WriteSessionBytes(sessionId, b64encode(bytes));

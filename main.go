@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"qterm/internal/agentbridge"
+	"qterm/internal/appmode"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -27,7 +28,7 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:     "Qterm",
+		Title:     appmode.AppTitle,
 		Width:     1280,
 		Height:    800,
 		MinWidth:  900,
@@ -47,7 +48,7 @@ func main() {
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			About: &mac.AboutInfo{
-				Title:   "Qterm",
+				Title:   appmode.AppTitle,
 				Message: "A fast terminal with project groups and agent hooks.",
 				Icon:    appIcon,
 			},
