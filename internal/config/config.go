@@ -19,7 +19,7 @@ type SplitNode struct {
 type SessionMeta struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
-	ProjectID string `json:"projectId"` // "" = home, "quick" = quick
+	ProjectID string `json:"projectId"` // "" or "home" = unbound
 	Cwd       string `json:"cwd"`
 	Pinned    bool   `json:"pinned"`
 }
@@ -30,15 +30,16 @@ type ProjectMeta struct {
 	Path string `json:"path"`
 }
 
-type LayoutStore map[string]SplitNode // keyed by project id or "home" / "quick"
+type LayoutStore map[string]SplitNode // keyed by project id or "home"
 
 type AppConfig struct {
-	Projects []ProjectMeta `json:"projects"`
-	Sessions []SessionMeta `json:"sessions"`
-	Layouts  LayoutStore   `json:"layouts"`
-	Theme    string        `json:"theme"` // system | dark | light
-	Shell    string        `json:"shell"`
-	FontSize int           `json:"fontSize"`
+	Projects    []ProjectMeta `json:"projects"`
+	Sessions    []SessionMeta `json:"sessions"`
+	Layouts     LayoutStore   `json:"layouts"`
+	ActiveScope string        `json:"activeScope"`
+	Theme       string        `json:"theme"` // system | dark | light
+	Shell       string        `json:"shell"`
+	FontSize    int           `json:"fontSize"`
 }
 
 type Store struct {
@@ -49,12 +50,13 @@ type Store struct {
 
 func DefaultConfig() AppConfig {
 	return AppConfig{
-		Projects: []ProjectMeta{},
-		Sessions: []SessionMeta{},
-		Layouts:  LayoutStore{},
-		Theme:    "system",
-		Shell:    "",
-		FontSize: 13,
+		Projects:    []ProjectMeta{},
+		Sessions:    []SessionMeta{},
+		Layouts:     LayoutStore{},
+		ActiveScope: "_default",
+		Theme:       "system",
+		Shell:       "",
+		FontSize:    13,
 	}
 }
 
@@ -70,6 +72,8 @@ func NewStore() (*Store, error) {
 	path := filepath.Join(base, "config.json")
 	s := &Store{path: path, cfg: DefaultConfig()}
 	_ = s.Load()
+	// Persist migrations (legacy quick/home → _default) if any.
+	_ = s.Save()
 	return s, nil
 }
 
@@ -109,6 +113,34 @@ func (s *Store) Load() error {
 	}
 	if cfg.FontSize == 0 {
 		cfg.FontSize = 13
+	}
+	if cfg.ActiveScope == "" {
+		cfg.ActiveScope = "_default"
+	}
+	// Migrate legacy "quick"/"home" unbound ids to empty projectId.
+	for i := range cfg.Sessions {
+		if cfg.Sessions[i].ProjectID == "quick" || cfg.Sessions[i].ProjectID == "home" {
+			cfg.Sessions[i].ProjectID = ""
+		}
+	}
+	if layout, ok := cfg.Layouts["quick"]; ok {
+		cfg.Layouts["_default"] = layout
+		delete(cfg.Layouts, "quick")
+	}
+	if layout, ok := cfg.Layouts["home"]; ok {
+		if _, exists := cfg.Layouts["_default"]; !exists {
+			cfg.Layouts["_default"] = layout
+		}
+		delete(cfg.Layouts, "home")
+	}
+	if cfg.ActiveScope == "quick" || cfg.ActiveScope == "home" {
+		cfg.ActiveScope = "_default"
+	}
+	if cfg.Sessions == nil {
+		cfg.Sessions = []SessionMeta{}
+	}
+	if cfg.Projects == nil {
+		cfg.Projects = []ProjectMeta{}
 	}
 	s.cfg = cfg
 	return nil

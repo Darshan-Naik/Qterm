@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	HomeID  = "home"
-	QuickID = "quick"
+	HomeID = "home"
 )
 
 type Service struct {

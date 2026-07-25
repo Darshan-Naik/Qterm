@@ -13,16 +13,21 @@ import (
 	"qterm/internal/hooks"
 	ptymgr "qterm/internal/pty"
 	"qterm/internal/project"
+	"qterm/internal/scrollback"
 
+	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
-	ctx     context.Context
-	store   *config.Store
-	pty     *ptymgr.Manager
-	projects *project.Service
-	hooks   *hooks.Host
+	ctx          context.Context
+	store        *config.Store
+	pty          *ptymgr.Manager
+	projects     *project.Service
+	hooks        *hooks.Host
+	scrollback   *scrollback.Store
+	shuttingDown bool
 }
 
 func NewApp() *App {
@@ -38,6 +43,12 @@ func (a *App) startup(ctx context.Context) {
 	a.store = store
 	cfg := store.Get()
 
+	sb, err := scrollback.NewStore(filepath.Join(store.DataDir(), "scrollback"))
+	if err != nil {
+		panic(err)
+	}
+	a.scrollback = sb
+
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
 	a.projects = project.NewService(store)
 	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
@@ -45,9 +56,45 @@ func (a *App) startup(ctx context.Context) {
 	// Seed bundled demo hooks if missing
 	a.ensureBundledHooks()
 	a.hooks.ActivateAll()
+
+	// Recreate terminals from last session
+	a.restoreSessions()
+	a.setupMenu()
+}
+
+func (a *App) setupMenu() {
+	// First submenu is the macOS app menu. Custom so we can keep About + Settings together
+	// (Wails AppMenu role can't be extended with extra items).
+	app := menu.NewMenu()
+	app.AddText("About Qterm", nil, func(_ *menu.CallbackData) {
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    runtime.InfoDialog,
+			Title:   "About Qterm",
+			Message: "A fast terminal with project groups and agent hooks.",
+		})
+	})
+	app.AddSeparator()
+	app.AddText("Settings…", keys.CmdOrCtrl(","), func(_ *menu.CallbackData) {
+		runtime.EventsEmit(a.ctx, "app:open-settings", "appearance")
+	})
+	app.AddSeparator()
+	app.AddText("Quit Qterm", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+		runtime.Quit(a.ctx)
+	})
+
+	appMenu := menu.NewMenuFromItems(
+		menu.SubMenu("Qterm", app),
+		menu.EditMenu(),
+		menu.WindowMenu(),
+	)
+	runtime.MenuSetApplicationMenu(a.ctx, appMenu)
 }
 
 func (a *App) shutdown(ctx context.Context) {
+	a.shuttingDown = true
+	if a.scrollback != nil {
+		a.scrollback.Close()
+	}
 	if a.pty != nil {
 		a.pty.CloseAll()
 	}
@@ -58,34 +105,83 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
-func (a *App) ensureBundledHooks() {
-	candidates := []string{
-		filepath.Join("hooks", "demo-hook"),
-		filepath.Join("hooks", "claude-hook"),
-	}
-	exe, _ := os.Getwd()
-	for _, rel := range candidates {
-		src := filepath.Join(exe, rel)
-		if _, err := os.Stat(filepath.Join(src, "manifest.json")); err != nil {
-			continue
+func (a *App) restoreSessions() {
+	cfg := a.store.Get()
+	for _, meta := range cfg.Sessions {
+		if a.scrollback != nil {
+			a.scrollback.Load(meta.ID)
 		}
-		data, _ := os.ReadFile(filepath.Join(src, "manifest.json"))
-		var m hooks.Manifest
-		if json.Unmarshal(data, &m) != nil || m.ID == "" {
-			continue
+		cwd := meta.Cwd
+		if cwd == "" && meta.ProjectID != "" && meta.ProjectID != project.HomeID {
+			if p, ok := a.projects.Get(meta.ProjectID); ok {
+				cwd = p.Path
+			}
 		}
-		dest := filepath.Join(a.hooks.Dir(), m.ID)
-		if _, err := os.Stat(dest); err == nil {
-			continue
+		_, err := a.pty.Create(ptymgr.CreateOpts{
+			ID:        meta.ID,
+			Name:      meta.Name,
+			ProjectID: meta.ProjectID,
+			Cwd:       cwd,
+			Pinned:    meta.Pinned,
+		})
+		if err != nil {
+			println("restore session failed:", meta.ID, err.Error())
 		}
-		_, _ = a.hooks.InstallFromPath(src)
 	}
 }
 
+func (a *App) ensureBundledHooks() {
+	rels := []string{
+		filepath.Join("hooks", "demo-hook"),
+		filepath.Join("hooks", "claude-hook"),
+	}
+	var roots []string
+	if wd, err := os.Getwd(); err == nil {
+		roots = append(roots, wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		roots = append(roots, filepath.Dir(exe))
+		roots = append(roots, filepath.Dir(filepath.Dir(exe))) // .app/Contents/MacOS -> Contents
+	}
+	for _, root := range roots {
+		for _, rel := range rels {
+			src := filepath.Join(root, rel)
+			if _, err := os.Stat(filepath.Join(src, "manifest.json")); err != nil {
+				continue
+			}
+			data, _ := os.ReadFile(filepath.Join(src, "manifest.json"))
+			var m hooks.Manifest
+			if json.Unmarshal(data, &m) != nil || m.ID == "" {
+				continue
+			}
+			dest := filepath.Join(a.hooks.Dir(), m.ID)
+			if _, err := os.Stat(dest); err == nil {
+				// Refresh bundled script so hook fixes ship without reinstall.
+				_ = copyFile(filepath.Join(src, "index.js"), filepath.Join(dest, "index.js"))
+				continue
+			}
+			_, _ = a.hooks.InstallFromPath(src)
+		}
+	}
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, in, 0o755)
+}
+
 func (a *App) onPtyData(sessionID string, data []byte) {
+	var seq uint64
+	if a.scrollback != nil {
+		seq = a.scrollback.Append(sessionID, data)
+	}
 	runtime.EventsEmit(a.ctx, "pty:data", map[string]any{
 		"sessionId": sessionID,
 		"data":      base64.StdEncoding.EncodeToString(data),
+		"seq":       seq,
 	})
 	if a.hooks != nil {
 		a.hooks.BroadcastOutput(sessionID, data)
@@ -100,6 +196,18 @@ func (a *App) onPtyExit(sessionID string, code int) {
 	if a.hooks != nil {
 		a.hooks.BroadcastExit(sessionID, code)
 	}
+	// Keep sessions on disk when the app is quitting so they restore next launch.
+	if a.shuttingDown {
+		return
+	}
+	a.removeSessionMeta(sessionID)
+	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+}
+
+func (a *App) removeSessionMeta(sessionID string) {
+	if a.scrollback != nil {
+		a.scrollback.Remove(sessionID)
+	}
 	_ = a.store.Update(func(cfg *config.AppConfig) {
 		next := make([]config.SessionMeta, 0, len(cfg.Sessions))
 		for _, s := range cfg.Sessions {
@@ -108,7 +216,43 @@ func (a *App) onPtyExit(sessionID string, code int) {
 			}
 		}
 		cfg.Sessions = next
+		// Drop leaves that pointed at this session from layouts.
+		for key, layout := range cfg.Layouts {
+			cleaned, changed := pruneSessionFromLayout(layout, sessionID)
+			if changed {
+				if cleaned.Type == "" {
+					delete(cfg.Layouts, key)
+				} else {
+					cfg.Layouts[key] = cleaned
+				}
+			}
+		}
 	})
+}
+
+func pruneSessionFromLayout(node config.SplitNode, sessionID string) (config.SplitNode, bool) {
+	if node.Type == "leaf" {
+		if node.SessionID == sessionID {
+			return config.SplitNode{}, true
+		}
+		return node, false
+	}
+	if node.Type != "split" || len(node.Children) != 2 {
+		return node, false
+	}
+	left, lchg := pruneSessionFromLayout(node.Children[0], sessionID)
+	right, rchg := pruneSessionFromLayout(node.Children[1], sessionID)
+	if !lchg && !rchg {
+		return node, false
+	}
+	if left.Type == "" {
+		return right, true
+	}
+	if right.Type == "" {
+		return left, true
+	}
+	node.Children = []config.SplitNode{left, right}
+	return node, true
 }
 
 func (a *App) onHookIntent(intent hooks.Intent) {
@@ -145,6 +289,10 @@ func (a *App) SaveLayout(key string, layout config.SplitNode) error {
 		if cfg.Layouts == nil {
 			cfg.Layouts = config.LayoutStore{}
 		}
+		if layout.Type == "" {
+			delete(cfg.Layouts, key)
+			return
+		}
 		cfg.Layouts[key] = layout
 	})
 }
@@ -155,6 +303,28 @@ func (a *App) GetLayout(key string) config.SplitNode {
 		return config.SplitNode{}
 	}
 	return layouts[key]
+}
+
+func (a *App) SaveActiveScope(scope string) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.ActiveScope = scope
+	})
+}
+
+// GetScrollback returns base64 terminal output history and a sequence number
+// so the UI can ignore duplicate live events already covered by the snapshot.
+func (a *App) GetScrollback(sessionID string) map[string]any {
+	if a.scrollback == nil {
+		return map[string]any{"data": "", "seq": 0}
+	}
+	data, seq := a.scrollback.Snapshot(sessionID)
+	if len(data) == 0 {
+		return map[string]any{"data": "", "seq": seq}
+	}
+	return map[string]any{
+		"data": base64.StdEncoding.EncodeToString(data),
+		"seq":  seq,
+	}
 }
 
 // --- Projects ---
@@ -207,7 +377,7 @@ func (a *App) ListSessions() []SessionDTO {
 }
 
 func (a *App) CreateSession(projectID, name, cwd string) (SessionDTO, error) {
-	if cwd == "" && projectID != "" && projectID != project.HomeID && projectID != project.QuickID {
+	if cwd == "" && projectID != "" && projectID != project.HomeID {
 		if p, ok := a.projects.Get(projectID); ok {
 			cwd = p.Path
 		}
@@ -220,9 +390,21 @@ func (a *App) CreateSession(projectID, name, cwd string) (SessionDTO, error) {
 	}
 	dto := SessionDTO{ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned}
 	_ = a.store.Update(func(cfg *config.AppConfig) {
-		cfg.Sessions = append(cfg.Sessions, config.SessionMeta{
-			ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned,
-		})
+		upsert := true
+		for i := range cfg.Sessions {
+			if cfg.Sessions[i].ID == sess.ID {
+				cfg.Sessions[i] = config.SessionMeta{
+					ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned,
+				}
+				upsert = false
+				break
+			}
+		}
+		if upsert {
+			cfg.Sessions = append(cfg.Sessions, config.SessionMeta{
+				ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned,
+			})
+		}
 	})
 	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
 	return dto, nil
@@ -245,6 +427,8 @@ func (a *App) ResizeSession(id string, cols, rows int) error {
 }
 
 func (a *App) KillSession(id string) error {
+	// Persist removal before kill so onPtyExit doesn't race incorrectly.
+	a.removeSessionMeta(id)
 	err := a.pty.Kill(id)
 	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
 	return err
@@ -271,7 +455,7 @@ func (a *App) PromoteSession(id, projectID string) error {
 		return os.ErrNotExist
 	}
 	sess.ProjectID = projectID
-	if projectID != project.HomeID && projectID != project.QuickID {
+	if projectID != project.HomeID {
 		if p, ok := a.projects.Get(projectID); ok {
 			sess.Cwd = p.Path
 		}
