@@ -6,7 +6,7 @@ import { HookIntentListener } from "@/features/hooks";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={350} skipDelayDuration={200}>
       {children}
       <CommandPalette />
       <HookIntentListener />

@@ -5,8 +5,10 @@ import {
   GitBranch,
   Circle,
   ChevronRight,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,26 +46,27 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div className="group flex w-full items-center gap-0.5">
+            <WithTooltip label={collapsed ? "Expand" : "Collapse"} side="right">
+              <button
+                type="button"
+                className="relative flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleProjectCollapsed(id);
+                }}
+              >
+                <ProjectIcon className="size-3.5 opacity-70 group-hover:opacity-0" />
+                <ChevronRight
+                  className={cn(
+                    "absolute size-3.5 opacity-0 transition-transform group-hover:opacity-100",
+                    !collapsed && "rotate-90"
+                  )}
+                />
+              </button>
+            </WithTooltip>
             <button
               type="button"
-              className="relative flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleProjectCollapsed(id);
-              }}
-              title={collapsed ? "Expand" : "Collapse"}
-            >
-              <ProjectIcon className="size-3.5 opacity-70 group-hover:opacity-0" />
-              <ChevronRight
-                className={cn(
-                  "absolute size-3.5 opacity-0 transition-transform group-hover:opacity-100",
-                  !collapsed && "rotate-90"
-                )}
-              />
-            </button>
-            <button
-              type="button"
-              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left text-[12.5px] text-sidebar-foreground hover:bg-sidebar-accent/40"
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left text-[12.5px] text-sidebar-foreground hover:bg-sidebar-accent/40"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void focusScope(id);
@@ -72,25 +75,41 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             >
               <span className="min-w-0 flex-1 truncate font-normal">{name}</span>
               {git?.isRepo && (
-                <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+                <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground group-hover:hidden">
                   <GitBranch className="size-3 opacity-70" />
                   <span className="max-w-16 truncate">{git.branch}</span>
                   {git.dirty && <Circle className="size-1.5 fill-amber-400 text-amber-400" />}
                 </span>
               )}
             </button>
+            <WithTooltip label="New terminal">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void createTerminal(id);
+                }}
+              >
+                <Plus className="size-3.5" />
+              </Button>
+            </WithTooltip>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
+              <WithTooltip label="Project menu">
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </WithTooltip>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => void createTerminal(id)}>New terminal</DropdownMenuItem>
                 <DropdownMenuItem

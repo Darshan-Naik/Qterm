@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/tooltip";
 import { requestSessionRename } from "./PaneTitle";
 
 export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: string }) {
@@ -18,16 +19,17 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
-          title="Pane menu"
-        >
-          <MoreHorizontal className="size-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
+      <WithTooltip label="Pane menu">
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
+          >
+            <MoreHorizontal className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+      </WithTooltip>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={() => requestSessionRename(sessionId)}>
           <Pencil className="size-3.5 opacity-70" />

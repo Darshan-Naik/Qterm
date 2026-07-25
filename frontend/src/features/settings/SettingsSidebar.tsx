@@ -25,7 +25,7 @@ export function SettingsSidebar({
       <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
         <button
           type="button"
-          className="mb-2 flex h-8 w-fit items-center gap-1.5 rounded-md px-1.5 text-[12.5px] text-muted-foreground hover:text-sidebar-foreground"
+          className="mb-2 flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md px-1.5 text-[12.5px] text-muted-foreground hover:text-sidebar-foreground"
           onClick={() => closeSettings()}
         >
           <ArrowLeft className="size-3.5" />
@@ -48,7 +48,7 @@ export function SettingsSidebar({
               key={id}
               type="button"
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent/60",
+                "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent/60",
                 page === id && "bg-sidebar-accent text-sidebar-accent-foreground"
               )}
               onClick={() => uiStore.set({ settingsPage: id as SettingsPage })}

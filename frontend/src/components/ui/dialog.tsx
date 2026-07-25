@@ -22,7 +22,7 @@ export function DialogContent({ className, children, ...props }: React.Component
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1.5 opacity-70 hover:bg-accent hover:opacity-100">
+        <DialogPrimitive.Close className="absolute right-3 top-3 cursor-pointer rounded-md p-1.5 opacity-70 hover:bg-accent hover:opacity-100">
           <X className="h-4 w-4" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

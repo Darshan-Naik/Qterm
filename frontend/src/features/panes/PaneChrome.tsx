@@ -1,6 +1,7 @@
 import { PanelLeft } from "lucide-react";
 import { persistUIPrefs, uiStore } from "@/store/ui";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/tooltip";
 import { PaneMenu } from "./PaneMenu";
 import { PaneTitle } from "./PaneTitle";
 
@@ -21,18 +22,19 @@ export function PaneChrome({
       style={{ paddingLeft: trafficInset ? "var(--traffic-inset)" : "10px" }}
     >
       {showSidebarToggle && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
-          onClick={() => {
-            uiStore.set({ sidebarOpen: true });
-            void persistUIPrefs();
-          }}
-          title="Show sidebar"
-        >
-          <PanelLeft className="size-3.5" />
-        </Button>
+        <WithTooltip label="Show sidebar">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
+            onClick={() => {
+              uiStore.set({ sidebarOpen: true });
+              void persistUIPrefs();
+            }}
+          >
+            <PanelLeft className="size-3.5" />
+          </Button>
+        </WithTooltip>
       )}
 
       <PaneTitle sessionId={sessionId} />

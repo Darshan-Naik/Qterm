@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { WithTooltip } from "@/components/ui/tooltip";
 import { persistUIPrefs, SIDEBAR_MAX, SIDEBAR_MIN, uiStore } from "@/store/ui";
 
 export function SidebarResizeHandle() {
@@ -26,16 +27,17 @@ export function SidebarResizeHandle() {
   };
 
   return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize sidebar"
-      title="Drag to resize"
-      className="group relative z-20 w-1 shrink-0 cursor-col-resize self-stretch bg-transparent titlebar-no-drag hover:bg-foreground/10 active:bg-foreground/15"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-    />
+    <WithTooltip label="Drag to resize" side="right">
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        className="group relative z-20 w-1 shrink-0 cursor-col-resize self-stretch bg-transparent titlebar-no-drag hover:bg-foreground/10 active:bg-foreground/15"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      />
+    </WithTooltip>
   );
 }
