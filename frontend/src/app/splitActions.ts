@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { createDefaultTerminal, DEFAULT_SCOPE } from "@/lib/sessions";
+import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane } from "@/lib/panes";
 import { leaf, listLeaves, splitPane, uiStore } from "@/store/ui";
 import { CreateSession, SaveLayout } from "../../wailsjs/go/main/App";
@@ -21,7 +22,8 @@ export async function splitFocused(direction: "horizontal" | "vertical") {
     return;
   }
   const projectId = scope === DEFAULT_SCOPE ? "" : scope;
-  const sess = await CreateSession(projectId, "Terminal", "");
+  const name = randomTerminalName(state.sessions.map((s) => s.name));
+  const sess = await CreateSession(projectId, name, "");
   const base = state.splitTree || leaf(sess.id);
   const next = state.splitTree ? splitPane(base, paneId, direction, sess.id) : leaf(sess.id);
   uiStore.set({

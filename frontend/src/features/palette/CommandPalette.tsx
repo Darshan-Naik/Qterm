@@ -11,6 +11,7 @@ import {
   openSettings,
 } from "@/store/ui";
 import { createTerminal, createDefaultTerminal, DEFAULT_SCOPE } from "@/lib/sessions";
+import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane, deleteSession } from "@/lib/panes";
 import {
   CreateSession,
@@ -162,7 +163,8 @@ async function splitCurrent(direction: "horizontal" | "vertical") {
     return;
   }
   const projectId = scope === DEFAULT_SCOPE ? "" : scope;
-  const sess = await CreateSession(projectId, "Terminal", "");
+  const name = randomTerminalName(state.sessions.map((s) => s.name));
+  const sess = await CreateSession(projectId, name, "");
   const tree = state.splitTree || leaf(sess.id);
   const next = state.splitTree ? splitPane(tree, paneId, direction, sess.id) : leaf(sess.id);
   uiStore.set({

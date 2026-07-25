@@ -7,6 +7,7 @@ import {
   type SessionInfo,
   type SplitNode,
 } from "@/store/ui";
+import { randomTerminalName } from "@/lib/terminalNames";
 
 /** Scope key for terminals not tied to a project (default path). */
 export const DEFAULT_SCOPE = "_default";
@@ -57,7 +58,8 @@ export async function createTerminal(projectId: string, name?: string) {
   const cwd = unbound ? "" : project?.path || "";
   const pid = unbound ? "" : projectId;
   const scope = unbound ? DEFAULT_SCOPE : projectId;
-  const sess = await CreateSession(pid, name || "Terminal", cwd);
+  const label = name || randomTerminalName(uiStore.get().sessions.map((s) => s.name));
+  const sess = await CreateSession(pid, label, cwd);
   const info: SessionInfo = {
     id: sess.id,
     name: sess.name,
@@ -81,7 +83,7 @@ export async function createTerminal(projectId: string, name?: string) {
 
 /** New terminal on the default (user home) path. */
 export async function createDefaultTerminal() {
-  return createTerminal("", "Terminal");
+  return createTerminal("");
 }
 
 /** Focus an existing session in the current or matching scope layout. */
