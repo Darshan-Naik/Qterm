@@ -3,7 +3,7 @@
 import {config} from '../models';
 import {main} from '../models';
 import {git} from '../models';
-import {hooks} from '../models';
+import {agentbridge} from '../models';
 
 export function AddProject(arg1:string,arg2:string):Promise<config.ProjectMeta>;
 
@@ -17,11 +17,11 @@ export function GetLayout(arg1:string):Promise<config.SplitNode>;
 
 export function GetScrollback(arg1:string):Promise<Record<string, any>>;
 
-export function InstallHook(arg1:string):Promise<hooks.InstalledHook>;
+export function InstallAgentCLI(arg1:string):Promise<agentbridge.InstallResult>;
 
 export function KillSession(arg1:string):Promise<void>;
 
-export function ListHooks():Promise<Array<hooks.InstalledHook>>;
+export function ListAgentCLIs():Promise<Array<agentbridge.CLIInfo>>;
 
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 
@@ -30,8 +30,6 @@ export function ListSessions():Promise<Array<main.SessionDTO>>;
 export function OpenInFinder(arg1:string):Promise<void>;
 
 export function PickFolder():Promise<string>;
-
-export function PickHookFolder():Promise<string>;
 
 export function PromoteSession(arg1:string,arg2:string):Promise<void>;
 
@@ -55,11 +53,9 @@ export function SaveShell(arg1:string):Promise<void>;
 
 export function SaveTheme(arg1:string):Promise<void>;
 
-export function SetHookEnabled(arg1:string,arg2:boolean):Promise<void>;
+export function SetFocusedSession(arg1:string):Promise<void>;
 
-export function SetHookPermissions(arg1:string,arg2:hooks.Permissions):Promise<void>;
-
-export function UninstallHook(arg1:string):Promise<void>;
+export function UninstallAgentCLI(arg1:string):Promise<void>;
 
 export function WriteSession(arg1:string,arg2:string):Promise<void>;
 

@@ -110,7 +110,13 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
       const cur = entries.get(sessionId);
       if (!cur) return;
       const seq = Number(snap?.seq || 0);
-      if (snap?.data) cur.term.write(b64decode(snap.data));
+      // Reset parser state so a cut mid-sequence from a prior session
+      // doesn't paint the next restore as literal garbage.
+      cur.term.reset();
+      if (snap?.data) {
+        const bytes = b64decode(snap.data);
+        if (bytes.length) cur.term.write(bytes);
+      }
       cur.appliedSeq = Math.max(cur.appliedSeq, seq);
       cur.seeding = false;
       const pending = cur.pending;

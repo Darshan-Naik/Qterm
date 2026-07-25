@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ResizeSession } from "../../../wailsjs/go/main/App";
+import { ResizeSession, SetFocusedSession } from "../../../wailsjs/go/main/App";
 import { uiStore, useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
 import {
@@ -57,7 +57,10 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
         "relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-background px-2.5 pb-2.5 pt-0",
         anim !== "none" && `pane-${anim}`
       )}
-      onMouseDown={() => uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId })}
+      onMouseDown={() => {
+        uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId });
+        void SetFocusedSession(sessionId);
+      }}
     >
       <div ref={hostRef} className="absolute inset-x-2.5 bottom-2.5 top-0 bg-background" />
     </div>

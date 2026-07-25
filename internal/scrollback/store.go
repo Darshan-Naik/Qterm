@@ -1,6 +1,7 @@
 package scrollback
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"sync"
@@ -50,6 +51,17 @@ func (s *Store) Append(id string, chunk []byte) uint64 {
 	if id == "" || len(chunk) == 0 {
 		return 0
 	}
+	chunk = stripColorOSC(chunk)
+	if len(chunk) == 0 {
+		s.mu.Lock()
+		b := s.bufs[id]
+		var seq uint64
+		if b != nil {
+			seq = b.seq
+		}
+		s.mu.Unlock()
+		return seq
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	b := s.bufs[id]
@@ -59,7 +71,7 @@ func (s *Store) Append(id string, chunk []byte) uint64 {
 	}
 	b.data = append(b.data, chunk...)
 	if len(b.data) > s.max {
-		b.data = append([]byte(nil), b.data[len(b.data)-s.max:]...)
+		b.data = trimFront(b.data, s.max)
 	}
 	b.seq++
 	s.dirty[id] = true
@@ -77,8 +89,9 @@ func (s *Store) Snapshot(id string) (data []byte, seq uint64) {
 	if b == nil || len(b.data) == 0 {
 		return nil, 0
 	}
-	out := make([]byte, len(b.data))
-	copy(out, b.data)
+	clean := syncStart(b.data)
+	out := make([]byte, len(clean))
+	copy(out, clean)
 	return out, b.seq
 }
 
@@ -88,9 +101,11 @@ func (s *Store) Load(id string) {
 	if err != nil || len(data) == 0 {
 		return
 	}
+	data = stripColorOSC(data)
 	if len(data) > s.max {
-		data = data[len(data)-s.max:]
+		data = trimFront(data, s.max)
 	}
+	data = syncStart(data)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.bufs[id] = &buffer{data: append([]byte(nil), data...), seq: 1}
@@ -165,4 +180,140 @@ func (s *Store) persistLoop() {
 			}
 		}
 	}
+}
+
+// trimFront drops oldest bytes, preferring a cut after a newline so we don't
+// leave a half-finished CSI/OSC sequence at the start of history.
+func trimFront(data []byte, max int) []byte {
+	if len(data) <= max {
+		return data
+	}
+	cut := len(data) - max
+	if i := bytes.IndexByte(data[cut:], '\n'); i >= 0 && cut+i+1 < len(data) {
+		cut = cut + i + 1
+	}
+	return append([]byte(nil), data[cut:]...)
+}
+
+// syncStart skips a leading incomplete escape sequence so restore doesn't
+// paint control bytes as mojibake.
+func syncStart(data []byte) []byte {
+	if len(data) == 0 {
+		return data
+	}
+	if data[0] != 0x1b {
+		// Also skip orphaned CSI params if we cut after ESC was dropped.
+		if data[0] == '[' || data[0] == ']' {
+			if i := bytes.IndexByte(data, '\n'); i >= 0 {
+				return data[i+1:]
+			}
+		}
+		return data
+	}
+	// Complete ESC sequence from offset 0, or skip to next newline.
+	if end := escapeEnd(data); end > 0 {
+		return data
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		return data[i+1:]
+	}
+	return nil
+}
+
+func escapeEnd(data []byte) int {
+	if len(data) < 2 || data[0] != 0x1b {
+		return -1
+	}
+	switch data[1] {
+	case '[': // CSI: ends with @-~ 
+		for i := 2; i < len(data); i++ {
+			if data[i] >= 0x40 && data[i] <= 0x7e {
+				return i + 1
+			}
+		}
+	case ']': // OSC: BEL or ST
+		for i := 2; i < len(data); i++ {
+			if data[i] == 0x07 {
+				return i + 1
+			}
+			if data[i] == 0x1b && i+1 < len(data) && data[i+1] == '\\' {
+				return i + 2
+			}
+		}
+	case 'P', 'X', '^', '_': // DCS/SOS/PM/APC: ST
+		for i := 2; i < len(data); i++ {
+			if data[i] == 0x1b && i+1 < len(data) && data[i+1] == '\\' {
+				return i + 2
+			}
+		}
+	default:
+		// Two-byte ESC Fe
+		return 2
+	}
+	return -1
+}
+
+// stripColorOSC removes OSC 10/11/12 (and 110–112) color set/report sequences.
+// These often pollute scrollback after theme queries and replay as garbage.
+func stripColorOSC(in []byte) []byte {
+	if !bytes.Contains(in, []byte{0x1b, ']'}) {
+		return in
+	}
+	out := make([]byte, 0, len(in))
+	i := 0
+	for i < len(in) {
+		if in[i] == 0x1b && i+1 < len(in) && in[i+1] == ']' {
+			rest := in[i+2:]
+			ps, n := readOSCPs(rest)
+			if n >= 0 && isColorOSC(ps) {
+				termAt := findOSCTerm(rest[n:])
+				if termAt >= 0 {
+					i += 2 + n + termAt
+					continue
+				}
+			}
+		}
+		out = append(out, in[i])
+		i++
+	}
+	return out
+}
+
+func readOSCPs(b []byte) (ps int, n int) {
+	if len(b) == 0 || b[0] < '0' || b[0] > '9' {
+		return -1, -1
+	}
+	ps = 0
+	for n < len(b) && b[n] >= '0' && b[n] <= '9' {
+		ps = ps*10 + int(b[n]-'0')
+		n++
+		if n > 4 {
+			return -1, -1
+		}
+	}
+	if n >= len(b) || b[n] != ';' {
+		return -1, -1
+	}
+	return ps, n + 1
+}
+
+func isColorOSC(ps int) bool {
+	switch ps {
+	case 10, 11, 12, 110, 111, 112:
+		return true
+	default:
+		return false
+	}
+}
+
+func findOSCTerm(b []byte) int {
+	for i := 0; i < len(b); i++ {
+		if b[i] == 0x07 {
+			return i + 1
+		}
+		if b[i] == 0x1b && i+1 < len(b) && b[i+1] == '\\' {
+			return i + 2
+		}
+	}
+	return -1
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MoreHorizontal, TerminalSquare, X, Trash2 } from "lucide-react";
+import { Bot, MoreHorizontal, TerminalSquare, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import {
@@ -21,9 +21,27 @@ import { cn } from "@/lib/utils";
 import { focusSession } from "@/lib/sessions";
 import { closeSessionPanes, deleteSession } from "@/lib/panes";
 
+function agentLabel(id: string) {
+  switch (id) {
+    case "claude":
+      return "Claude Code";
+    case "codex":
+      return "Codex";
+    case "gemini":
+      return "Gemini";
+    case "agy":
+      return "Antigravity";
+    case "cursor":
+      return "Cursor Agent";
+    default:
+      return "Agent";
+  }
+}
+
 export function SessionRow({ session }: { session: SessionInfo }) {
   const focused = useUI((s) => s.focusedSessionId === session.id);
   const anim = useUI((s) => s.paneAnimations[session.id] || "none");
+  const agent = useUI((s) => s.sessionAgents[session.id] || "");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +69,10 @@ export function SessionRow({ session }: { session: SessionInfo }) {
     });
   };
 
+  const needsInput = anim === "action_required";
+  const thinking = anim === "thinking";
+  const complete = anim === "task_complete";
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -58,7 +80,9 @@ export function SessionRow({ session }: { session: SessionInfo }) {
           className={cn(
             "group flex w-full items-center gap-0.5 rounded-md text-[12.5px] text-muted-foreground hover:text-sidebar-foreground",
             focused && "bg-sidebar-accent/50 text-sidebar-foreground",
-            anim !== "none" && `pane-${anim}`
+            needsInput && "session-needs-input",
+            thinking && "session-thinking",
+            complete && "session-complete"
           )}
         >
           <button
@@ -68,7 +92,28 @@ export function SessionRow({ session }: { session: SessionInfo }) {
               if (!editing) void focusSession(session.id);
             }}
           >
-            <TerminalSquare className="size-3.5 shrink-0 opacity-50" />
+            <span className="relative flex size-3.5 shrink-0 items-center justify-center">
+              {agent ? (
+                <WithTooltip label={agentLabel(agent)} side="right">
+                  <Bot
+                    className={cn(
+                      "size-3.5 opacity-80",
+                      thinking && "text-sky-400",
+                      needsInput && "text-amber-400",
+                      complete && "text-emerald-400"
+                    )}
+                  />
+                </WithTooltip>
+              ) : (
+                <TerminalSquare className="size-3.5 opacity-50" />
+              )}
+              {needsInput ? (
+                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-amber-400" />
+                </span>
+              ) : null}
+            </span>
             {editing ? (
               <input
                 ref={inputRef}

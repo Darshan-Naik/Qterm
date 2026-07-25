@@ -1,3 +1,44 @@
+export namespace agentbridge {
+	
+	export class CLIInfo {
+	    id: string;
+	    name: string;
+	    available: boolean;
+	    path: string;
+	    installed: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CLIInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.available = source["available"];
+	        this.path = source["path"];
+	        this.installed = source["installed"];
+	    }
+	}
+	export class InstallResult {
+	    cli: string;
+	    installed: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InstallResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cli = source["cli"];
+	        this.installed = source["installed"];
+	        this.message = source["message"];
+	    }
+	}
+
+}
+
 export namespace config {
 	
 	export class SplitNode {
@@ -147,112 +188,6 @@ export namespace git {
 	        this.behind = source["behind"];
 	    }
 	}
-
-}
-
-export namespace hooks {
-	
-	export class Permissions {
-	    readOutput: boolean;
-	    writePty: boolean;
-	    notify: boolean;
-	    animate: boolean;
-	    network: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new Permissions(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.readOutput = source["readOutput"];
-	        this.writePty = source["writePty"];
-	        this.notify = source["notify"];
-	        this.animate = source["animate"];
-	        this.network = source["network"];
-	    }
-	}
-	export class Manifest {
-	    id: string;
-	    name: string;
-	    version: string;
-	    description: string;
-	    command: string;
-	    args: string[];
-	    permissions: Permissions;
-	
-	    static createFrom(source: any = {}) {
-	        return new Manifest(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.version = source["version"];
-	        this.description = source["description"];
-	        this.command = source["command"];
-	        this.args = source["args"];
-	        this.permissions = this.convertValues(source["permissions"], Permissions);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
-	export class InstalledHook {
-	    manifest: Manifest;
-	    path: string;
-	    enabled: boolean;
-	    granted: Permissions;
-	    projectOnly?: string[];
-	
-	    static createFrom(source: any = {}) {
-	        return new InstalledHook(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.manifest = this.convertValues(source["manifest"], Manifest);
-	        this.path = source["path"];
-	        this.enabled = source["enabled"];
-	        this.granted = this.convertValues(source["granted"], Permissions);
-	        this.projectOnly = source["projectOnly"];
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
-	
 
 }
 

@@ -223,6 +223,24 @@ textarea {
     opacity: 0.72;
   }
 }
+@keyframes session-row-breathe {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: color-mix(in oklab, rgb(56 189 248) 10%, transparent);
+  }
+}
+@keyframes session-row-alert {
+  0%,
+  100% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 8%, transparent);
+  }
+  50% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 16%, transparent);
+  }
+}
 .pane-action_required {
   animation: pulse-action 1.2s ease-in-out 4;
 }
@@ -231,6 +249,15 @@ textarea {
 }
 .pane-thinking {
   animation: pulse-thinking 1.4s ease-in-out 2;
+}
+.session-thinking {
+  animation: session-row-breathe 1.6s ease-in-out infinite;
+}
+.session-needs-input {
+  animation: session-row-alert 1.4s ease-in-out infinite;
+}
+.session-complete {
+  animation: session-row-breathe 0.9s ease-in-out 2;
 }
 .titlebar-drag {
   -webkit-app-region: drag;

@@ -1,4 +1,4 @@
-import { CreateSession, GetLayout, SaveActiveScope, SaveLayout } from "../../wailsjs/go/main/App";
+import { CreateSession, GetLayout, SaveActiveScope, SaveLayout, SetFocusedSession } from "../../wailsjs/go/main/App";
 import {
   findFirstLeaf,
   findLeafBySession,
@@ -32,11 +32,13 @@ export async function focusScope(scope: string) {
   const sessionIds = new Set(uiStore.get().sessions.map((s) => s.id));
   if (layout && layout.type && layoutHasSessions(layout, sessionIds)) {
     const first = findFirstLeaf(layout);
+    const focused = first && first.type === "leaf" ? first.sessionId : null;
     uiStore.set({
       splitTree: layout,
       focusedPaneId: first?.id ?? null,
-      focusedSessionId: first && first.type === "leaf" ? first.sessionId : null,
+      focusedSessionId: focused,
     });
+    if (focused) void SetFocusedSession(focused);
     return;
   }
 
@@ -46,6 +48,7 @@ export async function focusScope(scope: string) {
   if (sessions[0]) {
     const n = leaf(sessions[0].id);
     uiStore.set({ splitTree: n, focusedPaneId: n.id, focusedSessionId: sessions[0].id });
+    void SetFocusedSession(sessions[0].id);
     await SaveLayout(scope, n as any);
   } else {
     uiStore.set({ splitTree: null, focusedPaneId: null, focusedSessionId: null });
@@ -76,6 +79,7 @@ export async function createTerminal(projectId: string, name?: string) {
     focusedPaneId: n.id,
     focusedSessionId: info.id,
   });
+  void SetFocusedSession(info.id);
   void SaveActiveScope(scope);
   await SaveLayout(scope, n as any);
   return info;
@@ -97,6 +101,7 @@ export async function focusSession(sessionId: string) {
     const pane = findLeafBySession(state.splitTree, sessionId);
     if (pane) {
       uiStore.set({ focusedPaneId: pane.id, focusedSessionId: sessionId });
+      void SetFocusedSession(sessionId);
       return;
     }
   }
@@ -106,6 +111,7 @@ export async function focusSession(sessionId: string) {
   const pane = findLeafBySession(tree, sessionId);
   if (pane) {
     uiStore.set({ focusedPaneId: pane.id, focusedSessionId: sessionId });
+    void SetFocusedSession(sessionId);
     return;
   }
 
@@ -116,6 +122,7 @@ export async function focusSession(sessionId: string) {
     focusedPaneId: n.id,
     focusedSessionId: sessionId,
   });
+  void SetFocusedSession(sessionId);
   void SaveActiveScope(scope);
   void SaveLayout(scope, n as any);
 }

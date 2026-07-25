@@ -5,7 +5,7 @@ import { NAV } from "./nav";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { AppearancePage } from "./pages/AppearancePage";
 import { TerminalPage } from "./pages/TerminalPage";
-import { PluginsPage } from "./pages/PluginsPage";
+import { AgentPage } from "./pages/AgentPage";
 
 export function SettingsMode() {
   const page = useUI((s) => s.settingsPage);
@@ -35,7 +35,7 @@ export function SettingsMode() {
           <div className="mx-auto w-full max-w-[640px] px-8 pb-16 pt-4">
             {page === "appearance" && <AppearancePage />}
             {page === "terminal" && <TerminalPage />}
-            {page === "plugins" && <PluginsPage />}
+            {page === "agent" && <AgentPage />}
           </div>
         </ScrollArea>
       </div>

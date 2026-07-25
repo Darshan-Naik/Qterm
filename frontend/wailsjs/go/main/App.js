@@ -26,16 +26,16 @@ export function GetScrollback(arg1) {
   return window['go']['main']['App']['GetScrollback'](arg1);
 }
 
-export function InstallHook(arg1) {
-  return window['go']['main']['App']['InstallHook'](arg1);
+export function InstallAgentCLI(arg1) {
+  return window['go']['main']['App']['InstallAgentCLI'](arg1);
 }
 
 export function KillSession(arg1) {
   return window['go']['main']['App']['KillSession'](arg1);
 }
 
-export function ListHooks() {
-  return window['go']['main']['App']['ListHooks']();
+export function ListAgentCLIs() {
+  return window['go']['main']['App']['ListAgentCLIs']();
 }
 
 export function ListProjects() {
@@ -52,10 +52,6 @@ export function OpenInFinder(arg1) {
 
 export function PickFolder() {
   return window['go']['main']['App']['PickFolder']();
-}
-
-export function PickHookFolder() {
-  return window['go']['main']['App']['PickHookFolder']();
 }
 
 export function PromoteSession(arg1, arg2) {
@@ -102,16 +98,12 @@ export function SaveTheme(arg1) {
   return window['go']['main']['App']['SaveTheme'](arg1);
 }
 
-export function SetHookEnabled(arg1, arg2) {
-  return window['go']['main']['App']['SetHookEnabled'](arg1, arg2);
+export function SetFocusedSession(arg1) {
+  return window['go']['main']['App']['SetFocusedSession'](arg1);
 }
 
-export function SetHookPermissions(arg1, arg2) {
-  return window['go']['main']['App']['SetHookPermissions'](arg1, arg2);
-}
-
-export function UninstallHook(arg1) {
-  return window['go']['main']['App']['UninstallHook'](arg1);
+export function UninstallAgentCLI(arg1) {
+  return window['go']['main']['App']['UninstallAgentCLI'](arg1);
 }
 
 export function WriteSession(arg1, arg2) {

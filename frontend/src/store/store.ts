@@ -22,6 +22,7 @@ export const uiStore = createStore<UIState>({
   sessions: [],
   projects: [],
   paneAnimations: {},
+  sessionAgents: {},
   pendingIntent: null,
   suggestText: null,
   collapsedProjects: {},
