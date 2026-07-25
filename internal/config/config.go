@@ -5,14 +5,16 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"qterm/internal/appmode"
 )
 
 type SplitNode struct {
-	Type      string     `json:"type"` // "leaf" | "split"
-	ID        string     `json:"id,omitempty"`
-	SessionID string     `json:"sessionId,omitempty"`
-	Direction string     `json:"direction,omitempty"` // "horizontal" | "vertical"
-	Size      float64    `json:"size,omitempty"`
+	Type      string      `json:"type"` // "leaf" | "split"
+	ID        string      `json:"id,omitempty"`
+	SessionID string      `json:"sessionId,omitempty"`
+	Direction string      `json:"direction,omitempty"` // "horizontal" | "vertical"
+	Size      float64     `json:"size,omitempty"`
 	Children  []SplitNode `json:"children,omitempty"`
 }
 
@@ -67,7 +69,9 @@ func NewStore() (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	base := filepath.Join(dir, "q-term")
+	// Prod: ~/Library/Application Support/q-term
+	// Dev (wails dev): …/q-term-dev — avoids clobbering prod sessions/bridge.
+	base := filepath.Join(dir, appmode.DataDir)
 	if err := os.MkdirAll(base, 0o755); err != nil {
 		return nil, err
 	}

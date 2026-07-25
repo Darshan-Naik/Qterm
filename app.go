@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"qterm/internal/agentbridge"
+	"qterm/internal/appmode"
 	"qterm/internal/config"
 	"qterm/internal/git"
 	"qterm/internal/hooks"
@@ -71,10 +72,10 @@ func (a *App) setupMenu() {
 	// First submenu is the macOS app menu. Custom so we can keep About + Settings together
 	// (Wails AppMenu role can't be extended with extra items).
 	app := menu.NewMenu()
-	app.AddText("About Qterm", nil, func(_ *menu.CallbackData) {
+	app.AddText("About "+appmode.AppTitle, nil, func(_ *menu.CallbackData) {
 		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.InfoDialog,
-			Title:   "About Qterm",
+			Title:   "About " + appmode.AppTitle,
 			Message: "A fast terminal with project groups and agent hooks.",
 		})
 	})
@@ -83,17 +84,17 @@ func (a *App) setupMenu() {
 		runtime.EventsEmit(a.ctx, "app:open-settings", "appearance")
 	})
 	app.AddSeparator()
-	app.AddText("Quit Qterm", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+	app.AddText("Quit "+appmode.AppTitle, keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 		runtime.Quit(a.ctx)
 	})
 
 	items := []*menu.MenuItem{
-		menu.SubMenu("Qterm", app),
+		menu.SubMenu(appmode.AppTitle, app),
 		menu.EditMenu(),
 		menu.WindowMenu(),
 	}
 	// Developer tools only when the inspector is compiled in (wails dev / debug / --devtools).
-	if isDevBuild {
+	if appmode.IsDev {
 		dev := menu.NewMenu()
 		dev.AddText(
 			"Toggle Developer Tools",

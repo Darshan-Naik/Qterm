@@ -3,6 +3,7 @@ package agentbridge
 import (
 	"os"
 	"path/filepath"
+	"qterm/internal/appmode"
 	"strings"
 	"testing"
 )
@@ -10,7 +11,7 @@ import (
 func testInstallCtx(t *testing.T, home string) InstallCtx {
 	t.Helper()
 	t.Setenv("HOME", home)
-	dataDir := filepath.Join(home, "Library", "Application Support", "q-term")
+	dataDir := filepath.Join(home, "Library", "Application Support", appmode.DataDir)
 	_ = os.MkdirAll(filepath.Join(dataDir, "agent"), 0o755)
 	_ = os.WriteFile(filepath.Join(dataDir, "agent", "bridge.json"), []byte(`{"url":"http://127.0.0.1:19527","token":"t","port":19527}`), 0o600)
 	return InstallCtx{
