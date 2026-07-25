@@ -19,10 +19,17 @@ func (a *App) startAgentBridge() {
 			intent.TerminalID = sid
 		}
 
+		if intent.Type == "auto_title" {
+			name, _ := intent.Payload["name"].(string)
+			if intent.SessionID != "" && name != "" {
+				_ = a.applyFirstPromptTitle(intent.SessionID, name)
+			}
+			return
+		}
 		if intent.Type == "rename" {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
-				_ = a.adoptSessionTitle(intent.SessionID, name)
+				_ = a.applyAgentTitle(intent.SessionID, name)
 			}
 			return
 		}
@@ -74,14 +81,12 @@ func (b *bridgeAPI) RenameTerminal(id, name string) error {
 	if id == "" {
 		return fmt.Errorf("no agent terminal — call get_terminal_id first, or open an agent in a pane")
 	}
-	if b.app.isNameLocked(id) {
-		return fmt.Errorf("terminal name was set by the user — auto rename skipped")
-	}
-	// MCP rename is intentional — don't apply OSC heuristics (bare tokens / project names).
+	// MCP rename is intentional — allowed even after a user rename.
+	// Only first-prompt / hook auto-titles respect nameLocked.
 	if looksLikeAgentStatusTitle(name) {
 		return fmt.Errorf("refusing status title %q", name)
 	}
-	if !b.app.renameSession(id, name, renameAuto) {
+	if !b.app.renameSession(id, name, renameAgent) {
 		return fmt.Errorf("session not found")
 	}
 	return nil

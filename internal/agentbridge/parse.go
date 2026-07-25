@@ -27,10 +27,22 @@ func ParseHook(in ParseInput) []Intent {
 	switch normalizeEvent(in.Event) {
 	case "session_start", "before_agent":
 		out = []Intent{anim("thinking")}
+		// Some CLIs (Gemini) put the prompt on BeforeAgent instead of UserPromptSubmit.
+		if prompt := promptFromRaw(in.Raw); prompt != "" {
+			if title := TitleFromPrompt(prompt); title != "" {
+				out = append(out, autoTitleIntent(in.Source, in.SessionID, title, in.Cwd))
+			}
+		}
 	case "session_end":
 		out = []Intent{anim("none")}
 	case "user_prompt", "before_model":
 		out = []Intent{anim("thinking")}
+		// First-prompt → tab name (once). Prefer explicit sessionTitle/customTitle below.
+		if prompt := promptFromRaw(in.Raw); prompt != "" {
+			if title := TitleFromPrompt(prompt); title != "" {
+				out = append(out, autoTitleIntent(in.Source, in.SessionID, title, in.Cwd))
+			}
+		}
 	case "stop", "after_agent":
 		out = []Intent{anim("task_complete")}
 	case "stop_failure":
@@ -51,11 +63,7 @@ func ParseHook(in ParseInput) []Intent {
 		out = []Intent{anim("thinking")}
 	case "post_tool", "after_tool":
 		out = []Intent{anim("thinking")}
-		// Legacy fallback: agents sometimes printf OSC instead of MCP rename.
-		// Prefer MCP rename_terminal — keep this only as a silent backup.
-		if title := titleFromToolPayload(in.Raw); title != "" {
-			out = append(out, renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd))
-		}
+		// Do not adopt OSC titles from shell printf — those are process/cwd noise.
 	default:
 		if strings.TrimSpace(in.Event) == "" {
 			out = nil
@@ -63,9 +71,11 @@ func ParseHook(in ParseInput) []Intent {
 			out = []Intent{anim("thinking")}
 		}
 	}
-	// When the host CLI exposes a session title (auto-name /rename), mirror it in Qterm.
+	// Explicit CLI session title (/rename, customTitle) — not raw OSC process names.
 	if title := sessionTitleFromRaw(in.Raw); title != "" {
-		out = append(out, renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd))
+		ri := renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd)
+		ri.Payload["source"] = "session_title"
+		out = append(out, ri)
 	}
 	return out
 }

@@ -88,6 +88,7 @@ export namespace config {
 	    cwd: string;
 	    pinned: boolean;
 	    nameLocked?: boolean;
+	    autoTitled?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new SessionMeta(source);
@@ -101,6 +102,7 @@ export namespace config {
 	        this.cwd = source["cwd"];
 	        this.pinned = source["pinned"];
 	        this.nameLocked = source["nameLocked"];
+	        this.autoTitled = source["autoTitled"];
 	    }
 	}
 	export class ProjectMeta {

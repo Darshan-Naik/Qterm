@@ -23,6 +23,7 @@ type SessionMeta struct {
 	Cwd        string `json:"cwd"`
 	Pinned     bool   `json:"pinned"`
 	NameLocked bool   `json:"nameLocked,omitempty"` // user renamed — skip auto title sync
+	AutoTitled bool   `json:"autoTitled,omitempty"` // first-prompt / agent title already applied
 }
 
 type ProjectMeta struct {
