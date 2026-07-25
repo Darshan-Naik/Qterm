@@ -83,7 +83,7 @@ func TestSessionTitleFromHook(t *testing.T) {
 	})
 	found := false
 	for _, in := range intents {
-		if in.Type == "rename" {
+		if in.Type == IntentRename {
 			found = true
 			if in.Payload["name"] != "Fix login bug" {
 				t.Fatalf("payload %#v", in.Payload)

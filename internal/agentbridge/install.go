@@ -2,7 +2,6 @@ package agentbridge
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -40,18 +39,7 @@ func writeMCPConfig(path, mcpCommand, dataDir, token string) error {
 	if servers == nil {
 		servers = map[string]any{}
 	}
-	if mcpCommand == "" {
-		mcpCommand = os.Args[0]
-	}
-	servers["qterm"] = map[string]any{
-		"command": mcpCommand,
-		"args":    []any{"mcp"},
-		"env": map[string]any{
-			"QTERM_BRIDGE_URL":   fmt.Sprintf("http://127.0.0.1:%d", DefaultPort),
-			"QTERM_BRIDGE_TOKEN": token,
-			"QTERM_DATA_DIR":     dataDir,
-		},
-	}
+	servers["qterm"] = qtermMCPServer(mcpCommand, dataDir, token)
 	root["mcpServers"] = servers
 	return writeConfigJSON(path, root)
 }

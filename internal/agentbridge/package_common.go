@@ -8,7 +8,7 @@ import (
 )
 
 const qtermPluginName = "qterm"
-const qtermPluginVersion = "1.2.3"
+const qtermPluginVersion = "1.2.4"
 
 func userHomeDir() string {
 	home, _ := os.UserHomeDir()
@@ -18,6 +18,10 @@ func userHomeDir() string {
 // relayScriptBody is the shared hook relay used by plugins and the legacy shared script.
 // It only posts when QTERM_SESSION_ID is set (injected into Qterm PTYs). Outside Qterm
 // the same global CLI hooks fire but no-op — cmux CMUX_SURFACE_ID pattern.
+//
+// Usage: relay.sh <source> [event]
+// Optional event (e.g. PreInvocation) is injected as hook_event_name when the CLI
+// payload omits it (Antigravity).
 func relayScriptBody(dataDir, token, sourceDefault string) string {
 	if sourceDefault == "" {
 		sourceDefault = "claude"
@@ -25,8 +29,12 @@ func relayScriptBody(dataDir, token, sourceDefault string) string {
 	return fmt.Sprintf(`#!/bin/bash
 # %s — plugin hook relay (Qterm panes only)
 SOURCE="${1:-%s}"
+EVENT="${2:-}"
+# Always emit JSON for CLIs that require stdout (Antigravity PostToolUse/Stop).
+emit_ok() { echo '{}'; }
 # Outside Qterm: CLI plugins stay installed globally but must not talk to the bridge.
 if [[ -z "${QTERM_SESSION_ID:-}" ]]; then
+  emit_ok
   exit 0
 fi
 BRIDGE=%q
@@ -37,12 +45,29 @@ if [[ -f "$BRIDGE" ]]; then
   TOKEN=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["token"])' "$BRIDGE" 2>/dev/null || echo "$TOKEN")
 fi
 BODY=$(cat)
+if [[ -n "$EVENT" ]]; then
+  BODY=$(printf '%%s' "$BODY" | python3 -c '
+import json,sys
+event=sys.argv[1]
+raw=sys.stdin.read()
+try:
+  d=json.loads(raw) if raw.strip() else {}
+except Exception:
+  d={}
+if not isinstance(d, dict):
+  d={}
+if event and "hook_event_name" not in d and "hookEventName" not in d and "event" not in d:
+  d["hook_event_name"]=event
+print(json.dumps(d))
+' "$EVENT" 2>/dev/null || printf '%%s' "$BODY")
+fi
 HDRS=(-H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Qterm-Hook: %s")
 HDRS+=(-H "X-Qterm-Terminal-Id: $QTERM_SESSION_ID")
 if [[ -n "${QTERM_PROJECT_ID:-}" ]]; then
   HDRS+=(-H "X-Qterm-Project-Id: $QTERM_PROJECT_ID")
 fi
 curl -sS -m 3 -X POST "$BASE/v1/hooks/$SOURCE" "${HDRS[@]}" -d "$BODY" >/dev/null 2>&1 || true
+emit_ok
 exit 0
 `, HookMarker, sourceDefault, EndpointPath(dataDir), token, DefaultPort, HookMarker)
 }

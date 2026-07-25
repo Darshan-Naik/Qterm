@@ -57,7 +57,7 @@ func RunMCP() {
 			writeMCPResult(id, map[string]any{
 				"protocolVersion": "2024-11-05",
 				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "qterm", "version": "1.2.3"},
+				"serverInfo":      map[string]any{"name": "qterm", "version": qtermPluginVersion},
 			})
 		case "notifications/initialized", "initialized":
 			// no-op

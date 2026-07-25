@@ -26,15 +26,15 @@ type ControlAPI interface {
 }
 
 type Server struct {
-	dataDir string
-	token   string
-	port    int
+	dataDir  string
+	token    string
+	port     int
 	onIntent func(Intent)
-	api     ControlAPI
+	api      ControlAPI
 
-	mu     sync.Mutex
-	http   *http.Server
-	seq    atomic.Uint64
+	mu   sync.Mutex
+	http *http.Server
+	seq  atomic.Uint64
 }
 
 func NewServer(dataDir string, onIntent func(Intent), api ControlAPI) (*Server, error) {
@@ -83,7 +83,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	return s.http.Shutdown(ctx)
 }
 
-func (s *Server) Port() int  { return s.port }
+func (s *Server) Port() int     { return s.port }
 func (s *Server) Token() string { return s.token }
 func (s *Server) BaseURL() string {
 	return fmt.Sprintf("http://127.0.0.1:%d", s.port)

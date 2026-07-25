@@ -88,7 +88,7 @@ func autoTitleIntent(hookID, sessionID, name, cwd string) Intent {
 		ID:        fmt.Sprintf("%s-auto-title-%s", hookID, name),
 		HookID:    hookID,
 		SessionID: sessionID,
-		Type:      "auto_title",
+		Type:      IntentAutoTitle,
 		Payload: map[string]any{
 			"name":   name,
 			"agent":  hookID,

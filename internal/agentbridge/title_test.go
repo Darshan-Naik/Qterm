@@ -5,11 +5,11 @@ import "testing"
 func TestTitleFromPrompt(t *testing.T) {
 	cases := map[string]string{
 		"refactor the auth module please and add tests": "refactor the auth module please and",
-		"Fix login bug": "Fix login bug",
-		"/rename foo":   "",
-		"<task>noise</task>": "",
+		"Fix login bug":       "Fix login bug",
+		"/rename foo":         "",
+		"<task>noise</task>":  "",
 		"   hello   world   ": "hello world",
-		"a": "",
+		"a":                   "",
 		"Implement selectable options in the Codex chat UI for this project now": "Implement selectable options in the Codex",
 	}
 	for in, want := range cases {
@@ -29,7 +29,7 @@ func TestParseHookFirstPromptAutoTitle(t *testing.T) {
 	})
 	found := false
 	for _, in := range intents {
-		if in.Type == "auto_title" {
+		if in.Type == IntentAutoTitle {
 			found = true
 			if in.Payload["name"] != "Fix the login redirect loop" {
 				t.Fatalf("payload %#v", in.Payload)

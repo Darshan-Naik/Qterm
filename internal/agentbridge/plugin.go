@@ -3,7 +3,6 @@ package agentbridge
 import (
 	"fmt"
 	"os/exec"
-	"strings"
 )
 
 // InstallCtx is shared state for plugin install/uninstall (relay path, token, MCP binary).
@@ -14,16 +13,18 @@ type InstallCtx struct {
 	MCPCommand string
 }
 
-// Plugin is one agent CLI integration.
+// Plugin is one agent CLI integration. Install/uninstall/relay paths are
+// function fields so adding a CLI does not require editing central switches.
 type Plugin struct {
 	ID       string
 	Name     string
 	Binaries []string
 	Source   string // relay.sh arg + /v1/hooks/{source}
 
-	EventAliases   map[string]string
-	ExtractEvent   func(raw map[string]any) string
-	ExtractSession func(raw map[string]any) string
+	CheckInstalled func() bool
+	DoInstall      func(InstallCtx) (InstallResult, error)
+	DoUninstall    func(InstallCtx) error
+	RelayPath      func() string // absolute path to this plugin's relay.sh
 }
 
 func (p Plugin) IsCLIAvailable() (path string, ok bool) {
@@ -36,20 +37,10 @@ func (p Plugin) IsCLIAvailable() (path string, ok bool) {
 }
 
 func (p Plugin) IsInstalled(dataDir string) bool {
-	switch p.ID {
-	case "codex":
-		return codexPluginInstalled()
-	case "claude":
-		return claudePluginInstalled()
-	case "gemini":
-		return geminiExtensionInstalled()
-	case "agy":
-		return agyPluginInstalled()
-	case "cursor":
-		return cursorPluginInstalled()
-	default:
+	if p.CheckInstalled == nil {
 		return false
 	}
+	return p.CheckInstalled()
 }
 
 func (p Plugin) Info(dataDir string) CLIInfo {
@@ -69,59 +60,31 @@ func (p Plugin) Install(ctx InstallCtx) (InstallResult, error) {
 	if ctx.RelayPath == "" || ctx.Token == "" {
 		return InstallResult{CLI: p.ID}, fmt.Errorf("install context incomplete")
 	}
-	switch p.ID {
-	case "codex":
-		return installCodexPlugin(ctx)
-	case "claude":
-		return installClaudePlugin(ctx)
-	case "gemini":
-		return installGeminiExtension(ctx)
-	case "agy":
-		return installAgyPlugin(ctx)
-	case "cursor":
-		return installCursorPlugin(ctx)
-	default:
+	if p.DoInstall == nil {
 		return InstallResult{CLI: p.ID}, fmt.Errorf("unknown agent CLI %q", p.ID)
 	}
+	return p.DoInstall(ctx)
 }
 
 func (p Plugin) Uninstall(ctx InstallCtx) error {
-	switch p.ID {
-	case "codex":
-		return uninstallCodexPlugin()
-	case "claude":
-		return uninstallClaudePlugin()
-	case "gemini":
-		return uninstallGeminiExtension()
-	case "agy":
-		return uninstallAgyPlugin()
-	case "cursor":
-		return uninstallCursorPlugin()
-	default:
+	if p.DoUninstall == nil {
 		return fmt.Errorf("unknown agent CLI %q", p.ID)
 	}
+	return p.DoUninstall(ctx)
 }
 
 // MapHook parses a CLI hook payload into Qterm UI intents.
 func (p Plugin) MapHook(raw map[string]any) []Intent {
-	event := ""
-	if p.ExtractEvent != nil {
-		event = p.ExtractEvent(raw)
-	} else {
-		event = firstString(raw, "hook_event_name", "hookEventName", "event", "name")
-	}
-	sessionID := ""
-	if p.ExtractSession != nil {
-		sessionID = p.ExtractSession(raw)
-	} else {
-		sessionID = firstString(raw, "session_id", "sessionId", "GEMINI_SESSION_ID")
-	}
-	if alias, ok := p.EventAliases[event]; ok {
-		event = alias
-	} else if alias, ok := p.EventAliases[strings.ToLower(event)]; ok {
-		event = alias
-	}
+	event := firstString(raw, "hook_event_name", "hookEventName", "event", "name")
+	sessionID := firstString(raw, "session_id", "sessionId", "GEMINI_SESSION_ID", "conversationId", "conversation_id")
 	cwd := firstString(raw, "cwd", "Cwd", "GEMINI_CWD")
+	if cwd == "" && raw != nil {
+		if paths, ok := raw["workspacePaths"].([]any); ok && len(paths) > 0 {
+			if s, ok := paths[0].(string); ok {
+				cwd = s
+			}
+		}
+	}
 	return ParseHook(ParseInput{
 		Source:    p.Source,
 		Title:     p.Name,
