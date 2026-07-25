@@ -12,14 +12,16 @@ export function ProjectsSection() {
   const unboundSessions = useUI((s) => s.sessions.filter((s) => isUnbound(s.projectId)));
 
   return (
-    <div className={cn(unboundSessions.length > 0 && "mt-3")}>
-      <div className="flex items-center gap-0.5 px-0.5 pb-1">
-        <div className="min-w-0 flex-1 px-2 text-[11px] text-muted-foreground">Projects</div>
+    <div className={cn(unboundSessions.length > 0 ? "mt-5" : "mt-3")}>
+      <div className="mb-1.5 flex items-center gap-1 px-1">
+        <div className="min-w-0 flex-1 px-1.5 text-[12px] leading-none text-muted-foreground">
+          Projects
+        </div>
         <WithTooltip label="Add project">
           <Button
             size="icon"
             variant="ghost"
-            className="size-6 shrink-0 text-muted-foreground"
+            className="size-7 shrink-0 text-muted-foreground"
             onClick={async () => {
               const path = await PickFolder();
               if (!path) return;
@@ -28,12 +30,12 @@ export function ProjectsSection() {
               await createTerminal(p.id);
             }}
           >
-            <FolderPlus className="size-3.5" />
+            <FolderPlus className="size-4" />
           </Button>
         </WithTooltip>
       </div>
       {projects.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {projects.map((p) => (
             <ProjectRow key={p.id} id={p.id} name={p.name} path={p.path} />
           ))}

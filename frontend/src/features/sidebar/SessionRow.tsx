@@ -81,8 +81,8 @@ export function SessionRow({ session }: { session: SessionInfo }) {
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group flex w-full items-center gap-0.5 rounded-md text-[12.5px] text-muted-foreground hover:text-sidebar-foreground",
-            focused && "bg-sidebar-accent/50 text-sidebar-foreground",
+            "group flex w-full items-center gap-0.5 rounded-lg text-[13px] leading-snug text-muted-foreground hover:text-sidebar-foreground",
+            focused && "bg-sidebar-accent text-sidebar-foreground",
             needsInput && "session-needs-input",
             thinking && "session-thinking",
             complete && "session-complete"
@@ -90,17 +90,17 @@ export function SessionRow({ session }: { session: SessionInfo }) {
         >
           <button
             type="button"
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-1 text-left"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 px-2.5 py-1.5 text-left"
             onClick={() => {
               if (!editing) void focusSession(session.id);
             }}
           >
-            <span className="relative flex size-3.5 shrink-0 items-center justify-center">
+            <span className="relative flex size-4 shrink-0 items-center justify-center">
               {agent ? (
                 <WithTooltip label={agentLabel(agent)} side="right">
                   <Bot
                     className={cn(
-                      "size-3.5 opacity-80",
+                      "size-4 opacity-80",
                       thinking && "text-sky-400",
                       needsInput && "text-amber-400",
                       complete && "text-emerald-400"
@@ -108,7 +108,7 @@ export function SessionRow({ session }: { session: SessionInfo }) {
                   />
                 </WithTooltip>
               ) : (
-                <TerminalSquare className="size-3.5 opacity-50" />
+                <TerminalSquare className="size-4 opacity-50" />
               )}
               {needsInput ? (
                 <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-2">
@@ -136,7 +136,7 @@ export function SessionRow({ session }: { session: SessionInfo }) {
                     setEditing(false);
                   }
                 }}
-                className="min-w-0 flex-1 select-text rounded-sm bg-secondary/60 px-1 py-0.5 text-[12.5px] text-sidebar-foreground outline-none ring-1 ring-ring/40"
+                className="min-w-0 flex-1 select-text rounded-md bg-secondary/60 px-1.5 py-0.5 text-[13px] text-sidebar-foreground outline-none ring-1 ring-ring/40"
               />
             ) : (
               <WithTooltip label="Double-click to rename" side="right">
@@ -162,10 +162,10 @@ export function SessionRow({ session }: { session: SessionInfo }) {
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="mr-0.5 size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                  className="mr-1 size-7 shrink-0 opacity-0 group-hover:opacity-100"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreHorizontal className="size-3.5" />
+                  <MoreHorizontal className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
             </WithTooltip>
