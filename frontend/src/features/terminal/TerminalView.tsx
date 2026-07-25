@@ -13,6 +13,7 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   const hostRef = useRef<HTMLDivElement>(null);
   const theme = useUI((s) => s.theme);
   const fontSize = useUI((s) => s.fontSize);
+  const uiZoom = useUI((s) => s.uiZoom);
   const focusedPaneId = useUI((s) => s.focusedPaneId);
   const anim = useUI((s) => s.paneAnimations[sessionId] || "none");
 
@@ -44,7 +45,7 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
       entry.term.options.fontSize = fontSize;
       entry.fit.fit();
     });
-  }, [theme, fontSize, sessionId]);
+  }, [theme, fontSize, uiZoom, sessionId]);
 
   useEffect(() => {
     if (focusedPaneId === paneId) focusTerminal(sessionId);

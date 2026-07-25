@@ -45,6 +45,8 @@ export type UIState = {
   focusedSessionId: string | null;
   theme: ThemeMode;
   fontSize: number;
+  /** Whole-app UI zoom percent (80–150). */
+  uiZoom: number;
   shell: string;
   paletteOpen: boolean;
   appMode: AppMode;

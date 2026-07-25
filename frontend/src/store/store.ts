@@ -13,6 +13,7 @@ export const uiStore = createStore<UIState>({
   focusedSessionId: null,
   theme: "dark",
   fontSize: 13,
+  uiZoom: 100,
   shell: "",
   paletteOpen: false,
   appMode: "workspace",

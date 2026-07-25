@@ -22,7 +22,19 @@ export {
 } from "./store";
 
 export { applyTheme } from "./theme";
-export { hydrateUIPrefs, persistUIPrefs, toggleProjectCollapsed } from "./prefs";
+export {
+  UI_ZOOM_DEFAULT,
+  UI_ZOOM_MAX,
+  UI_ZOOM_MIN,
+  UI_ZOOM_STEP,
+  adjustUiZoom,
+  applyUiZoom,
+  clampUiZoom,
+  hydrateUIPrefs,
+  persistUIPrefs,
+  setUiZoom,
+  toggleProjectCollapsed,
+} from "./prefs";
 export {
   collectSessionIds,
   findFirstLeaf,
