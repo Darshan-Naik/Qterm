@@ -19,17 +19,17 @@ func (a *App) startAgentBridge() {
 			intent.TerminalID = sid
 		}
 
-		if intent.Type == "auto_title" {
+		if intent.Type == agentbridge.IntentAutoTitle {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
 				_ = a.applyFirstPromptTitle(intent.SessionID, name)
 			}
 			return
 		}
-		if intent.Type == "rename" {
+		if intent.Type == agentbridge.IntentRename {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
-				_ = a.applyAgentTitle(intent.SessionID, name)
+				_ = a.applyHookSessionTitle(intent.SessionID, name)
 			}
 			return
 		}

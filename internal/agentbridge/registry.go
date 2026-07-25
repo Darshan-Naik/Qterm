@@ -7,11 +7,41 @@ import (
 
 // Registry is the list of supported agent CLIs.
 var Registry = []Plugin{
-	{ID: "claude", Name: "Claude Code", Binaries: []string{"claude"}, Source: "claude"},
-	{ID: "codex", Name: "Codex", Binaries: []string{"codex"}, Source: "codex"},
-	{ID: "gemini", Name: "Gemini CLI", Binaries: []string{"gemini"}, Source: "gemini"},
-	{ID: "agy", Name: "Antigravity CLI", Binaries: []string{"agy", "antigravity"}, Source: "agy"},
-	{ID: "cursor", Name: "Cursor Agent", Binaries: []string{"cursor-agent"}, Source: "cursor"},
+	{
+		ID: "claude", Name: "Claude Code", Binaries: []string{"claude"}, Source: "claude",
+		CheckInstalled: claudePluginInstalled,
+		DoInstall:      installClaudePlugin,
+		DoUninstall:    func(InstallCtx) error { return uninstallClaudePlugin() },
+		RelayPath:      func() string { return filepath.Join(claudePluginRoot(), "hooks", "relay.sh") },
+	},
+	{
+		ID: "codex", Name: "Codex", Binaries: []string{"codex"}, Source: "codex",
+		CheckInstalled: codexPluginInstalled,
+		DoInstall:      installCodexPlugin,
+		DoUninstall:    func(InstallCtx) error { return uninstallCodexPlugin() },
+		RelayPath:      func() string { return filepath.Join(codexPluginRoot(), "hooks", "relay.sh") },
+	},
+	{
+		ID: "gemini", Name: "Gemini CLI", Binaries: []string{"gemini"}, Source: "gemini",
+		CheckInstalled: geminiExtensionInstalled,
+		DoInstall:      installGeminiExtension,
+		DoUninstall:    func(InstallCtx) error { return uninstallGeminiExtension() },
+		RelayPath:      func() string { return filepath.Join(geminiExtensionRoot(), "hooks", "relay.sh") },
+	},
+	{
+		ID: "agy", Name: "Antigravity CLI", Binaries: []string{"agy", "antigravity"}, Source: "agy",
+		CheckInstalled: agyPluginInstalled,
+		DoInstall:      installAgyPlugin,
+		DoUninstall:    func(InstallCtx) error { return uninstallAgyPlugin() },
+		RelayPath:      func() string { return filepath.Join(agyPluginRoot(), "scripts", "relay.sh") },
+	},
+	{
+		ID: "cursor", Name: "Cursor Agent", Binaries: []string{"cursor-agent"}, Source: "cursor",
+		CheckInstalled: cursorPluginInstalled,
+		DoInstall:      installCursorPlugin,
+		DoUninstall:    func(InstallCtx) error { return uninstallCursorPlugin() },
+		RelayPath:      func() string { return filepath.Join(cursorPluginRoot(), "scripts", "relay.sh") },
+	},
 }
 
 func FindPlugin(id string) (Plugin, bool) {
@@ -94,27 +124,10 @@ func RefreshInstalledRelays(dataDir string) {
 	}
 	_, _ = writeRelayScript(dataDir, token)
 	for _, p := range Registry {
-		if !p.IsInstalled(dataDir) {
+		if !p.IsInstalled(dataDir) || p.RelayPath == nil {
 			continue
 		}
-		_ = refreshPluginRelay(p.ID, dataDir, token)
-	}
-}
-
-func refreshPluginRelay(id, dataDir, token string) error {
-	switch id {
-	case "claude":
-		return writePluginRelay(filepath.Join(claudePluginRoot(), "hooks", "relay.sh"), dataDir, token, "claude")
-	case "codex":
-		return writePluginRelay(filepath.Join(codexPluginRoot(), "hooks", "relay.sh"), dataDir, token, "codex")
-	case "gemini":
-		return writePluginRelay(filepath.Join(geminiExtensionRoot(), "hooks", "relay.sh"), dataDir, token, "gemini")
-	case "agy":
-		return writePluginRelay(filepath.Join(agyPluginRoot(), "scripts", "relay.sh"), dataDir, token, "agy")
-	case "cursor":
-		return writePluginRelay(filepath.Join(cursorPluginRoot(), "scripts", "relay.sh"), dataDir, token, "cursor")
-	default:
-		return nil
+		_ = writePluginRelay(p.RelayPath(), dataDir, token, p.Source)
 	}
 }
 

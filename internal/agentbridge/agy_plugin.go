@@ -10,6 +10,11 @@ import (
 // Antigravity CLI plugin at ~/.gemini/antigravity-cli/plugins/qterm/
 // hooks.json + mcp_config.json at plugin root (not hooks/ subdirectory).
 // https://antigravity.google/docs/cli/plugins
+//
+// Antigravity hooks use a different schema than Gemini/Claude:
+//   { "qterm-bridge": { "PreInvocation": [...], "Stop": [...], "PostToolUse": [{matcher, hooks}] } }
+// Events: PreInvocation, PostInvocation, PreToolUse, PostToolUse, Stop.
+// Timeouts are seconds. Payload uses conversationId (no hook_event_name) — relay injects it.
 
 func agyPluginRoot() string {
 	return filepath.Join(userHomeDir(), ".gemini", "antigravity-cli", "plugins", qtermPluginName)
@@ -35,18 +40,7 @@ func installAgyPlugin(ctx InstallCtx) (InstallResult, error) {
 	}); err != nil {
 		return InstallResult{CLI: "agy"}, err
 	}
-
-	// Absolute quoted path — Antigravity plugins do not expand ${extensionPath}.
-	cmd := fmt.Sprintf(`/bin/bash %q agy`, relay)
-	events := []string{
-		"SessionStart", "SessionEnd", "BeforeAgent", "AfterAgent",
-		"BeforeTool", "AfterTool",
-	}
-	hooks := nestedCommandHooks(events, cmd, nil, map[string]any{
-		"name":    "qterm-bridge",
-		"timeout": 5000,
-	})
-	if err := writeConfigJSON(filepath.Join(root, "hooks.json"), map[string]any{"hooks": hooks}); err != nil {
+	if err := writeConfigJSON(filepath.Join(root, "hooks.json"), agyHooksConfig(relay)); err != nil {
 		return InstallResult{CLI: "agy"}, err
 	}
 	if err := writeConfigJSON(filepath.Join(root, "mcp_config.json"), map[string]any{
@@ -67,6 +61,36 @@ func installAgyPlugin(ctx InstallCtx) (InstallResult, error) {
 		Installed: true,
 		Message:   "Installed ~/.gemini/antigravity-cli/plugins/qterm. Restart Antigravity CLI.",
 	}, nil
+}
+
+// agyHooksConfig builds Antigravity's named-hook schema.
+// Skip PreToolUse so we never risk blocking tool permission decisions.
+func agyHooksConfig(relayPath string) map[string]any {
+	cmd := func(event string) string {
+		return fmt.Sprintf(`/bin/bash %q agy %s`, relayPath, event)
+	}
+	handler := func(event string, timeoutSec int) map[string]any {
+		return map[string]any{
+			"type":    "command",
+			"command": cmd(event),
+			"timeout": timeoutSec,
+		}
+	}
+	return map[string]any{
+		"qterm-bridge": map[string]any{
+			// Flat events (list of handlers).
+			"PreInvocation":  []any{handler("PreInvocation", 5)},
+			"PostInvocation": []any{handler("PostInvocation", 5)},
+			"Stop":           []any{handler("Stop", 5)},
+			// Grouped tool events need matcher + hooks wrapper.
+			"PostToolUse": []any{
+				map[string]any{
+					"matcher": "*",
+					"hooks":   []any{handler("PostToolUse", 5)},
+				},
+			},
+		},
+	}
 }
 
 func uninstallAgyPlugin() error {

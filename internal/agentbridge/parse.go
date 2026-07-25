@@ -1,9 +1,7 @@
 package agentbridge
 
 import (
-	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -25,9 +23,9 @@ func ParseHook(in ParseInput) []Intent {
 	}
 	var out []Intent
 	switch normalizeEvent(in.Event) {
-	case "session_start", "before_agent":
+	case "session_start", "before_agent", "pre_invocation":
 		out = []Intent{anim("thinking")}
-		// Some CLIs (Gemini) put the prompt on BeforeAgent instead of UserPromptSubmit.
+		// Some CLIs (Gemini/Agy) put the prompt on BeforeAgent / PreInvocation.
 		if prompt := promptFromRaw(in.Raw); prompt != "" {
 			if title := TitleFromPrompt(prompt); title != "" {
 				out = append(out, autoTitleIntent(in.Source, in.SessionID, title, in.Cwd))
@@ -61,7 +59,7 @@ func ParseHook(in ParseInput) []Intent {
 		out = []Intent{anim("action_required")}
 	case "pre_tool", "before_tool":
 		out = []Intent{anim("thinking")}
-	case "post_tool", "after_tool":
+	case "post_tool", "after_tool", "post_invocation":
 		out = []Intent{anim("thinking")}
 		// Do not adopt OSC titles from shell printf — those are process/cwd noise.
 	default:
@@ -126,6 +124,10 @@ func normalizeEvent(event string) string {
 		return "after_agent"
 	case "beforemodel":
 		return "before_model"
+	case "preinvocation":
+		return "pre_invocation"
+	case "postinvocation":
+		return "post_invocation"
 	case "notification", "elicitation", "stop":
 		return e
 	default:
@@ -138,7 +140,7 @@ func animateIntent(hookID, sessionID, state string) Intent {
 		ID:        fmt.Sprintf("%s-anim-%s", hookID, state),
 		HookID:    hookID,
 		SessionID: sessionID,
-		Type:      "animate",
+		Type:      IntentAnimate,
 		Payload: map[string]any{
 			"state": state,
 			"agent": hookID,
@@ -159,7 +161,7 @@ func renameIntent(hookID, sessionID, name string) Intent {
 		ID:        fmt.Sprintf("%s-rename-%s", hookID, name),
 		HookID:    hookID,
 		SessionID: sessionID,
-		Type:      "rename",
+		Type:      IntentRename,
 		Payload: map[string]any{
 			"name":  name,
 			"agent": hookID,
@@ -200,60 +202,12 @@ func nestedString(m map[string]any, path ...string) string {
 	return s
 }
 
-func titleFromToolPayload(raw map[string]any) string {
-	candidates := []string{
-		firstString(raw, "command", "cmd"),
-		nestedString(raw, "tool_input", "command"),
-		nestedString(raw, "tool_input", "cmd"),
-		nestedString(raw, "input", "command"),
-		nestedString(raw, "toolInput", "command"),
-		nestedString(raw, "parameters", "command"),
-	}
-	if ti, ok := raw["tool_input"].(map[string]any); ok {
-		for _, v := range ti {
-			if s, ok := v.(string); ok && (strings.Contains(s, "]0;") || strings.Contains(s, "]2;")) {
-				candidates = append(candidates, s)
-			}
-		}
-	}
-	for _, c := range candidates {
-		if title := extractOSCTitleFromCommand(c); title != "" {
-			return title
-		}
-	}
-	// Last resort: scan the whole payload JSON (Codex nests fields differently).
-	if b, err := json.Marshal(raw); err == nil {
-		if title := extractOSCTitleFromCommand(string(b)); title != "" {
-			return title
-		}
-	}
-	return ""
-}
-
-var (
-	rePrintfPercent = regexp.MustCompile(`(?i)printf\s+['"](?:\\033|\\e|\\x1b)\][02];%s(?:\\007|\\a|\\x07)['"]\s+['"]([^'"]+)['"]`)
-	rePrintfLiteral = regexp.MustCompile(`(?i)(?:printf|echo)\s+.*?['"](?:\\033|\\e|\\x1b)\][02];([^'"\\]+)(?:\\007|\\a|\\x07)['"]`)
-	reOSCBare       = regexp.MustCompile(`\][02];([^\x07\x1b\\]{1,120})`)
+// Intent kinds emitted to the Qterm UI / bridge.
+const (
+	IntentAnimate   = "animate"
+	IntentRename    = "rename"
+	IntentAutoTitle = "auto_title"
 )
-
-func extractOSCTitleFromCommand(cmd string) string {
-	cmd = strings.TrimSpace(cmd)
-	if cmd == "" {
-		return ""
-	}
-	if m := rePrintfPercent.FindStringSubmatch(cmd); len(m) > 1 {
-		return strings.TrimSpace(m[1])
-	}
-	if m := rePrintfLiteral.FindStringSubmatch(cmd); len(m) > 1 {
-		return strings.TrimSpace(m[1])
-	}
-	if strings.Contains(cmd, "printf") || strings.Contains(cmd, "\\033]") || strings.Contains(cmd, "\\e]") || strings.Contains(cmd, "]0;") || strings.Contains(cmd, "]2;") {
-		if m := reOSCBare.FindStringSubmatch(cmd); len(m) > 1 {
-			return strings.TrimSpace(m[1])
-		}
-	}
-	return ""
-}
 
 // Intent is emitted to the Qterm UI.
 type Intent struct {

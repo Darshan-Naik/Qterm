@@ -121,6 +121,22 @@ func TestInstallAgyPluginLayout(t *testing.T) {
 	if !agyPluginInstalled() {
 		t.Fatal("agyPluginInstalled false")
 	}
+	hooks, _ := os.ReadFile(filepath.Join(root, "hooks.json"))
+	text := string(hooks)
+	if !strings.Contains(text, `"qterm-bridge"`) {
+		t.Fatalf("agy hooks must use named-hook schema:\n%s", text)
+	}
+	if strings.Contains(text, `"SessionStart"`) || strings.Contains(text, `"BeforeAgent"`) {
+		t.Fatalf("agy must not use Gemini/Claude event names:\n%s", text)
+	}
+	for _, want := range []string{`"PreInvocation"`, `"PostInvocation"`, `"Stop"`, `"PostToolUse"`} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("missing %s in agy hooks:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, `"timeout": 5000`) {
+		t.Fatal("agy timeouts are seconds, not ms")
+	}
 }
 
 func TestInstallCodexPluginLayout(t *testing.T) {
@@ -193,4 +209,3 @@ func TestInstallCursorPluginLayout(t *testing.T) {
 		t.Fatalf("expected mcpAllowlist:\n%s", perms)
 	}
 }
-

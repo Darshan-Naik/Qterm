@@ -32,8 +32,8 @@ func TestManualRenameBlocksAutoSync(t *testing.T) {
 	if !a.isNameLocked(sess.ID) {
 		t.Fatal("expected nameLocked after manual rename")
 	}
-	if a.adoptSessionTitle(sess.ID, "Agent Auto Title") {
-		t.Fatal("auto sync should not overwrite manual name")
+	if a.applyHookSessionTitle(sess.ID, "Agent Auto Title") {
+		t.Fatal("hook session title should not overwrite manual name")
 	}
 	got, ok := a.pty.Get(sess.ID)
 	if !ok || got.Name != "My Tab" {
