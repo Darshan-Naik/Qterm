@@ -26,34 +26,34 @@ export function AppSidebar() {
             <Button
               size="icon"
               variant="ghost"
-              className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
+              className="size-7 shrink-0 text-muted-foreground titlebar-no-drag"
               onClick={() => {
                 uiStore.set({ sidebarOpen: false });
                 void persistUIPrefs();
               }}
             >
-              <PanelLeft className="size-3.5" />
+              <PanelLeft className="size-4" />
             </Button>
           </WithTooltip>
           <div className="min-w-0 flex-1" />
         </div>
-        <ScrollArea className="min-h-0 flex-1 px-1.5">
-          <div className="pb-3 pt-0.5">
-            <div className="mb-1 px-0.5">
+        <ScrollArea className="min-h-0 flex-1 px-2">
+          <div className="pb-4 pt-1">
+            <div className="mb-1">
               <WithTooltip label="New terminal in home" side="right">
                 <button
                   type="button"
-                  className="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-left text-[12.5px] text-sidebar-foreground hover:bg-sidebar-accent/40"
+                  className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground hover:bg-sidebar-accent/50"
                   onClick={() => void createDefaultTerminal()}
                 >
-                  <Plus className="size-3.5 shrink-0 opacity-60" />
+                  <Plus className="size-4 shrink-0 opacity-60" />
                   <span>New</span>
                 </button>
               </WithTooltip>
             </div>
 
             {unboundSessions.length > 0 && (
-              <div className="space-y-px">
+              <div className="mt-2 space-y-0.5">
                 {unboundSessions.map((s) => (
                   <SessionRow key={s.id} session={s} />
                 ))}

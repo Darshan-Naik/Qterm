@@ -48,16 +48,16 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             <WithTooltip label={collapsed ? "Expand" : "Collapse"} side="right">
               <button
                 type="button"
-                className="relative flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                className="relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleProjectCollapsed(id);
                 }}
               >
-                <ProjectIcon className="size-3.5 opacity-70 group-hover:opacity-0" />
+                <ProjectIcon className="size-4 opacity-70 group-hover:opacity-0" />
                 <ChevronRight
                   className={cn(
-                    "absolute size-3.5 opacity-0 transition-transform group-hover:opacity-100",
+                    "absolute size-4 opacity-0 transition-transform group-hover:opacity-100",
                     !collapsed && "rotate-90"
                   )}
                 />
@@ -65,7 +65,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </WithTooltip>
             <button
               type="button"
-              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left text-[12.5px] text-sidebar-foreground hover:bg-sidebar-accent/40"
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground hover:bg-sidebar-accent/50"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void focusScope(id);
@@ -74,7 +74,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             >
               <span className="max-w-[42%] shrink-0 truncate font-normal">{name}</span>
               {git?.isRepo && (
-                <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-[11px] text-muted-foreground group-hover:hidden">
+                <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-[12px] text-muted-foreground group-hover:hidden">
                   <span className="min-w-0 truncate">{git.branch}</span>
                   {git.dirty && <Circle className="size-1.5 shrink-0 fill-amber-400 text-amber-400" />}
                 </span>
@@ -85,13 +85,13 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="hidden size-6 shrink-0 group-hover:inline-flex"
+                className="hidden size-7 shrink-0 group-hover:inline-flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   void createTerminal(id);
                 }}
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-4" />
               </Button>
             </WithTooltip>
             <DropdownMenu>
@@ -101,10 +101,10 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="hidden size-6 shrink-0 group-hover:inline-flex"
+                    className="hidden size-7 shrink-0 group-hover:inline-flex"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MoreHorizontal className="size-3.5" />
+                    <MoreHorizontal className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
               </WithTooltip>
@@ -157,7 +157,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
         </ContextMenuContent>
       </ContextMenu>
       {!collapsed && sessions.length > 0 && (
-        <div className="ml-3 space-y-px">
+        <div className="ml-4 mt-0.5 space-y-0.5">
           {sessions.map((s) => (
             <SessionRow key={s.id} session={s} />
           ))}
