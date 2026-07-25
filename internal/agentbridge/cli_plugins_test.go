@@ -54,6 +54,10 @@ func TestInstallClaudePluginLayout(t *testing.T) {
 	if !strings.Contains(string(hooks), `${CLAUDE_PLUGIN_ROOT}/hooks/relay.sh`) {
 		t.Fatalf("expected CLAUDE_PLUGIN_ROOT:\n%s", hooks)
 	}
+	relay, _ := os.ReadFile(filepath.Join(root, "hooks", "relay.sh"))
+	if !strings.Contains(string(relay), `if [[ -z "${QTERM_SESSION_ID:-}" ]]; then`) {
+		t.Fatalf("relay must gate on QTERM_SESSION_ID:\n%s", relay)
+	}
 	market, _ := os.ReadFile(filepath.Join(home, ".claude", "plugins", ".claude-plugin", "marketplace.json"))
 	if !strings.Contains(string(market), `"./qterm"`) {
 		t.Fatalf("marketplace source wrong:\n%s", market)

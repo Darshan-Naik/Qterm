@@ -16,6 +16,7 @@ import (
 //
 // When the MCP process inherits QTERM_SESSION_ID from the PTY (agent launched in that pane),
 // every tool call forwards it as X-Qterm-Terminal-Id so the bridge can bind authoritatively.
+// Outside Qterm (no QTERM_SESSION_ID), tools are hidden and calls refuse — cmux pattern.
 func RunMCP() {
 	url := os.Getenv("QTERM_BRIDGE_URL")
 	token := os.Getenv("QTERM_BRIDGE_TOKEN")
@@ -33,6 +34,7 @@ func RunMCP() {
 		url = fmt.Sprintf("http://127.0.0.1:%d", DefaultPort)
 	}
 	terminalHint := strings.TrimSpace(os.Getenv("QTERM_SESSION_ID"))
+	inQterm := terminalHint != ""
 
 	br := bufio.NewReader(os.Stdin)
 	for {
@@ -55,13 +57,27 @@ func RunMCP() {
 			writeMCPResult(id, map[string]any{
 				"protocolVersion": "2024-11-05",
 				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "qterm", "version": "1.2.1"},
+				"serverInfo":      map[string]any{"name": "qterm", "version": "1.2.3"},
 			})
 		case "notifications/initialized", "initialized":
 			// no-op
 		case "tools/list":
-			writeMCPResult(id, map[string]any{"tools": mcpTools()})
+			tools := []map[string]any{}
+			if inQterm {
+				tools = mcpTools()
+			}
+			writeMCPResult(id, map[string]any{"tools": tools})
 		case "tools/call":
+			if !inQterm {
+				writeMCPResult(id, map[string]any{
+					"content": []any{map[string]any{
+						"type": "text",
+						"text": "Qterm MCP only works inside a Qterm terminal pane (QTERM_SESSION_ID missing).",
+					}},
+					"isError": true,
+				})
+				break
+			}
 			params, _ := req["params"].(map[string]any)
 			name, _ := params["name"].(string)
 			args, _ := params["arguments"].(map[string]any)
