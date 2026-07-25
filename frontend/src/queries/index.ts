@@ -1,5 +1,5 @@
 import { useQuery } from "qortex-query-react";
-import { ListProjects, ListSessions, ListHooks, GetGitStatus, GetConfig } from "../../wailsjs/go/main/App";
+import { ListProjects, ListSessions, GetGitStatus, GetConfig } from "../../wailsjs/go/main/App";
 
 export function useProjects() {
   return useQuery(["projects"], {
@@ -12,13 +12,6 @@ export function useSessions() {
   return useQuery(["sessions"], {
     fetcher: () => ListSessions(),
     staleTime: 1_000,
-  });
-}
-
-export function useHooks() {
-  return useQuery(["hooks"], {
-    fetcher: () => ListHooks(),
-    staleTime: 5_000,
   });
 }
 

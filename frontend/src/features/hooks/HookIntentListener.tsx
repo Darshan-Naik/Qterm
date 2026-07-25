@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { uiStore, useUI, type AnimateState, type HookIntent } from "@/store/ui";
@@ -8,6 +7,17 @@ import { EventsOn } from "../../../wailsjs/runtime/runtime";
 
 export function HookIntentListener() {
   const pending = useUI((s) => s.pendingIntent);
+  const focusedSessionId = useUI((s) => s.focusedSessionId);
+
+  // Clear needs-input pulse once the user focuses that terminal.
+  useEffect(() => {
+    if (!focusedSessionId) return;
+    const anim = uiStore.get().paneAnimations[focusedSessionId];
+    if (anim === "action_required") {
+      const next = { ...uiStore.get().paneAnimations, [focusedSessionId]: "none" as AnimateState };
+      uiStore.set({ paneAnimations: next });
+    }
+  }, [focusedSessionId]);
 
   useEffect(() => {
     const clearTimers = new Map<string, number>();
@@ -23,10 +33,11 @@ export function HookIntentListener() {
     const scheduleClear = (sessionId: string, state: AnimateState) => {
       const prev = clearTimers.get(sessionId);
       if (prev) window.clearTimeout(prev);
-      const ms =
-        state === "thinking" ? 1200 : state === "task_complete" ? 2800 : state === "action_required" ? 6000 : 0;
+      // thinking stays while the agent is working (cleared by complete / none / needs-input).
+      // action_required stays until the user focuses the session.
+      const ms = state === "task_complete" ? 2200 : 0;
       if (!ms) {
-        clearAnim(sessionId);
+        if (state === "none") clearAnim(sessionId);
         return;
       }
       clearTimers.set(
@@ -39,34 +50,48 @@ export function HookIntentListener() {
       );
     };
 
-    // Drop any stuck infinite pulses from earlier sessions.
     uiStore.set({ paneAnimations: {} });
 
     const offIntent = (EventsOn as any)("hook:intent", (intent: HookIntent) => {
-      if (intent.type === "notify") {
-        const title = String(intent.payload?.title || "Hook");
-        const message = String(intent.payload?.message || "");
-        const level = String(intent.payload?.level || "info");
-        if (level === "success") toast.success(message, { description: title });
-        else if (level === "warning") toast.warning(message, { description: title });
-        else toast(message, { description: title });
-      }
+      // Never fall back to focused pane — that jumps status/rename when switching tabs.
+      const sessionId = intent.sessionId || "";
+      const agent = String(intent.payload?.agent || intent.hookId || "");
+
       if (intent.type === "animate") {
         const state = (intent.payload?.state as AnimateState) || "none";
-        if (!intent.sessionId || state === "none") {
-          if (intent.sessionId) clearAnim(intent.sessionId);
+        if (!sessionId) return;
+
+        if (agent) {
+          const agents = { ...uiStore.get().sessionAgents };
+          if (state === "none") {
+            delete agents[sessionId];
+          } else {
+            agents[sessionId] = agent;
+          }
+          uiStore.set({ sessionAgents: agents });
+        }
+
+        if (state === "none") {
+          clearAnim(sessionId);
           return;
         }
-        const map = { ...uiStore.get().paneAnimations, [intent.sessionId]: state };
+        // Don't downgrade action_required with a fleeting thinking pulse.
+        const current = uiStore.get().paneAnimations[sessionId];
+        if (current === "action_required" && state === "thinking") {
+          return;
+        }
+        const map = { ...uiStore.get().paneAnimations, [sessionId]: state };
         uiStore.set({ paneAnimations: map });
-        scheduleClear(intent.sessionId, state);
+        scheduleClear(sessionId, state);
       }
+
       if (intent.type === "suggest") {
         uiStore.set({ suggestText: String(intent.payload?.text || "") });
       }
       if (intent.type === "request_approval") {
-        uiStore.set({ pendingIntent: intent });
+        uiStore.set({ pendingIntent: { ...intent, sessionId } });
       }
+      // notify intents are intentionally ignored — sidebar animation only.
     });
     return () => {
       if (typeof offIntent === "function") offIntent();
@@ -100,7 +125,6 @@ export function HookIntentListener() {
             onClick={async () => {
               await ResolveHookIntent(pending.id, true);
               uiStore.set({ pendingIntent: null });
-              toast.success("Approved");
             }}
           >
             Approve

@@ -98,7 +98,14 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 
 	cmd := exec.Command(shell)
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLORTERM=truecolor")
+	cmd.Env = append(os.Environ(),
+		"TERM=xterm-256color",
+		"COLORTERM=truecolor",
+		// Identity injection — same pattern as Ghostty GHOSTTY_SESSION_ID / iTerm ITERM_SESSION_ID.
+		// Agents and hook relays inherit this so Qterm can bind CLI session_id → pane.
+		"QTERM_SESSION_ID="+id,
+		"QTERM_PROJECT_ID="+opts.ProjectID,
+	)
 
 	ptmx, err := pty.Start(cmd)
 	if err != nil {

@@ -2,6 +2,9 @@ package main
 
 import (
 	"embed"
+	"os"
+
+	"qterm/internal/agentbridge"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -16,6 +19,11 @@ var assets embed.FS
 var appIcon []byte
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		agentbridge.RunMCP()
+		return
+	}
+
 	app := NewApp()
 
 	err := wails.Run(&options.App{
@@ -34,7 +42,6 @@ func main() {
 			app,
 		},
 		Mac: &mac.Options{
-			// Hidden (not Inset): traffic lights sit like Cursor — closer to the edge, no toolbar offset.
 			TitleBar:             mac.TitleBarHidden(),
 			Appearance:           mac.NSAppearanceNameDarkAqua,
 			WebviewIsTransparent: false,

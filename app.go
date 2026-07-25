@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
 
+	"qterm/internal/agentbridge"
 	"qterm/internal/config"
 	"qterm/internal/git"
 	"qterm/internal/hooks"
@@ -21,13 +24,18 @@ import (
 )
 
 type App struct {
-	ctx          context.Context
-	store        *config.Store
-	pty          *ptymgr.Manager
-	projects     *project.Service
-	hooks        *hooks.Host
-	scrollback   *scrollback.Store
-	shuttingDown bool
+	ctx              context.Context
+	store            *config.Store
+	pty              *ptymgr.Manager
+	projects         *project.Service
+	hooks            *hooks.Host
+	scrollback       *scrollback.Store
+	bridge           *agentbridge.Server
+	shuttingDown     bool
+	focusedSessionID string
+	agentMu          sync.Mutex
+	agentBind        map[string]string // CLI session id → Qterm session id (sticky)
+	agentLastQterm   string            // last Qterm pane that received agent activity
 }
 
 func NewApp() *App {
@@ -53,10 +61,7 @@ func (a *App) startup(ctx context.Context) {
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
 	a.projects = project.NewService(store)
 	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
-
-	// Seed bundled demo hooks if missing
-	a.ensureBundledHooks()
-	a.hooks.ActivateAll()
+	a.startAgentBridge()
 
 	// Recreate terminals from last session
 	a.restoreSessions()
@@ -106,6 +111,9 @@ func (a *App) setupMenu() {
 
 func (a *App) shutdown(ctx context.Context) {
 	a.shuttingDown = true
+	if a.bridge != nil {
+		_ = a.bridge.Stop(ctx)
+	}
 	if a.scrollback != nil {
 		a.scrollback.Close()
 	}
@@ -144,49 +152,6 @@ func (a *App) restoreSessions() {
 	}
 }
 
-func (a *App) ensureBundledHooks() {
-	rels := []string{
-		filepath.Join("hooks", "demo-hook"),
-		filepath.Join("hooks", "claude-hook"),
-	}
-	var roots []string
-	if wd, err := os.Getwd(); err == nil {
-		roots = append(roots, wd)
-	}
-	if exe, err := os.Executable(); err == nil {
-		roots = append(roots, filepath.Dir(exe))
-		roots = append(roots, filepath.Dir(filepath.Dir(exe))) // .app/Contents/MacOS -> Contents
-	}
-	for _, root := range roots {
-		for _, rel := range rels {
-			src := filepath.Join(root, rel)
-			if _, err := os.Stat(filepath.Join(src, "manifest.json")); err != nil {
-				continue
-			}
-			data, _ := os.ReadFile(filepath.Join(src, "manifest.json"))
-			var m hooks.Manifest
-			if json.Unmarshal(data, &m) != nil || m.ID == "" {
-				continue
-			}
-			dest := filepath.Join(a.hooks.Dir(), m.ID)
-			if _, err := os.Stat(dest); err == nil {
-				// Refresh bundled script so hook fixes ship without reinstall.
-				_ = copyFile(filepath.Join(src, "index.js"), filepath.Join(dest, "index.js"))
-				continue
-			}
-			_, _ = a.hooks.InstallFromPath(src)
-		}
-	}
-}
-
-func copyFile(src, dst string) error {
-	in, err := os.ReadFile(src)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(dst, in, 0o755)
-}
-
 func (a *App) onPtyData(sessionID string, data []byte) {
 	var seq uint64
 	if a.scrollback != nil {
@@ -219,6 +184,7 @@ func (a *App) onPtyExit(sessionID string, code int) {
 }
 
 func (a *App) removeSessionMeta(sessionID string) {
+	a.clearAgentBindsForQterm(sessionID)
 	if a.scrollback != nil {
 		a.scrollback.Remove(sessionID)
 	}
@@ -387,8 +353,34 @@ type SessionDTO struct {
 
 func (a *App) ListSessions() []SessionDTO {
 	live := a.pty.List()
-	out := make([]SessionDTO, 0, len(live))
+	byID := make(map[string]*ptymgr.Session, len(live))
 	for _, s := range live {
+		byID[s.ID] = s
+	}
+	out := make([]SessionDTO, 0, len(live))
+	seen := make(map[string]bool, len(live))
+	// Preserve config order (creation order) — never sort by name.
+	for _, meta := range a.store.Get().Sessions {
+		s, ok := byID[meta.ID]
+		if !ok {
+			continue
+		}
+		out = append(out, SessionDTO{
+			ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned,
+		})
+		seen[s.ID] = true
+	}
+	// Live sessions missing from config (rare) append in creation order.
+	extras := make([]*ptymgr.Session, 0)
+	for _, s := range live {
+		if !seen[s.ID] {
+			extras = append(extras, s)
+		}
+	}
+	sort.Slice(extras, func(i, j int) bool {
+		return extras[i].CreatedAt.Before(extras[j].CreatedAt)
+	})
+	for _, s := range extras {
 		out = append(out, SessionDTO{
 			ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned,
 		})
@@ -455,6 +447,23 @@ func (a *App) KillSession(id string) error {
 }
 
 func (a *App) RenameSession(id, name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return false
+	}
+	// Ignore shell OSC titles like user@host — those are not session labels.
+	if looksLikeShellTitle(name) {
+		return false
+	}
+	if id == "" || id == "focused" || id == "current" || id == "." {
+		id = a.focusedSessionID
+	}
+	if id == "" {
+		return false
+	}
+	if sess, ok := a.pty.Get(id); ok && sess.Name == name {
+		return true
+	}
 	ok := a.pty.Rename(id, name)
 	if ok {
 		_ = a.store.Update(func(cfg *config.AppConfig) {
@@ -464,9 +473,29 @@ func (a *App) RenameSession(id, name string) bool {
 				}
 			}
 		})
+		runtime.EventsEmit(a.ctx, "session:renamed", map[string]any{"id": id, "name": name})
 		runtime.EventsEmit(a.ctx, "sessions:changed", nil)
 	}
 	return ok
+}
+
+// looksLikeShellTitle matches typical prompt window titles (user@host[:path]).
+func looksLikeShellTitle(name string) bool {
+	at := strings.IndexByte(name, '@')
+	if at <= 0 || at == len(name)-1 {
+		return false
+	}
+	// Real session labels rarely look like login@hostname.
+	host := name[at+1:]
+	if strings.ContainsAny(host, " \t") {
+		return false
+	}
+	return true
+}
+
+// SetFocusedSession records which terminal the UI is focused on.
+func (a *App) SetFocusedSession(id string) {
+	a.focusedSessionID = id
 }
 
 func (a *App) PromoteSession(id, projectID string) error {
@@ -492,35 +521,12 @@ func (a *App) PromoteSession(id, projectID string) error {
 	return nil
 }
 
-// --- Hooks ---
-
-func (a *App) ListHooks() []hooks.InstalledHook {
-	return a.hooks.List()
-}
-
-func (a *App) InstallHook(path string) (hooks.InstalledHook, error) {
-	return a.hooks.InstallFromPath(path)
-}
-
-func (a *App) UninstallHook(id string) error {
-	return a.hooks.Uninstall(id)
-}
-
-func (a *App) SetHookEnabled(id string, enabled bool) error {
-	return a.hooks.SetEnabled(id, enabled)
-}
-
-func (a *App) SetHookPermissions(id string, granted hooks.Permissions) error {
-	return a.hooks.SetPermissions(id, granted)
-}
-
-func (a *App) PickHookFolder() (string, error) {
-	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Select hook folder (with manifest.json)",
-	})
-}
+// --- Agent CLI plugins / legacy intent resolve ---
 
 func (a *App) ResolveHookIntent(intentID string, approved bool) (map[string]any, error) {
+	if a.hooks == nil {
+		return map[string]any{"ok": true}, nil
+	}
 	result, err := a.hooks.ResolveIntent(intentID, approved)
 	if err != nil {
 		return nil, err

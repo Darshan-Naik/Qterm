@@ -1,6 +1,6 @@
 export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "action_required" | "task_complete" | "thinking";
-export type SettingsPage = "appearance" | "terminal" | "plugins";
+export type SettingsPage = "appearance" | "terminal" | "agent";
 export type AppMode = "workspace" | "settings";
 
 export type SplitNode =
@@ -55,6 +55,8 @@ export type UIState = {
   sessions: SessionInfo[];
   projects: ProjectInfo[];
   paneAnimations: Record<string, AnimateState>;
+  /** sessionId → agent CLI source (claude/codex/…) while hooks are active */
+  sessionAgents: Record<string, string>;
   pendingIntent: HookIntent | null;
   suggestText: string | null;
   collapsedProjects: Record<string, boolean>;
