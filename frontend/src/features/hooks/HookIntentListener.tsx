@@ -63,12 +63,12 @@ export function HookIntentListener() {
 
         if (agent) {
           const agents = { ...uiStore.get().sessionAgents };
-          if (state === "none") {
-            delete agents[sessionId];
-          } else {
+          // Keep the CLI brand sticky for the session; only overwrite when a
+          // real agent id arrives (don't clear on animate "none").
+          if (state !== "none") {
             agents[sessionId] = agent;
+            uiStore.set({ sessionAgents: agents });
           }
-          uiStore.set({ sessionAgents: agents });
         }
 
         if (state === "none") {
