@@ -17,11 +17,12 @@ type SplitNode struct {
 }
 
 type SessionMeta struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	ProjectID string `json:"projectId"` // "" or "home" = unbound
-	Cwd       string `json:"cwd"`
-	Pinned    bool   `json:"pinned"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	ProjectID  string `json:"projectId"` // "" or "home" = unbound
+	Cwd        string `json:"cwd"`
+	Pinned     bool   `json:"pinned"`
+	NameLocked bool   `json:"nameLocked,omitempty"` // user renamed — skip auto title sync
 }
 
 type ProjectMeta struct {

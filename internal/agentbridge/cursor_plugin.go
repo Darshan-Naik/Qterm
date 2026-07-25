@@ -79,11 +79,14 @@ func installCursorPlugin(ctx InstallCtx) (InstallResult, error) {
 	if err := writeMCPConfig(cursorUserMCPJSON(), ctx.MCPCommand, ctx.DataDir, ctx.Token); err != nil {
 		return InstallResult{CLI: "cursor"}, err
 	}
+	if err := ensureCursorQtermPermissions(); err != nil {
+		return InstallResult{CLI: "cursor"}, err
+	}
 
 	return InstallResult{
 		CLI:       "cursor",
 		Installed: true,
-		Message:   "Installed ~/.cursor/plugins/local/qterm + user hooks/MCP. Restart Cursor Agent.",
+		Message:   "Installed ~/.cursor/plugins/local/qterm + user hooks/MCP (allowlisted). Restart Cursor Agent.",
 	}, nil
 }
 

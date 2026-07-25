@@ -35,6 +35,26 @@ export function terminalThemeFromCss(): ITheme {
   };
 }
 
+/** SGR / X10 / urxvt mouse reports that xterm emits when mouse tracking is on. */
+function isMouseReport(data: string): boolean {
+  // ESC [ < btn ; col ; row M/m   (SGR 1006)
+  // ESC [ btn ; col ; row M/m     (urxvt 1015)
+  // ESC M btn col row             (X10 1000)
+  return (
+    /^\x1b\[<\d+;\d+;\d+[Mm]/.test(data) ||
+    /^\x1b\[\d+;\d+;\d+[Mm]/.test(data) ||
+    /^\x1b\[M[\s\S]{3}/.test(data)
+  );
+}
+
+/** Turn off DEC mouse modes in the emulator only (does not write to the PTY). */
+function disableMouseTracking(term: Terminal) {
+  // Apps sometimes leave ?1000h/?1003h/?1006h on after exit; clear them locally.
+  term.write(
+    "\x1b[?1000l\x1b[?1001l\x1b[?1002l\x1b[?1003l\x1b[?1005l\x1b[?1006l\x1b[?1015l"
+  );
+}
+
 type Pending = { data: string; seq: number };
 
 type Entry = {
@@ -91,6 +111,16 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   const fit = new FitAddon();
   term.loadAddon(fit);
   const dataDisposable = term.onData((data) => {
+    // If an app left mouse tracking on after returning to the normal (shell)
+    // buffer, scroll/move events would be typed into the prompt as garbage
+    // like "35;18;20M". Drop them and clear tracking; keep mouse for TUIs
+    // on the alternate screen (vim, Claude Code, etc.).
+    if (isMouseReport(data) && term.buffer.active.type === "normal") {
+      if (term.modes.mouseTrackingMode !== "none") {
+        disableMouseTracking(term);
+      }
+      return;
+    }
     const bytes = new TextEncoder().encode(data);
     void WriteSessionBytes(sessionId, b64encode(bytes));
   });

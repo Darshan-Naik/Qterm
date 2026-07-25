@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -316,4 +317,45 @@ func findOSCTerm(b []byte) int {
 		}
 	}
 	return -1
+}
+
+// ExtractWindowTitles returns OSC 0/2 window titles from a PTY chunk, in order.
+func ExtractWindowTitles(in []byte) []string {
+	if !bytes.Contains(in, []byte{0x1b, ']'}) {
+		return nil
+	}
+	var titles []string
+	i := 0
+	for i < len(in) {
+		if in[i] == 0x1b && i+1 < len(in) && in[i+1] == ']' {
+			rest := in[i+2:]
+			ps, n := readOSCPs(rest)
+			if n >= 0 && (ps == 0 || ps == 2) {
+				termAt := findOSCTerm(rest[n:])
+				if termAt >= 0 {
+					payload := rest[n : n+termAt]
+					title := decodeOSCTitlePayload(payload)
+					if title != "" {
+						titles = append(titles, title)
+					}
+					i += 2 + n + termAt
+					continue
+				}
+			}
+		}
+		i++
+	}
+	return titles
+}
+
+func decodeOSCTitlePayload(payload []byte) string {
+	if len(payload) == 0 {
+		return ""
+	}
+	if payload[len(payload)-1] == 0x07 {
+		payload = payload[:len(payload)-1]
+	} else if len(payload) >= 2 && payload[len(payload)-2] == 0x1b && payload[len(payload)-1] == '\\' {
+		payload = payload[:len(payload)-2]
+	}
+	return strings.TrimSpace(string(payload))
 }

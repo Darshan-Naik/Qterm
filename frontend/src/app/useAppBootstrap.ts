@@ -10,7 +10,7 @@ import {
   useUI,
   type ThemeMode,
 } from "@/store/ui";
-import { GetConfig, ListProjects, ListSessions, RenameSession } from "../../wailsjs/go/main/App";
+import { GetConfig, ListProjects, ListSessions, SetSessionName } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { splitFocused } from "./splitActions";
 
@@ -52,7 +52,7 @@ export function useAppBootstrap() {
           if (looksLikeShellTitle(name)) {
             name = randomTerminalName(usedNames);
             usedNames.push(name);
-            void RenameSession(s.id, name);
+            void SetSessionName(s.id, name);
           } else {
             usedNames.push(name);
           }
@@ -121,7 +121,7 @@ export function useAppBootstrap() {
         let name = next.name;
         if (looksLikeShellTitle(name)) {
           name = looksLikeShellTitle(s.name) ? randomTerminalName(usedNames) : s.name;
-          if (name !== next.name) void RenameSession(s.id, name);
+          if (name !== next.name) void SetSessionName(s.id, name);
           usedNames.push(name);
         }
         merged.push({ ...next, name });
@@ -133,7 +133,7 @@ export function useAppBootstrap() {
           if (looksLikeShellTitle(name)) {
             name = randomTerminalName(usedNames);
             usedNames.push(name);
-            void RenameSession(s.id, name);
+            void SetSessionName(s.id, name);
           }
           merged.push({ ...s, name });
         }

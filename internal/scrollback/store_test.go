@@ -13,6 +13,18 @@ func TestStripColorOSC(t *testing.T) {
 	}
 }
 
+func TestExtractWindowTitles(t *testing.T) {
+	in := []byte("x\x1b]0;Fix login\x07y\x1b]2;Ship it\x1b\\z")
+	got := ExtractWindowTitles(in)
+	if len(got) != 2 || got[0] != "Fix login" || got[1] != "Ship it" {
+		t.Fatalf("%q", got)
+	}
+	if ExtractWindowTitles([]byte("no titles")) != nil {
+		t.Fatal("expected nil")
+	}
+}
+
+
 func TestTrimFrontNewline(t *testing.T) {
 	// 10 bytes before newline, then 30 after → max 20 should cut at/after newline when possible.
 	in := append([]byte("0123456789\n"), []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ!!!!")...)
