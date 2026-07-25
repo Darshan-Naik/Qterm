@@ -1,0 +1,15 @@
+{
+  "id": "claude-hook",
+  "name": "Claude Hook",
+  "version": "0.1.0",
+  "description": "Reference agent hook — watches output and requests approval before writing help commands.",
+  "command": "node",
+  "args": ["index.js"],
+  "permissions": {
+    "readOutput": true,
+    "writePty": true,
+    "notify": true,
+    "animate": true,
+    "network": false
+  }
+}

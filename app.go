@@ -1,0 +1,339 @@
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
+
+	"qterm/internal/config"
+	"qterm/internal/git"
+	"qterm/internal/hooks"
+	ptymgr "qterm/internal/pty"
+	"qterm/internal/project"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+type App struct {
+	ctx     context.Context
+	store   *config.Store
+	pty     *ptymgr.Manager
+	projects *project.Service
+	hooks   *hooks.Host
+}
+
+func NewApp() *App {
+	return &App{}
+}
+
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+	store, err := config.NewStore()
+	if err != nil {
+		panic(err)
+	}
+	a.store = store
+	cfg := store.Get()
+
+	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
+	a.projects = project.NewService(store)
+	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
+
+	// Seed bundled demo hooks if missing
+	a.ensureBundledHooks()
+	a.hooks.ActivateAll()
+}
+
+func (a *App) shutdown(ctx context.Context) {
+	if a.pty != nil {
+		a.pty.CloseAll()
+	}
+	if a.hooks != nil {
+		for _, h := range a.hooks.List() {
+			_ = a.hooks.Deactivate(h.Manifest.ID)
+		}
+	}
+}
+
+func (a *App) ensureBundledHooks() {
+	candidates := []string{
+		filepath.Join("hooks", "demo-hook"),
+		filepath.Join("hooks", "claude-hook"),
+	}
+	exe, _ := os.Getwd()
+	for _, rel := range candidates {
+		src := filepath.Join(exe, rel)
+		if _, err := os.Stat(filepath.Join(src, "manifest.json")); err != nil {
+			continue
+		}
+		data, _ := os.ReadFile(filepath.Join(src, "manifest.json"))
+		var m hooks.Manifest
+		if json.Unmarshal(data, &m) != nil || m.ID == "" {
+			continue
+		}
+		dest := filepath.Join(a.hooks.Dir(), m.ID)
+		if _, err := os.Stat(dest); err == nil {
+			continue
+		}
+		_, _ = a.hooks.InstallFromPath(src)
+	}
+}
+
+func (a *App) onPtyData(sessionID string, data []byte) {
+	runtime.EventsEmit(a.ctx, "pty:data", map[string]any{
+		"sessionId": sessionID,
+		"data":      base64.StdEncoding.EncodeToString(data),
+	})
+	if a.hooks != nil {
+		a.hooks.BroadcastOutput(sessionID, data)
+	}
+}
+
+func (a *App) onPtyExit(sessionID string, code int) {
+	runtime.EventsEmit(a.ctx, "pty:exit", map[string]any{
+		"sessionId": sessionID,
+		"code":      code,
+	})
+	if a.hooks != nil {
+		a.hooks.BroadcastExit(sessionID, code)
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		next := make([]config.SessionMeta, 0, len(cfg.Sessions))
+		for _, s := range cfg.Sessions {
+			if s.ID != sessionID {
+				next = append(next, s)
+			}
+		}
+		cfg.Sessions = next
+	})
+}
+
+func (a *App) onHookIntent(intent hooks.Intent) {
+	runtime.EventsEmit(a.ctx, "hook:intent", intent)
+}
+
+// --- Config ---
+
+func (a *App) GetConfig() config.AppConfig {
+	return a.store.Get()
+}
+
+func (a *App) SaveTheme(theme string) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.Theme = theme
+	})
+}
+
+func (a *App) SaveShell(shell string) error {
+	a.pty.SetShell(shell)
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.Shell = shell
+	})
+}
+
+func (a *App) SaveFontSize(size int) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.FontSize = size
+	})
+}
+
+func (a *App) SaveLayout(key string, layout config.SplitNode) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		if cfg.Layouts == nil {
+			cfg.Layouts = config.LayoutStore{}
+		}
+		cfg.Layouts[key] = layout
+	})
+}
+
+func (a *App) GetLayout(key string) config.SplitNode {
+	layouts := a.store.Get().Layouts
+	if layouts == nil {
+		return config.SplitNode{}
+	}
+	return layouts[key]
+}
+
+// --- Projects ---
+
+func (a *App) ListProjects() []config.ProjectMeta {
+	return a.projects.List()
+}
+
+func (a *App) AddProject(path, name string) (config.ProjectMeta, error) {
+	return a.projects.Add(path, name)
+}
+
+func (a *App) RemoveProject(id string) error {
+	return a.projects.Remove(id)
+}
+
+func (a *App) RenameProject(id, name string) error {
+	return a.projects.Rename(id, name)
+}
+
+func (a *App) PickFolder() (string, error) {
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select project folder",
+	})
+}
+
+func (a *App) GetGitStatus(path string) git.Status {
+	return git.Probe(path)
+}
+
+// --- Sessions / PTY ---
+
+type SessionDTO struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	ProjectID string `json:"projectId"`
+	Cwd       string `json:"cwd"`
+	Pinned    bool   `json:"pinned"`
+}
+
+func (a *App) ListSessions() []SessionDTO {
+	live := a.pty.List()
+	out := make([]SessionDTO, 0, len(live))
+	for _, s := range live {
+		out = append(out, SessionDTO{
+			ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned,
+		})
+	}
+	return out
+}
+
+func (a *App) CreateSession(projectID, name, cwd string) (SessionDTO, error) {
+	if cwd == "" && projectID != "" && projectID != project.HomeID && projectID != project.QuickID {
+		if p, ok := a.projects.Get(projectID); ok {
+			cwd = p.Path
+		}
+	}
+	sess, err := a.pty.Create(ptymgr.CreateOpts{
+		Name: name, ProjectID: projectID, Cwd: cwd,
+	})
+	if err != nil {
+		return SessionDTO{}, err
+	}
+	dto := SessionDTO{ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		cfg.Sessions = append(cfg.Sessions, config.SessionMeta{
+			ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned,
+		})
+	})
+	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+	return dto, nil
+}
+
+func (a *App) WriteSession(id, data string) error {
+	return a.pty.Write(id, []byte(data))
+}
+
+func (a *App) WriteSessionBytes(id string, b64 string) error {
+	raw, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return err
+	}
+	return a.pty.Write(id, raw)
+}
+
+func (a *App) ResizeSession(id string, cols, rows int) error {
+	return a.pty.Resize(id, uint16(cols), uint16(rows))
+}
+
+func (a *App) KillSession(id string) error {
+	err := a.pty.Kill(id)
+	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+	return err
+}
+
+func (a *App) RenameSession(id, name string) bool {
+	ok := a.pty.Rename(id, name)
+	if ok {
+		_ = a.store.Update(func(cfg *config.AppConfig) {
+			for i := range cfg.Sessions {
+				if cfg.Sessions[i].ID == id {
+					cfg.Sessions[i].Name = name
+				}
+			}
+		})
+		runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+	}
+	return ok
+}
+
+func (a *App) PromoteSession(id, projectID string) error {
+	sess, ok := a.pty.Get(id)
+	if !ok {
+		return os.ErrNotExist
+	}
+	sess.ProjectID = projectID
+	if projectID != project.HomeID && projectID != project.QuickID {
+		if p, ok := a.projects.Get(projectID); ok {
+			sess.Cwd = p.Path
+		}
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		for i := range cfg.Sessions {
+			if cfg.Sessions[i].ID == id {
+				cfg.Sessions[i].ProjectID = projectID
+				cfg.Sessions[i].Cwd = sess.Cwd
+			}
+		}
+	})
+	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+	return nil
+}
+
+// --- Hooks ---
+
+func (a *App) ListHooks() []hooks.InstalledHook {
+	return a.hooks.List()
+}
+
+func (a *App) InstallHook(path string) (hooks.InstalledHook, error) {
+	return a.hooks.InstallFromPath(path)
+}
+
+func (a *App) UninstallHook(id string) error {
+	return a.hooks.Uninstall(id)
+}
+
+func (a *App) SetHookEnabled(id string, enabled bool) error {
+	return a.hooks.SetEnabled(id, enabled)
+}
+
+func (a *App) SetHookPermissions(id string, granted hooks.Permissions) error {
+	return a.hooks.SetPermissions(id, granted)
+}
+
+func (a *App) PickHookFolder() (string, error) {
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select hook folder (with manifest.json)",
+	})
+}
+
+func (a *App) ResolveHookIntent(intentID string, approved bool) (map[string]any, error) {
+	result, err := a.hooks.ResolveIntent(intentID, approved)
+	if err != nil {
+		return nil, err
+	}
+	if approved {
+		if write, _ := result["writePty"].(bool); write {
+			if cmd, ok := result["command"].(string); ok {
+				if sid, ok := result["sessionId"].(string); ok && sid != "" {
+					_ = a.pty.Write(sid, []byte(cmd+"\n"))
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+func (a *App) OpenInFinder(path string) error {
+	cmd := exec.Command("open", path)
+	return cmd.Start()
+}

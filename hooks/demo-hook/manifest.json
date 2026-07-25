@@ -1,0 +1,15 @@
+{
+  "id": "demo-hook",
+  "name": "Demo Hook",
+  "version": "1.0.0",
+  "description": "Local heuristics that emit notify/animate intents from terminal output.",
+  "command": "node",
+  "args": ["index.js"],
+  "permissions": {
+    "readOutput": true,
+    "writePty": false,
+    "notify": true,
+    "animate": true,
+    "network": false
+  }
+}
