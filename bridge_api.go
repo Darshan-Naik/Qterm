@@ -48,6 +48,8 @@ func (a *App) startAgentBridge() {
 		return
 	}
 	a.bridge = srv
+	// Rewrite installed plugin relays so in-app-only gating ships without reconnect.
+	agentbridge.RefreshInstalledRelays(a.store.DataDir())
 }
 
 func (a *App) ListAgentCLIs() []agentbridge.CLIInfo {

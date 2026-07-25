@@ -131,9 +131,16 @@ func (s *Server) handleSourceHook(w http.ResponseWriter, r *http.Request) {
 		raw = map[string]any{}
 	}
 	// Authoritative identity from PTY env (relay forwards QTERM_SESSION_ID).
+	// Without it, ignore the hook — defense in depth if an old relay still POSTs
+	// from an agent started outside Qterm (cmux CMUX_SURFACE_ID pattern).
 	qtermID := strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id"))
 	if qtermID == "" {
-		qtermID = firstString(raw, "qterm_terminal_id", "QTERM_SESSION_ID", "terminal_id")
+		qtermID = firstString(raw, "qterm_terminal_id", "QTERM_SESSION_ID")
+	}
+	if qtermID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+		return
 	}
 	projectHint := strings.TrimSpace(r.Header.Get("X-Qterm-Project-Id"))
 
@@ -153,9 +160,7 @@ func (s *Server) handleSourceHook(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := range intents {
 		intents[i].ID = fmt.Sprintf("%s-%d", intents[i].HookID, s.seq.Add(1))
-		if qtermID != "" {
-			intents[i].TerminalID = qtermID
-		}
+		intents[i].TerminalID = qtermID
 		if projectHint != "" {
 			if intents[i].Payload == nil {
 				intents[i].Payload = map[string]any{}

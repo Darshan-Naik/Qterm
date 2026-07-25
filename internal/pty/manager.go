@@ -101,8 +101,11 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 	cmd.Env = append(os.Environ(),
 		"TERM=xterm-256color",
 		"COLORTERM=truecolor",
-		// Identity injection — same pattern as Ghostty GHOSTTY_SESSION_ID / iTerm ITERM_SESSION_ID.
-		// Agents and hook relays inherit this so Qterm can bind CLI session_id → pane.
+		// Identity injection — same pattern as Ghostty GHOSTTY_SESSION_ID / cmux CMUX_SURFACE_ID.
+		// Agents, hook relays, and MCP children inherit these; outside Qterm they are unset
+		// so global CLI plugins no-op.
+		"TERM_PROGRAM=qterm",
+		"QTERM=1",
 		"QTERM_SESSION_ID="+id,
 		"QTERM_PROJECT_ID="+opts.ProjectID,
 	)

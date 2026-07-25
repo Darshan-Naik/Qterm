@@ -8,7 +8,7 @@ import (
 )
 
 const qtermPluginName = "qterm"
-const qtermPluginVersion = "1.2.2"
+const qtermPluginVersion = "1.2.3"
 
 func userHomeDir() string {
 	home, _ := os.UserHomeDir()
@@ -16,15 +16,19 @@ func userHomeDir() string {
 }
 
 // relayScriptBody is the shared hook relay used by plugins and the legacy shared script.
-// It forwards QTERM_SESSION_ID from the PTY environment so SessionStart can bind
-// CLI session_id → Qterm terminal id authoritatively.
+// It only posts when QTERM_SESSION_ID is set (injected into Qterm PTYs). Outside Qterm
+// the same global CLI hooks fire but no-op — cmux CMUX_SURFACE_ID pattern.
 func relayScriptBody(dataDir, token, sourceDefault string) string {
 	if sourceDefault == "" {
 		sourceDefault = "claude"
 	}
 	return fmt.Sprintf(`#!/bin/bash
-# %s — plugin hook relay (forwards QTERM_SESSION_ID)
+# %s — plugin hook relay (Qterm panes only)
 SOURCE="${1:-%s}"
+# Outside Qterm: CLI plugins stay installed globally but must not talk to the bridge.
+if [[ -z "${QTERM_SESSION_ID:-}" ]]; then
+  exit 0
+fi
 BRIDGE=%q
 TOKEN=%q
 BASE="http://127.0.0.1:%d"
@@ -34,9 +38,7 @@ if [[ -f "$BRIDGE" ]]; then
 fi
 BODY=$(cat)
 HDRS=(-H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Qterm-Hook: %s")
-if [[ -n "${QTERM_SESSION_ID:-}" ]]; then
-  HDRS+=(-H "X-Qterm-Terminal-Id: $QTERM_SESSION_ID")
-fi
+HDRS+=(-H "X-Qterm-Terminal-Id: $QTERM_SESSION_ID")
 if [[ -n "${QTERM_PROJECT_ID:-}" ]]; then
   HDRS+=(-H "X-Qterm-Project-Id: $QTERM_PROJECT_ID")
 fi
@@ -65,6 +67,11 @@ func writeQtermSkill(dir string) error {
 		"---",
 		"",
 		"# Qterm terminal control",
+		"",
+		"## Scope",
+		"",
+		"Only use these tools when this agent is running inside a Qterm terminal pane.",
+		"Outside Qterm, tools refuse and hooks no-op.",
 		"",
 		"## Identity (important)",
 		"",
