@@ -34,7 +34,7 @@ rl.on("line", (line) => {
       });
       emit("animate", sessionId, { state: "action_required" });
     }
-    if (/tests?\s+passed|build succeeded|✓|done\./i.test(data)) {
+    if (/tests?\s+passed|build succeeded|done\./i.test(data)) {
       emit("notify", sessionId, {
         title: "Demo Hook",
         message: "Task looks complete.",

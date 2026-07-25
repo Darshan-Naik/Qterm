@@ -31,7 +31,6 @@ rl.on("line", (line) => {
 
   if (msg.method === "onOutput") {
     const { sessionId, data } = msg.params || {};
-    emit("animate", sessionId, { state: "thinking" });
 
     if (/command not found|not found:/i.test(data)) {
       const key = `${sessionId}:notfound`;
@@ -52,15 +51,19 @@ rl.on("line", (line) => {
     }
 
     if (/error TS\d+|TypeError|ReferenceError/i.test(data)) {
-      emit("notify", sessionId, {
-        title: "Claude Hook",
-        message: "Runtime/type error detected — open the stack and inspect.",
-        level: "warning",
-      });
-      emit("animate", sessionId, { state: "action_required" });
+      const key = `${sessionId}:tserror:${data.slice(0, 40)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        emit("notify", sessionId, {
+          title: "Claude Hook",
+          message: "Runtime/type error detected — open the stack and inspect.",
+          level: "warning",
+        });
+        emit("animate", sessionId, { state: "action_required" });
+      }
     }
 
-    if (/PASS|✓|successfully/i.test(data)) {
+    if (/\bPASS\b|tests?\s+passed|build succeeded/i.test(data)) {
       emit("animate", sessionId, { state: "task_complete" });
       emit("notify", sessionId, {
         title: "Claude Hook",

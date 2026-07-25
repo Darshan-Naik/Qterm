@@ -16,7 +16,7 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:     "q-term",
+		Title:     "Qterm",
 		Width:     1280,
 		Height:    800,
 		MinWidth:  900,
@@ -24,19 +24,20 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 12, G: 12, B: 14, A: 1},
+		BackgroundColour: &options.RGBA{R: 37, G: 37, B: 37, A: 1},
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		Bind: []interface{}{
 			app,
 		},
 		Mac: &mac.Options{
-			TitleBar:             mac.TitleBarHiddenInset(),
+			// Hidden (not Inset): traffic lights sit like Cursor — closer to the edge, no toolbar offset.
+			TitleBar:             mac.TitleBarHidden(),
 			Appearance:           mac.NSAppearanceNameDarkAqua,
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			About: &mac.AboutInfo{
-				Title:   "q-term",
+				Title:   "Qterm",
 				Message: "A fast terminal with project groups and agent hooks.",
 			},
 		},

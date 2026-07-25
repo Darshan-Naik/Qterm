@@ -1,0 +1,42 @@
+import { PanelLeft } from "lucide-react";
+import { persistUIPrefs, uiStore } from "@/store/ui";
+import { Button } from "@/components/ui/button";
+import { PaneMenu } from "./PaneMenu";
+import { PaneTitle } from "./PaneTitle";
+
+export function PaneChrome({
+  paneId,
+  sessionId,
+  showSidebarToggle = false,
+  trafficInset = false,
+}: {
+  paneId: string;
+  sessionId: string;
+  showSidebarToggle?: boolean;
+  trafficInset?: boolean;
+}) {
+  return (
+    <div
+      className="flex h-[var(--titlebar-height)] shrink-0 items-center gap-1.5 pr-3 titlebar-drag"
+      style={{ paddingLeft: trafficInset ? "var(--traffic-inset)" : "10px" }}
+    >
+      {showSidebarToggle && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
+          onClick={() => {
+            uiStore.set({ sidebarOpen: true });
+            void persistUIPrefs();
+          }}
+          title="Show sidebar"
+        >
+          <PanelLeft className="size-3.5" />
+        </Button>
+      )}
+
+      <PaneTitle sessionId={sessionId} />
+      <PaneMenu paneId={paneId} sessionId={sessionId} />
+    </div>
+  );
+}
