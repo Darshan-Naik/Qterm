@@ -44,6 +44,9 @@ type AppConfig struct {
 	Theme       string        `json:"theme"` // system | dark | light
 	Shell       string        `json:"shell"`
 	FontSize    int           `json:"fontSize"`
+	// AgentCLIs maps connected CLI plugin id → qterm plugin version at connect/update time.
+	// Compared to the app's current plugin version to detect stale installs.
+	AgentCLIs map[string]string `json:"agentCLIs,omitempty"`
 }
 
 type Store struct {
@@ -61,6 +64,7 @@ func DefaultConfig() AppConfig {
 		Theme:       "system",
 		Shell:       "",
 		FontSize:    13,
+		AgentCLIs:   map[string]string{},
 	}
 }
 
@@ -147,6 +151,9 @@ func (s *Store) Load() error {
 	}
 	if cfg.Projects == nil {
 		cfg.Projects = []ProjectMeta{}
+	}
+	if cfg.AgentCLIs == nil {
+		cfg.AgentCLIs = map[string]string{}
 	}
 	s.cfg = cfg
 	return nil

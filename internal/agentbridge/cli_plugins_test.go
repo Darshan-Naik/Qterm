@@ -115,6 +115,10 @@ func TestInstallAgyPluginLayout(t *testing.T) {
 		filepath.Join(root, "mcp_config.json"),
 		filepath.Join(root, "scripts", "relay.sh"),
 	)
+	pluginJSON, _ := os.ReadFile(filepath.Join(root, "plugin.json"))
+	if !strings.Contains(string(pluginJSON), `"version"`) || !strings.Contains(string(pluginJSON), qtermPluginVersion) {
+		t.Fatalf("agy plugin.json must include version %s:\n%s", qtermPluginVersion, pluginJSON)
+	}
 	// Must be root hooks.json, not hooks/hooks.json
 	if _, err := os.Stat(filepath.Join(root, "hooks", "hooks.json")); !os.IsNotExist(err) {
 		t.Fatal("agy should not use hooks/ subdirectory")

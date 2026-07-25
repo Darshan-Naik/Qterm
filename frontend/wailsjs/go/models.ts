@@ -6,6 +6,9 @@ export namespace agentbridge {
 	    available: boolean;
 	    path: string;
 	    installed: boolean;
+	    version?: string;
+	    expectedVersion?: string;
+	    outdated?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new CLIInfo(source);
@@ -18,6 +21,9 @@ export namespace agentbridge {
 	        this.available = source["available"];
 	        this.path = source["path"];
 	        this.installed = source["installed"];
+	        this.version = source["version"];
+	        this.expectedVersion = source["expectedVersion"];
+	        this.outdated = source["outdated"];
 	    }
 	}
 	export class InstallResult {
@@ -129,6 +135,7 @@ export namespace config {
 	    theme: string;
 	    shell: string;
 	    fontSize: number;
+	    agentCLIs?: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -143,6 +150,7 @@ export namespace config {
 	        this.theme = source["theme"];
 	        this.shell = source["shell"];
 	        this.fontSize = source["fontSize"];
+	        this.agentCLIs = source["agentCLIs"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

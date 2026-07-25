@@ -36,6 +36,7 @@ func installAgyPlugin(ctx InstallCtx) (InstallResult, error) {
 	if err := writeConfigJSON(filepath.Join(root, "plugin.json"), map[string]any{
 		"$schema":     "https://antigravity.google/schemas/v1/plugin.json",
 		"name":        qtermPluginName,
+		"version":     qtermPluginVersion,
 		"description": "Connect Antigravity CLI to the Qterm macOS terminal — live status, rename, and app control.",
 	}); err != nil {
 		return InstallResult{CLI: "agy"}, err
