@@ -20,6 +20,9 @@ Command palette, thoughtful shortcuts, dark and light themes, and a sidebar that
 **Ready for agents.**  
 Install hooks that observe your terminals and surface actions in the UI — without turning Qterm into another chat app.
 
+**Powered by [Qortex](https://qortex.darshannaik.com).**  
+The same lightweight TypeScript suite behind Qterm’s state and storage.
+
 ---
 
 ## Designed for Mac

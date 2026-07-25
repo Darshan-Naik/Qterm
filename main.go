@@ -12,6 +12,9 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed build/appicon.png
+var appIcon []byte
+
 func main() {
 	app := NewApp()
 
@@ -39,6 +42,7 @@ func main() {
 			About: &mac.AboutInfo{
 				Title:   "Qterm",
 				Message: "A fast terminal with project groups and agent hooks.",
+				Icon:    appIcon,
 			},
 		},
 	})
