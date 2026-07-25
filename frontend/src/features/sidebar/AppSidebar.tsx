@@ -1,5 +1,6 @@
 import { Plus, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { createDefaultTerminal, isUnbound } from "@/lib/sessions";
@@ -21,31 +22,34 @@ export function AppSidebar() {
         className="flex h-full min-w-0 flex-col select-none bg-sidebar text-sidebar-foreground titlebar-no-drag"
       >
         <div className="flex h-[var(--titlebar-height)] shrink-0 items-center titlebar-drag pl-[var(--traffic-inset)]">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
-            onClick={() => {
-              uiStore.set({ sidebarOpen: false });
-              void persistUIPrefs();
-            }}
-            title="Hide sidebar"
-          >
-            <PanelLeft className="size-3.5" />
-          </Button>
+          <WithTooltip label="Hide sidebar">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
+              onClick={() => {
+                uiStore.set({ sidebarOpen: false });
+                void persistUIPrefs();
+              }}
+            >
+              <PanelLeft className="size-3.5" />
+            </Button>
+          </WithTooltip>
           <div className="min-w-0 flex-1" />
         </div>
         <ScrollArea className="min-h-0 flex-1 px-1.5">
           <div className="pb-3 pt-0.5">
             <div className="mb-1 px-0.5">
-              <button
-                type="button"
-                className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left text-[12.5px] text-sidebar-foreground hover:bg-sidebar-accent/40"
-                onClick={() => void createDefaultTerminal()}
-              >
-                <Plus className="size-3.5 shrink-0 opacity-60" />
-                <span>New</span>
-              </button>
+              <WithTooltip label="New terminal in home" side="right">
+                <button
+                  type="button"
+                  className="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-left text-[12.5px] text-sidebar-foreground hover:bg-sidebar-accent/40"
+                  onClick={() => void createDefaultTerminal()}
+                >
+                  <Plus className="size-3.5 shrink-0 opacity-60" />
+                  <span>New</span>
+                </button>
+              </WithTooltip>
             </div>
 
             {unboundSessions.length > 0 && (

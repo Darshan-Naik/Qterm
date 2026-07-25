@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal, TerminalSquare, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,7 +63,7 @@ export function SessionRow({ session }: { session: SessionInfo }) {
         >
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-1 text-left"
             onClick={() => {
               if (!editing) void focusSession(session.id);
             }}
@@ -90,34 +91,36 @@ export function SessionRow({ session }: { session: SessionInfo }) {
                 className="min-w-0 flex-1 select-text rounded-sm bg-secondary/60 px-1 py-0.5 text-[12.5px] text-sidebar-foreground outline-none ring-1 ring-ring/40"
               />
             ) : (
-              <span
-                className="min-w-0 flex-1 truncate"
-                title="Double-click to rename"
-                onDoubleClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDraft(session.name);
-                  setEditing(true);
-                }}
-              >
-                {session.name}
-              </span>
+              <WithTooltip label="Double-click to rename" side="right">
+                <span
+                  className="min-w-0 flex-1 truncate"
+                  onDoubleClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDraft(session.name);
+                    setEditing(true);
+                  }}
+                >
+                  {session.name}
+                </span>
+              </WithTooltip>
             )}
           </button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="mr-0.5 size-6 shrink-0 opacity-0 group-hover:opacity-100"
-                onClick={(e) => e.stopPropagation()}
-                title="Terminal menu"
-              >
-                <MoreHorizontal className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
+            <WithTooltip label="Terminal menu">
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="mr-0.5 size-6 shrink-0 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+            </WithTooltip>
             <DropdownMenuContent align="end" className="w-40">
               <DropdownMenuItem
                 onClick={() => {

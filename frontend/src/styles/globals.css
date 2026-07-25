@@ -140,6 +140,46 @@ textarea {
   font-weight: 400;
 }
 
+/* Actionable cursor defaults — keep UI controls feeling clickable */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="menuitem"]:not([data-disabled]),
+[role="option"],
+[role="tab"],
+[role="switch"],
+[role="checkbox"],
+[role="radio"],
+[role="combobox"],
+summary,
+label[for],
+a[href],
+select:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="file"]:not(:disabled),
+input[type="color"]:not(:disabled),
+input[type="range"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+[data-disabled],
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="hidden"]),
+textarea {
+  cursor: text;
+}
+
+
 .xterm,
 .xterm-viewport,
 .xterm-screen {
