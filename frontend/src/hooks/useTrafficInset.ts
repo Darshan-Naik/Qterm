@@ -39,7 +39,7 @@ export function useTrafficInsetVar() {
   useEffect(() => {
     const root = document.documentElement;
     // Fixed values — avoid env(titlebar-area-*) which misaligns under TitleBarHidden.
-    root.style.setProperty("--titlebar-height", "36px");
+    root.style.setProperty("--titlebar-height", "32px");
     root.style.setProperty("--traffic-inset", lights ? "80px" : "6px");
     root.toggleAttribute("data-fullscreen", !lights);
   }, [lights]);
