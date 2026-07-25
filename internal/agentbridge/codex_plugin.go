@@ -74,7 +74,7 @@ func installCodexPlugin(ctx InstallCtx) (InstallResult, error) {
 	if err := ensurePersonalMarketplaceRegistered(marketName); err != nil {
 		return InstallResult{CLI: "codex"}, err
 	}
-	if err := enableCodexPlugin(marketName); err != nil {
+	if err := ensureCodexQtermMCPApproval(marketName); err != nil {
 		return InstallResult{CLI: "codex"}, err
 	}
 
@@ -89,7 +89,7 @@ func installCodexPlugin(ctx InstallCtx) (InstallResult, error) {
 	return InstallResult{
 		CLI:       "codex",
 		Installed: true,
-		Message:   "Installed ~/.codex/plugins/qterm (hooks + MCP). Restart Codex, then trust plugin hooks if prompted.",
+		Message:   "Installed ~/.codex/plugins/qterm (hooks + MCP, auto-approved). Restart Codex.",
 	}, nil
 }
 
@@ -305,22 +305,7 @@ source = %q
 }
 
 func enableCodexPlugin(marketName string) error {
-	path := codexConfigToml()
-	b, err := os.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	text := string(b)
-	// Remove legacy enable keys.
-	text = regexp.MustCompile(`(?s)\n?\[plugins\."qterm@qterm"\][^\[]*`).ReplaceAllString(text, "\n")
-	key := fmt.Sprintf(`[plugins."qterm@%s"]`, marketName)
-	re := regexp.MustCompile(`(?s)\n?\[plugins\."qterm@` + regexp.QuoteMeta(marketName) + `"\][^\[]*`)
-	text = re.ReplaceAllString(text, "\n")
-	if !strings.HasSuffix(text, "\n") && text != "" {
-		text += "\n"
-	}
-	text += "\n" + key + "\nenabled = true\n"
-	return os.WriteFile(path, []byte(text), 0o644)
+	return ensureCodexQtermMCPApproval(marketName)
 }
 
 func disableCodexPlugin(marketName string) error {
@@ -329,9 +314,7 @@ func disableCodexPlugin(marketName string) error {
 	if err != nil {
 		return nil
 	}
-	text := string(b)
-	text = regexp.MustCompile(`(?s)\n?\[plugins\."qterm@` + regexp.QuoteMeta(marketName) + `"\][^\[]*`).ReplaceAllString(text, "\n")
-	text = regexp.MustCompile(`(?s)\n?\[plugins\."qterm@qterm"\][^\[]*`).ReplaceAllString(text, "\n")
+	text := stripCodexPluginTables(string(b), marketName)
 	text = regexp.MustCompile(`(?s)\n?\[marketplaces\.qterm\][^\[]*`).ReplaceAllString(text, "\n")
 	return os.WriteFile(path, []byte(text), 0o644)
 }

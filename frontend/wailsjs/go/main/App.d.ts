@@ -55,6 +55,8 @@ export function SaveTheme(arg1:string):Promise<void>;
 
 export function SetFocusedSession(arg1:string):Promise<void>;
 
+export function SetSessionName(arg1:string,arg2:string):Promise<boolean>;
+
 export function UninstallAgentCLI(arg1:string):Promise<void>;
 
 export function WriteSession(arg1:string,arg2:string):Promise<void>;

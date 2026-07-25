@@ -23,45 +23,73 @@ func ParseHook(in ParseInput) []Intent {
 	anim := func(state string) Intent {
 		return animateIntentWithCwd(in.Source, in.SessionID, state, in.Cwd)
 	}
+	var out []Intent
 	switch normalizeEvent(in.Event) {
 	case "session_start", "before_agent":
-		return []Intent{anim("thinking")}
+		out = []Intent{anim("thinking")}
 	case "session_end":
-		return []Intent{anim("none")}
+		out = []Intent{anim("none")}
 	case "user_prompt", "before_model":
-		return []Intent{anim("thinking")}
+		out = []Intent{anim("thinking")}
 	case "stop", "after_agent":
-		return []Intent{anim("task_complete")}
+		out = []Intent{anim("task_complete")}
 	case "stop_failure":
-		return []Intent{anim("action_required")}
+		out = []Intent{anim("action_required")}
 	case "notification":
 		nType := firstString(in.Raw, "notification_type", "notificationType")
 		switch nType {
 		case "permission_prompt", "agent_needs_input", "elicitation_dialog", "idle_prompt":
-			return []Intent{anim("action_required")}
+			out = []Intent{anim("action_required")}
 		case "agent_completed", "elicitation_complete":
-			return []Intent{anim("task_complete")}
+			out = []Intent{anim("task_complete")}
 		default:
-			return []Intent{anim("thinking")}
+			out = []Intent{anim("thinking")}
 		}
 	case "permission", "elicitation":
-		return []Intent{anim("action_required")}
+		out = []Intent{anim("action_required")}
 	case "pre_tool", "before_tool":
-		return []Intent{anim("thinking")}
+		out = []Intent{anim("thinking")}
 	case "post_tool", "after_tool":
-		out := []Intent{anim("thinking")}
+		out = []Intent{anim("thinking")}
 		// Legacy fallback: agents sometimes printf OSC instead of MCP rename.
 		// Prefer MCP rename_terminal — keep this only as a silent backup.
 		if title := titleFromToolPayload(in.Raw); title != "" {
 			out = append(out, renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd))
 		}
-		return out
 	default:
 		if strings.TrimSpace(in.Event) == "" {
-			return nil
+			out = nil
+		} else {
+			out = []Intent{anim("thinking")}
 		}
-		return []Intent{anim("thinking")}
 	}
+	// When the host CLI exposes a session title (auto-name /rename), mirror it in Qterm.
+	if title := sessionTitleFromRaw(in.Raw); title != "" {
+		out = append(out, renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd))
+	}
+	return out
+}
+
+func sessionTitleFromRaw(raw map[string]any) string {
+	if raw == nil {
+		return ""
+	}
+	if t := firstString(raw,
+		"session_title", "sessionTitle",
+		"custom_title", "customTitle",
+	); t != "" {
+		return strings.TrimSpace(t)
+	}
+	if t := nestedString(raw, "session", "title"); t != "" {
+		return strings.TrimSpace(t)
+	}
+	if t := nestedString(raw, "session", "customTitle"); t != "" {
+		return strings.TrimSpace(t)
+	}
+	if t := nestedString(raw, "session", "custom_title"); t != "" {
+		return strings.TrimSpace(t)
+	}
+	return ""
 }
 
 func normalizeEvent(event string) string {

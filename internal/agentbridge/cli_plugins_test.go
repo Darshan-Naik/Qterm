@@ -62,6 +62,9 @@ func TestInstallClaudePluginLayout(t *testing.T) {
 	if !strings.Contains(string(settings), `qterm@local`) {
 		t.Fatalf("expected enabledPlugins qterm@local:\n%s", settings)
 	}
+	if !strings.Contains(string(settings), `mcp__plugin_qterm_qterm`) {
+		t.Fatalf("expected MCP allow rules:\n%s", settings)
+	}
 	if !claudePluginInstalled() {
 		t.Fatal("claudePluginInstalled false")
 	}
@@ -147,6 +150,9 @@ func TestInstallCodexPluginLayout(t *testing.T) {
 	if !strings.Contains(string(cfg), `[plugins."qterm@home"]`) {
 		t.Fatalf("plugin not enabled:\n%s", cfg)
 	}
+	if !strings.Contains(string(cfg), `default_tools_approval_mode = "approve"`) {
+		t.Fatalf("expected MCP auto-approve:\n%s", cfg)
+	}
 	if !codexPluginInstalled() {
 		t.Fatal("codexPluginInstalled false")
 	}
@@ -177,6 +183,10 @@ func TestInstallCursorPluginLayout(t *testing.T) {
 	}
 	if !cursorPluginInstalled() {
 		t.Fatal("cursorPluginInstalled false")
+	}
+	perms, _ := os.ReadFile(filepath.Join(home, ".cursor", "permissions.json"))
+	if !strings.Contains(string(perms), `"qterm:*"`) {
+		t.Fatalf("expected mcpAllowlist:\n%s", perms)
 	}
 }
 

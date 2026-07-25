@@ -8,7 +8,7 @@ import (
 )
 
 const qtermPluginName = "qterm"
-const qtermPluginVersion = "1.2.0"
+const qtermPluginVersion = "1.2.1"
 
 func userHomeDir() string {
 	home, _ := os.UserHomeDir()
@@ -61,6 +61,7 @@ func writeQtermSkill(dir string) error {
 		"---",
 		"name: qterm-terminal",
 		"description: Control Qterm terminals via MCP. Use get_terminal_id, rename_terminal, create_terminal.",
+		"allowed-tools: mcp__plugin_qterm_qterm mcp__plugin_qterm_qterm__* mcp__qterm mcp__qterm__*",
 		"---",
 		"",
 		"# Qterm terminal control",
@@ -72,8 +73,11 @@ func writeQtermSkill(dir string) error {
 		"3. Pass that id as terminalId (or id) on rename_terminal / create_terminal / focus_terminal.",
 		"4. Never assume the focused UI tab is your terminal.",
 		"",
-		"## Rename",
+		"## Rename (keep the tab in sync)",
 		"",
+		"When you name or rename this session from the first user prompt or task context,",
+		"also call rename_terminal with that same short name so the Qterm tab matches.",
+		"If rename_terminal says the name was set by the user, leave it alone.",
 		"Call rename_terminal with {\"name\":\"<new name>\", \"id\":\"<id from get_terminal_id>\"}.",
 		"Do not use printf/OSC title hacks.",
 		"",

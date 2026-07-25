@@ -102,6 +102,10 @@ export function SetFocusedSession(arg1) {
   return window['go']['main']['App']['SetFocusedSession'](arg1);
 }
 
+export function SetSessionName(arg1, arg2) {
+  return window['go']['main']['App']['SetSessionName'](arg1, arg2);
+}
+
 export function UninstallAgentCLI(arg1) {
   return window['go']['main']['App']['UninstallAgentCLI'](arg1);
 }

@@ -87,6 +87,7 @@ export namespace config {
 	    projectId: string;
 	    cwd: string;
 	    pinned: boolean;
+	    nameLocked?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new SessionMeta(source);
@@ -99,6 +100,7 @@ export namespace config {
 	        this.projectId = source["projectId"];
 	        this.cwd = source["cwd"];
 	        this.pinned = source["pinned"];
+	        this.nameLocked = source["nameLocked"];
 	    }
 	}
 	export class ProjectMeta {

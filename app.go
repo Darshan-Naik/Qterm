@@ -165,6 +165,14 @@ func (a *App) onPtyData(sessionID string, data []byte) {
 	if a.hooks != nil {
 		a.hooks.BroadcastOutput(sessionID, data)
 	}
+	// Adopt agent/CLI window titles so the sidebar stays in sync without MCP rename.
+	// Skipped when the user has manually renamed this terminal.
+	if titles := scrollback.ExtractWindowTitles(data); len(titles) > 0 {
+		title := titles[len(titles)-1]
+		if shouldAdoptOSCTitle(title) {
+			_ = a.adoptSessionTitle(sessionID, title)
+		}
+	}
 }
 
 func (a *App) onPtyExit(sessionID string, code int) {
@@ -447,6 +455,39 @@ func (a *App) KillSession(id string) error {
 }
 
 func (a *App) RenameSession(id, name string) bool {
+	return a.renameSession(id, name, renameUser)
+}
+
+// SetSessionName updates a terminal name without locking (bootstrap / system fixes).
+func (a *App) SetSessionName(id, name string) bool {
+	return a.renameSession(id, name, renameSystem)
+}
+
+func (a *App) adoptSessionTitle(id, name string) bool {
+	return a.renameSession(id, name, renameAuto)
+}
+
+type renameMode int
+
+const (
+	renameUser renameMode = iota // UI rename — locks against auto-sync
+	renameAuto                   // OSC / hooks / MCP — skip if locked
+	renameSystem                 // system fix — apply, leave lock unchanged
+)
+
+func (a *App) isNameLocked(id string) bool {
+	if a.store == nil || id == "" {
+		return false
+	}
+	for _, s := range a.store.Get().Sessions {
+		if s.ID == id {
+			return s.NameLocked
+		}
+	}
+	return false
+}
+
+func (a *App) renameSession(id, name string, mode renameMode) bool {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return false
@@ -461,7 +502,19 @@ func (a *App) RenameSession(id, name string) bool {
 	if id == "" {
 		return false
 	}
+	if mode == renameAuto && a.isNameLocked(id) {
+		return false
+	}
 	if sess, ok := a.pty.Get(id); ok && sess.Name == name {
+		if mode == renameUser {
+			_ = a.store.Update(func(cfg *config.AppConfig) {
+				for i := range cfg.Sessions {
+					if cfg.Sessions[i].ID == id {
+						cfg.Sessions[i].NameLocked = true
+					}
+				}
+			})
+		}
 		return true
 	}
 	ok := a.pty.Rename(id, name)
@@ -470,11 +523,16 @@ func (a *App) RenameSession(id, name string) bool {
 			for i := range cfg.Sessions {
 				if cfg.Sessions[i].ID == id {
 					cfg.Sessions[i].Name = name
+					if mode == renameUser {
+						cfg.Sessions[i].NameLocked = true
+					}
 				}
 			}
 		})
-		runtime.EventsEmit(a.ctx, "session:renamed", map[string]any{"id": id, "name": name})
-		runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "session:renamed", map[string]any{"id": id, "name": name})
+			runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+		}
 	}
 	return ok
 }
@@ -488,6 +546,22 @@ func looksLikeShellTitle(name string) bool {
 	// Real session labels rarely look like login@hostname.
 	host := name[at+1:]
 	if strings.ContainsAny(host, " \t") {
+		return false
+	}
+	return true
+}
+
+// shouldAdoptOSCTitle filters shell/default titles that shouldn't replace session labels.
+func shouldAdoptOSCTitle(name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" || looksLikeShellTitle(name) {
+		return false
+	}
+	if len(name) > 80 {
+		return false
+	}
+	switch strings.ToLower(name) {
+	case "bash", "zsh", "sh", "fish", "terminal", "qterm", "tmux", "screen":
 		return false
 	}
 	return true

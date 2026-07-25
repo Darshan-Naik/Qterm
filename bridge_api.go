@@ -22,7 +22,7 @@ func (a *App) startAgentBridge() {
 		if intent.Type == "rename" {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
-				_ = a.RenameSession(intent.SessionID, name)
+				_ = a.adoptSessionTitle(intent.SessionID, name)
 			}
 			return
 		}
@@ -74,7 +74,10 @@ func (b *bridgeAPI) RenameTerminal(id, name string) error {
 	if id == "" {
 		return fmt.Errorf("no agent terminal — call get_terminal_id first, or open an agent in a pane")
 	}
-	if !b.app.RenameSession(id, name) {
+	if b.app.isNameLocked(id) {
+		return fmt.Errorf("terminal name was set by the user — auto rename skipped")
+	}
+	if !b.app.adoptSessionTitle(id, name) {
 		return fmt.Errorf("session not found")
 	}
 	return nil

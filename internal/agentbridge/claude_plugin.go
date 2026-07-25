@@ -93,6 +93,9 @@ func installClaudePlugin(ctx InstallCtx) (InstallResult, error) {
 	if err := enableClaudePluginKey("qterm@" + claudeLocalMarketplaceName); err != nil {
 		return InstallResult{CLI: "claude"}, err
 	}
+	if err := ensureClaudeQtermPermissions(); err != nil {
+		return InstallResult{CLI: "claude"}, err
+	}
 
 	// Clean legacy installs (root hooks, user MCP, skills-dir shortcut).
 	_ = removeQtermHooks(claudeSettingsJSON())
@@ -103,7 +106,7 @@ func installClaudePlugin(ctx InstallCtx) (InstallResult, error) {
 	return InstallResult{
 		CLI:       "claude",
 		Installed: true,
-		Message:   "Installed ~/.claude/plugins/qterm (hooks + MCP). Restart Claude Code, then /reload-plugins if needed.",
+		Message:   "Installed ~/.claude/plugins/qterm (hooks + MCP, auto-allowed). Restart Claude Code, then /reload-plugins if needed.",
 	}, nil
 }
 
