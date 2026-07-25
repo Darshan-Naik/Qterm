@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, MoreHorizontal, TerminalSquare, X, Trash2 } from "lucide-react";
+import { MoreHorizontal, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import {
@@ -20,23 +20,7 @@ import { RenameSession } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { focusSession } from "@/lib/sessions";
 import { closeSessionPanes, deleteSession } from "@/lib/panes";
-
-function agentLabel(id: string) {
-  switch (id) {
-    case "claude":
-      return "Claude Code";
-    case "codex":
-      return "Codex";
-    case "gemini":
-      return "Gemini";
-    case "agy":
-      return "Antigravity";
-    case "cursor":
-      return "Cursor Agent";
-    default:
-      return "Agent";
-  }
-}
+import { AgentIcon, agentLabel } from "./AgentIcon";
 
 export function SessionRow({ session }: { session: SessionInfo }) {
   const focusedSessionId = useUI((s) => s.focusedSessionId);
@@ -98,17 +82,17 @@ export function SessionRow({ session }: { session: SessionInfo }) {
             <span className="relative flex size-4 shrink-0 items-center justify-center">
               {agent ? (
                 <WithTooltip label={agentLabel(agent)} side="right">
-                  <Bot
-                    className={cn(
-                      "size-4 opacity-80",
-                      thinking && "text-sky-400",
-                      needsInput && "text-amber-400",
-                      complete && "text-emerald-400"
-                    )}
-                  />
+                  <span className="inline-flex">
+                    <AgentIcon
+                      agent={agent}
+                      thinking={thinking}
+                      needsInput={needsInput}
+                      complete={complete}
+                    />
+                  </span>
                 </WithTooltip>
               ) : (
-                <TerminalSquare className="size-4 opacity-50" />
+                <AgentIcon />
               )}
               {needsInput ? (
                 <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-2">
