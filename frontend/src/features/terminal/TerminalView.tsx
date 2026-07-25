@@ -15,7 +15,8 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   const fontSize = useUI((s) => s.fontSize);
   const uiZoom = useUI((s) => s.uiZoom);
   const focusedPaneId = useUI((s) => s.focusedPaneId);
-  const anim = useUI((s) => s.paneAnimations[sessionId] || "none");
+  const paneAnimations = useUI((s) => s.paneAnimations);
+  const anim = paneAnimations[sessionId] || "none";
 
   useEffect(() => {
     const host = hostRef.current;

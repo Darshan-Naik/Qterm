@@ -3,6 +3,8 @@ import {
   findFirstLeaf,
   findLeafBySession,
   leaf,
+  listLeaves,
+  replaceLeafSession,
   uiStore,
   type SessionInfo,
   type SplitNode,
@@ -97,11 +99,29 @@ export async function focusSession(sessionId: string) {
   if (!session) return;
 
   const scope = scopeKey(session.projectId);
+
+  // Same scope: focus existing pane, or swap the clicked session into the focused pane.
   if (state.activeScope === scope && state.splitTree) {
-    const pane = findLeafBySession(state.splitTree, sessionId);
-    if (pane) {
-      uiStore.set({ focusedPaneId: pane.id, focusedSessionId: sessionId });
+    const existing = findLeafBySession(state.splitTree, sessionId);
+    if (existing) {
+      uiStore.set({ focusedPaneId: existing.id, focusedSessionId: sessionId });
       void SetFocusedSession(sessionId);
+      return;
+    }
+
+    const targetId =
+      state.focusedPaneId && listLeaves(state.splitTree).some((l) => l.id === state.focusedPaneId)
+        ? state.focusedPaneId
+        : findFirstLeaf(state.splitTree)?.id;
+    if (targetId) {
+      const next = replaceLeafSession(state.splitTree, targetId, sessionId);
+      uiStore.set({
+        splitTree: next,
+        focusedPaneId: targetId,
+        focusedSessionId: sessionId,
+      });
+      void SetFocusedSession(sessionId);
+      void SaveLayout(scope, next as any);
       return;
     }
   }
