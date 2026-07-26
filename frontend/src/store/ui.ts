@@ -12,9 +12,13 @@ export type {
 } from "./types";
 
 export {
+  FONT_SIZE_DEFAULT,
+  FONT_SIZE_MAX,
+  FONT_SIZE_MIN,
   SIDEBAR_DEFAULT,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
+  clampFontSize,
   closeSettings,
   openSettings,
   uiStore,

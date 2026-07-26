@@ -10,6 +10,12 @@ import (
 	"qterm/internal/appmode"
 )
 
+const (
+	DefaultFontSize = 12
+	MinFontSize     = 10
+	MaxFontSize     = 24
+)
+
 type SplitNode struct {
 	Type      string      `json:"type"` // "leaf" | "split"
 	ID        string      `json:"id,omitempty"`
@@ -95,7 +101,7 @@ func DefaultConfig() AppConfig {
 		ActiveScope:       "_default",
 		Theme:             "system",
 		Shell:             "",
-		FontSize:          12,
+		FontSize:          DefaultFontSize,
 		SidebarOpen:       &open,
 		SidebarWidth:      240,
 		UiZoom:            100,
@@ -163,7 +169,7 @@ func (s *Store) Load() error {
 		cfg.Theme = "system"
 	}
 	if cfg.FontSize == 0 {
-		cfg.FontSize = 12
+		cfg.FontSize = DefaultFontSize
 	}
 	if cfg.ActiveScope == "" {
 		cfg.ActiveScope = "_default"

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { uiStore, useUI } from "@/store/ui";
+import {
+  clampFontSize,
+  FONT_SIZE_MAX,
+  FONT_SIZE_MIN,
+  uiStore,
+  useUI,
+} from "@/store/ui";
 import { SaveFontSize, SaveShell } from "../../../../wailsjs/go/main/App";
 import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
@@ -28,12 +34,12 @@ export function TerminalPage() {
           control={
             <Input
               type="number"
-              min={10}
-              max={24}
+              min={FONT_SIZE_MIN}
+              max={FONT_SIZE_MAX}
               className="h-8 w-20 rounded-lg border-border/60 bg-secondary/50 text-center text-[12.5px] shadow-none"
               value={fontSize}
               onChange={async (e) => {
-                const n = Number(e.target.value) || 12;
+                const n = clampFontSize(Number(e.target.value));
                 uiStore.set({ fontSize: n });
                 await SaveFontSize(n);
               }}
