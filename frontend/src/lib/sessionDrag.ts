@@ -1,4 +1,4 @@
-import { DEFAULT_SCOPE, scopeKey } from "@/lib/sessions";
+import { currentScope, scopeKey } from "@/lib/sessions";
 import {
   findLeafBySession,
   leaf,
@@ -117,7 +117,7 @@ export async function dropSessionOnPane(sessionId: string, targetPaneId: string,
     return;
   }
 
-  const scope = state.activeScope || DEFAULT_SCOPE;
+  const scope = currentScope();
   let focusedPaneId = targetPaneId;
 
   if (edge === "center") {

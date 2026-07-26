@@ -1,4 +1,4 @@
-import { DEFAULT_SCOPE } from "@/lib/sessions";
+import { currentScope } from "@/lib/sessions";
 import { disposeSession } from "@/features/terminal";
 import {
   collectSessionIds,
@@ -11,7 +11,7 @@ import { KillSession, SaveLayout } from "../../wailsjs/go/main/App";
 
 /** Close a pane in the UI only — session, PTY, and history stay. */
 export async function closePane(paneId: string) {
-  const { splitTree, activeScope } = uiStore.get();
+  const { splitTree } = uiStore.get();
   if (!splitTree) return;
   const next = removePane(splitTree, paneId);
   const nextLeaves = listLeaves(next);
@@ -20,12 +20,12 @@ export async function closePane(paneId: string) {
     focusedPaneId: nextLeaves[0]?.id || null,
     focusedSessionId: nextLeaves[0]?.sessionId || null,
   });
-  await persistLayout(activeScope || DEFAULT_SCOPE, next);
+  await persistLayout(currentScope(), next);
 }
 
 /** Close every pane showing this session in the current layout (UI only). */
 export async function closeSessionPanes(sessionId: string) {
-  const { splitTree, activeScope } = uiStore.get();
+  const { splitTree } = uiStore.get();
   if (!splitTree) return;
   const paneIds = listLeaves(splitTree)
     .filter((l) => l.sessionId === sessionId)
@@ -41,12 +41,12 @@ export async function closeSessionPanes(sessionId: string) {
     focusedPaneId: nextLeaves[0]?.id || null,
     focusedSessionId: nextLeaves[0]?.sessionId || null,
   });
-  await persistLayout(activeScope || DEFAULT_SCOPE, next);
+  await persistLayout(currentScope(), next);
 }
 
 /** Delete session: kill PTY, erase history, remove from sidebar and layouts. */
 export async function deleteSession(sessionId: string) {
-  const { splitTree, activeScope, sessions } = uiStore.get();
+  const { splitTree, sessions } = uiStore.get();
   let next = splitTree;
   if (next && collectSessionIds(next).includes(sessionId)) {
     const paneIds = listLeaves(next)
@@ -65,7 +65,7 @@ export async function deleteSession(sessionId: string) {
   });
   await KillSession(sessionId);
   disposeSession(sessionId);
-  await persistLayout(activeScope || DEFAULT_SCOPE, next);
+  await persistLayout(currentScope(), next);
 }
 
 async function persistLayout(scope: string, next: SplitNode | null) {

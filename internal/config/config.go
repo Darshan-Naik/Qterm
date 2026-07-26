@@ -14,7 +14,38 @@ const (
 	DefaultFontSize = 12
 	MinFontSize     = 10
 	MaxFontSize     = 24
+
+	DefaultScope = "_default"
+
+	DefaultSidebarWidth = 240
+	MinSidebarWidth     = 180
+	MaxSidebarWidth     = 480
+
+	DefaultUiZoom = 100
+	MinUiZoom     = 80
+	MaxUiZoom     = 150
+	UiZoomStep    = 10
 )
+
+func ClampSidebarWidth(width int) int {
+	if width < MinSidebarWidth {
+		return MinSidebarWidth
+	}
+	if width > MaxSidebarWidth {
+		return MaxSidebarWidth
+	}
+	return width
+}
+
+func ClampUiZoom(zoom int) int {
+	if zoom < MinUiZoom {
+		zoom = MinUiZoom
+	}
+	if zoom > MaxUiZoom {
+		zoom = MaxUiZoom
+	}
+	return ((zoom + UiZoomStep/2) / UiZoomStep) * UiZoomStep
+}
 
 type SplitNode struct {
 	Type      string      `json:"type"` // "leaf" | "split"
@@ -98,13 +129,13 @@ func DefaultConfig() AppConfig {
 		Projects:          []ProjectMeta{},
 		Sessions:          []SessionMeta{},
 		Layouts:           LayoutStore{},
-		ActiveScope:       "_default",
+		ActiveScope:       DefaultScope,
 		Theme:             "system",
 		Shell:             "",
 		FontSize:          DefaultFontSize,
 		SidebarOpen:       &open,
-		SidebarWidth:      240,
-		UiZoom:            100,
+		SidebarWidth:      DefaultSidebarWidth,
+		UiZoom:            DefaultUiZoom,
 		CollapsedProjects: map[string]bool{},
 		AgentCLIs:         map[string]string{},
 	}
@@ -172,13 +203,13 @@ func (s *Store) Load() error {
 		cfg.FontSize = DefaultFontSize
 	}
 	if cfg.ActiveScope == "" {
-		cfg.ActiveScope = "_default"
+		cfg.ActiveScope = DefaultScope
 	}
 	if cfg.SidebarWidth <= 0 {
-		cfg.SidebarWidth = 240
+		cfg.SidebarWidth = DefaultSidebarWidth
 	}
 	if cfg.UiZoom <= 0 {
-		cfg.UiZoom = 100
+		cfg.UiZoom = DefaultUiZoom
 	}
 	if cfg.SidebarOpen == nil {
 		open := true
@@ -194,17 +225,17 @@ func (s *Store) Load() error {
 		}
 	}
 	if layout, ok := cfg.Layouts["quick"]; ok {
-		cfg.Layouts["_default"] = layout
+		cfg.Layouts[DefaultScope] = layout
 		delete(cfg.Layouts, "quick")
 	}
 	if layout, ok := cfg.Layouts["home"]; ok {
-		if _, exists := cfg.Layouts["_default"]; !exists {
-			cfg.Layouts["_default"] = layout
+		if _, exists := cfg.Layouts[DefaultScope]; !exists {
+			cfg.Layouts[DefaultScope] = layout
 		}
 		delete(cfg.Layouts, "home")
 	}
 	if cfg.ActiveScope == "quick" || cfg.ActiveScope == "home" {
-		cfg.ActiveScope = "_default"
+		cfg.ActiveScope = DefaultScope
 	}
 	if cfg.Sessions == nil {
 		cfg.Sessions = []SessionMeta{}

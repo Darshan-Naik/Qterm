@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { WithTooltip } from "@/components/ui/tooltip";
-import { persistUIPrefs, SIDEBAR_MAX, SIDEBAR_MIN, uiStore } from "@/store/ui";
+import { clampSidebarWidth, persistUIPrefs, uiStore } from "@/store/ui";
 
 export function SidebarResizeHandle() {
   const dragging = useRef(false);
@@ -16,7 +16,7 @@ export function SidebarResizeHandle() {
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
-    pending.current = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, e.clientX));
+    pending.current = clampSidebarWidth(e.clientX);
     if (raf.current) return;
     raf.current = requestAnimationFrame(() => {
       raf.current = 0;

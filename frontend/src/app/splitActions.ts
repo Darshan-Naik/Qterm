@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { createDefaultTerminal, DEFAULT_SCOPE, focusSession } from "@/lib/sessions";
+import { createDefaultTerminal, currentScope, DEFAULT_SCOPE, focusSession } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane } from "@/lib/panes";
 import { leaf, listLeaves, splitPane, uiStore } from "@/store/ui";
@@ -32,7 +32,7 @@ export async function cycleTerminal(dir: number) {
 export async function splitFocused(direction: "horizontal" | "vertical") {
   const state = uiStore.get();
   const paneId = state.focusedPaneId || listLeaves(state.splitTree)[0]?.id;
-  const scope = state.activeScope || DEFAULT_SCOPE;
+  const scope = currentScope();
   if (!paneId) {
     await createDefaultTerminal();
     return;

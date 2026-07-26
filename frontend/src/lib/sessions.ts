@@ -1,5 +1,6 @@
 import { CreateSession, GetLayout, SaveActiveScope, SaveLayout, SetFocusedSession } from "../../wailsjs/go/main/App";
 import {
+  DEFAULT_SCOPE,
   findFirstLeaf,
   findLeafBySession,
   leaf,
@@ -11,8 +12,7 @@ import {
 } from "@/store/ui";
 import { randomTerminalName } from "@/lib/terminalNames";
 
-/** Scope key for terminals not tied to a project (default path). */
-export const DEFAULT_SCOPE = "_default";
+export { DEFAULT_SCOPE };
 
 export function isUnbound(projectId: string) {
   return !projectId || projectId === "home" || projectId === "quick" || projectId === DEFAULT_SCOPE;
@@ -20,6 +20,11 @@ export function isUnbound(projectId: string) {
 
 export function scopeKey(projectId: string) {
   return isUnbound(projectId) ? DEFAULT_SCOPE : projectId;
+}
+
+/** Active project/scope, always resolved (never empty). */
+export function currentScope() {
+  return uiStore.get().activeScope || DEFAULT_SCOPE;
 }
 
 function layoutHasSessions(node: SplitNode, sessionIds: Set<string>): boolean {
