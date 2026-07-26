@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { createDefaultTerminal, DEFAULT_SCOPE, focusScope, focusSession } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import {
+  applyConfigChrome,
   applyTheme,
-  hydrateUIPrefs,
   openSettings,
   persistUIPrefs,
   sanitizeKeybindings,
@@ -34,10 +34,10 @@ export function useAppBootstrap() {
 
   useEffect(() => {
     void (async () => {
-      await hydrateUIPrefs();
       const cfg = await GetConfig();
-      const themeMode = ((cfg.theme as ThemeMode) || uiStore.get().theme) as ThemeMode;
+      const themeMode = ((cfg.theme as ThemeMode) || "system") as ThemeMode;
       applyTheme(themeMode);
+      applyConfigChrome(cfg);
       uiStore.set({
         theme: themeMode,
         fontSize: cfg.fontSize || 13,
@@ -46,6 +46,8 @@ export function useAppBootstrap() {
         projects: cfg.projects || [],
         keybindings: sanitizeKeybindings(cfg.keybindings),
       });
+      // Ensure chrome fields exist on disk for older config.json files.
+      void persistUIPrefs();
       const [projects, sessions] = await Promise.all([ListProjects(), ListSessions()]);
       const usedNames: string[] = [];
       const mapped = await Promise.all(
@@ -83,7 +85,6 @@ export function useAppBootstrap() {
       } else {
         await createDefaultTerminal();
       }
-      void persistUIPrefs();
     })();
 
     const offRenamed = (EventsOn as any)("session:renamed", (payload?: { id?: string; name?: string }) => {
@@ -157,7 +158,6 @@ export function useAppBootstrap() {
       if (theme === "dark" || theme === "light" || theme === "system") {
         applyTheme(theme);
         uiStore.set({ theme });
-        void persistUIPrefs();
       }
     });
     const offFocus = (EventsOn as any)("app:focus-session", (sessionId?: string) => {

@@ -35,7 +35,6 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
     uiStore.set({ theme: next });
     applyTheme(next);
     void SaveTheme(next);
-    void persistUIPrefs();
   },
   zoomIn: () => void adjustUiZoom(1),
   zoomOut: () => void adjustUiZoom(-1),

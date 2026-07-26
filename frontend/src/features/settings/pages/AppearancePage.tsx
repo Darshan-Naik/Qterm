@@ -1,6 +1,5 @@
 import {
   applyTheme,
-  persistUIPrefs,
   setUiZoom,
   UI_ZOOM_MAX,
   UI_ZOOM_MIN,
@@ -41,7 +40,6 @@ export function AppearancePage() {
                 uiStore.set({ theme: t });
                 applyTheme(t);
                 await SaveTheme(t);
-                await persistUIPrefs();
               }}
             />
           }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { Pencil, RotateCcw } from "lucide-react";
 import {
   chordFromEvent,
   conflictLabel,
@@ -20,18 +20,16 @@ import {
   useUI,
 } from "@/store/ui";
 import { cn } from "@/lib/utils";
-import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
 import { SettingCard } from "../ui/SettingCard";
-import { SettingRow } from "../ui/SettingRow";
 
-function KeybindingControl({ id }: { id: ShortcutId }) {
+function ShortcutRow({ id, label, description }: { id: ShortcutId; label: string; description?: string }) {
   const keybindings = useUI((s) => s.keybindings);
   const customized = isCustomized(id, keybindings);
-  const label = formatChords(effectiveChords(id, keybindings));
+  const chord = formatChords(effectiveChords(id, keybindings));
   const [recording, setRecording] = useState(false);
   const [conflict, setConflict] = useState<string | null>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
 
   const stop = useCallback(() => {
     setKeybindingCapturing(false);
@@ -52,62 +50,92 @@ function KeybindingControl({ id }: { id: ShortcutId }) {
         return;
       }
 
-      const chord = chordFromEvent(e);
-      if (!chord) return;
+      const next = chordFromEvent(e);
+      if (!next) return;
 
-      const other = findConflict(chord, uiStore.get().keybindings, id);
+      const other = findConflict(next, uiStore.get().keybindings, id);
       if (other) {
         setConflict(`Used by ${conflictLabel(other)}`);
         return;
       }
 
-      void setKeybinding(id, [chord]);
+      void setKeybinding(id, [next]);
+      stop();
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (rowRef.current?.contains(e.target as Node)) return;
       stop();
     };
 
     window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("pointerdown", onPointerDown, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
       setKeybindingCapturing(false);
     };
   }, [recording, id, stop]);
 
   return (
-    <div className="flex items-center gap-1.5">
-      {customized && (
+    <div
+      ref={rowRef}
+      className={cn(
+        "group flex items-center gap-3 px-4 py-2.5 transition-colors",
+        recording && "bg-secondary/40"
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-medium leading-snug">{label}</div>
+        {(description || conflict) && (
+          <div
+            className={cn(
+              "mt-0.5 text-[12px] leading-snug",
+              conflict ? "text-destructive" : "text-muted-foreground"
+            )}
+          >
+            {conflict || description}
+          </div>
+        )}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        {customized && !recording && (
+          <button
+            type="button"
+            title="Reset to default"
+            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+            onClick={() => void resetKeybinding(id)}
+          >
+            <RotateCcw className="h-3 w-3" />
+          </button>
+        )}
+
         <button
           type="button"
-          title="Reset to default"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          onClick={() => void resetKeybinding(id)}
+          title={recording ? "Press new keys · Esc to cancel" : "Edit shortcut"}
+          onClick={() => {
+            if (recording) return;
+            setConflict(null);
+            setRecording(true);
+          }}
+          className={cn(
+            "inline-flex h-7 items-center gap-1.5 rounded-md px-2 font-mono text-[12px] tabular-nums tracking-tight transition-colors",
+            recording
+              ? "bg-secondary text-foreground ring-1 ring-foreground/20"
+              : "text-muted-foreground group-hover:bg-secondary/70 group-hover:text-foreground"
+          )}
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          {recording ? (
+            <span className="animate-pulse">Press keys…</span>
+          ) : (
+            <>
+              <span>{chord}</span>
+              <Pencil className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" aria-hidden />
+            </>
+          )}
         </button>
-      )}
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={() => {
-          setConflict(null);
-          setRecording(true);
-        }}
-        onBlur={() => {
-          window.setTimeout(() => {
-            if (document.activeElement !== btnRef.current) stop();
-          }, 120);
-        }}
-        className={cn(
-          "min-w-30 rounded-lg border px-2.5 py-1.5 text-center font-mono text-[12px] tabular-nums transition-colors",
-          recording
-            ? "border-foreground/40 bg-secondary text-foreground ring-2 ring-foreground/15"
-            : "border-border/60 bg-secondary/50 text-foreground/90 hover:bg-secondary"
-        )}
-      >
-        {recording ? "Press keys…" : label}
-      </button>
-      {conflict && (
-        <span className="max-w-36 text-[11px] leading-tight text-destructive">{conflict}</span>
-      )}
+      </div>
     </div>
   );
 }
@@ -118,21 +146,18 @@ export function ShortcutsPage() {
 
   return (
     <div>
-      <div className="mb-2 flex items-start justify-between gap-4">
-        <PageTitle>Keyboard shortcuts</PageTitle>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h1 className="text-[18px] font-medium tracking-tight">Keyboard shortcuts</h1>
         {hasCustom && (
           <button
             type="button"
-            className="mt-1 shrink-0 text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            className="shrink-0 text-[12px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             onClick={() => void resetAllKeybindings()}
           >
             Reset all
           </button>
         )}
       </div>
-      <p className="mb-6 text-[13px] text-muted-foreground">
-        Click a shortcut, then press the new keys. Escape cancels.
-      </p>
 
       {SHORTCUT_GROUPS.map((group) => {
         const items = SHORTCUT_META.filter((s) => s.group === group);
@@ -141,12 +166,7 @@ export function ShortcutsPage() {
             <SectionLabel>{group}</SectionLabel>
             <SettingCard>
               {items.map((s) => (
-                <SettingRow
-                  key={s.id}
-                  title={s.label}
-                  description={s.description}
-                  control={<KeybindingControl id={s.id} />}
-                />
+                <ShortcutRow key={s.id} id={s.id} label={s.label} description={s.description} />
               ))}
             </SettingCard>
           </div>

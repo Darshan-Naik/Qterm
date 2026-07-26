@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
+import { uiStore, useUI } from "@/store/ui";
 import { SaveFontSize, SaveShell } from "../../../../wailsjs/go/main/App";
 import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
@@ -36,7 +36,6 @@ export function TerminalPage() {
                 const n = Number(e.target.value) || 13;
                 uiStore.set({ fontSize: n });
                 await SaveFontSize(n);
-                await persistUIPrefs();
               }}
             />
           }

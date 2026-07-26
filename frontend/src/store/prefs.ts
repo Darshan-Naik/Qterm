@@ -1,12 +1,8 @@
-import { createDB } from "qortex-db";
 import { chordsEqual } from "@/lib/shortcuts/chords";
 import { DEFAULT_BINDINGS } from "@/lib/shortcuts/defaults";
 import type { KeyChord, KeybindingOverrides, ShortcutId } from "@/lib/shortcuts/types";
-import { SaveKeybindings } from "../../wailsjs/go/main/App";
+import { SaveKeybindings, SaveUIPrefs } from "../../wailsjs/go/main/App";
 import { uiStore, SIDEBAR_MAX, SIDEBAR_MIN } from "./store";
-import type { ThemeMode } from "./types";
-
-const db = createDB("q-term");
 
 /** Validate + drop unknown ids / default-equal overrides (for config.json). */
 export function sanitizeKeybindings(raw: unknown): KeybindingOverrides {
@@ -46,6 +42,10 @@ export function clampUiZoom(zoom: number) {
   return Math.min(UI_ZOOM_MAX, Math.max(UI_ZOOM_MIN, stepped));
 }
 
+export function clampSidebarWidth(width: number) {
+  return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(Number(width) || SIDEBAR_MIN)));
+}
+
 export function applyUiZoom(zoom: number) {
   const next = clampUiZoom(zoom);
   const root = document.documentElement;
@@ -59,6 +59,17 @@ export function applyUiZoom(zoom: number) {
     window.dispatchEvent(new Event("resize"));
   });
   return next;
+}
+
+/** Persist sidebar / zoom / collapsed projects to config.json. */
+export async function persistUIPrefs() {
+  const s = uiStore.get();
+  await SaveUIPrefs({
+    sidebarOpen: s.sidebarOpen,
+    sidebarWidth: clampSidebarWidth(s.sidebarWidth),
+    uiZoom: clampUiZoom(s.uiZoom),
+    collapsedProjects: s.collapsedProjects,
+  });
 }
 
 export async function setUiZoom(zoom: number) {
@@ -76,40 +87,22 @@ export async function adjustUiZoom(deltaSteps: number) {
   return setUiZoom(uiStore.get().uiZoom + deltaSteps * UI_ZOOM_STEP);
 }
 
-export async function hydrateUIPrefs() {
-  const theme = await db.get<ThemeMode>("theme");
-  const sidebarOpen = await db.get<boolean>("sidebarOpen");
-  const sidebarWidth = await db.get<number>("sidebarWidth");
-  const fontSize = await db.get<number>("fontSize");
-  const uiZoom = await db.get<number>("uiZoom");
-  const activeScope = await db.get<string>("activeScope");
-  const collapsedProjects = await db.get<Record<string, boolean>>("collapsedProjects");
-
-  const zoom = typeof uiZoom === "number" ? clampUiZoom(uiZoom) : UI_ZOOM_DEFAULT;
+/** Apply chrome prefs already loaded from GetConfig(). */
+export function applyConfigChrome(cfg: {
+  sidebarOpen?: boolean | null;
+  sidebarWidth?: number;
+  uiZoom?: number;
+  collapsedProjects?: Record<string, boolean> | null;
+}) {
+  const zoom = clampUiZoom(typeof cfg.uiZoom === "number" ? cfg.uiZoom : UI_ZOOM_DEFAULT);
   applyUiZoom(zoom);
-
   uiStore.set({
-    ...(theme ? { theme } : {}),
-    ...(typeof sidebarOpen === "boolean" ? { sidebarOpen } : {}),
-    ...(typeof sidebarWidth === "number"
-      ? { sidebarWidth: Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, sidebarWidth)) }
-      : {}),
-    ...(fontSize ? { fontSize } : {}),
+    sidebarOpen: cfg.sidebarOpen !== false,
+    sidebarWidth: clampSidebarWidth(cfg.sidebarWidth ?? 240),
     uiZoom: zoom,
-    ...(activeScope ? { activeScope } : {}),
-    ...(collapsedProjects && typeof collapsedProjects === "object" ? { collapsedProjects } : {}),
+    collapsedProjects:
+      cfg.collapsedProjects && typeof cfg.collapsedProjects === "object" ? cfg.collapsedProjects : {},
   });
-}
-
-export async function persistUIPrefs() {
-  const s = uiStore.get();
-  await db.set("theme", s.theme);
-  await db.set("sidebarOpen", s.sidebarOpen);
-  await db.set("sidebarWidth", s.sidebarWidth);
-  await db.set("fontSize", s.fontSize);
-  await db.set("uiZoom", s.uiZoom);
-  await db.set("activeScope", s.activeScope);
-  await db.set("collapsedProjects", s.collapsedProjects);
 }
 
 export function toggleProjectCollapsed(projectId: string) {

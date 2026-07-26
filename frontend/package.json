@@ -26,7 +26,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "lucide-react": "^1.26.0",
-    "qortex-db": "^2.2.0",
     "qortex-query": "^2.2.0",
     "qortex-query-react": "^2.2.0",
     "qortex-store": "^2.2.0",
