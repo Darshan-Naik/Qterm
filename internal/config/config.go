@@ -36,6 +36,19 @@ type ProjectMeta struct {
 
 type LayoutStore map[string]SplitNode // keyed by project id or "home"
 
+// KeyChord is a single keyboard shortcut chord (mirrors frontend KeyChord).
+type KeyChord struct {
+	Key        string   `json:"key"`
+	Codes      []string `json:"codes,omitempty"`
+	MetaOrCtrl bool     `json:"metaOrCtrl,omitempty"`
+	CtrlOnly   bool     `json:"ctrlOnly,omitempty"`
+	Shift      bool     `json:"shift,omitempty"`
+	Alt        bool     `json:"alt,omitempty"`
+}
+
+// KeybindingOverrides maps shortcut id → override chords (defaults live in the app).
+type KeybindingOverrides map[string][]KeyChord
+
 type AppConfig struct {
 	Projects    []ProjectMeta `json:"projects"`
 	Sessions    []SessionMeta `json:"sessions"`
@@ -47,6 +60,8 @@ type AppConfig struct {
 	// AgentCLIs maps connected CLI plugin id → qterm plugin version at connect/update time.
 	// Compared to the app's current plugin version to detect stale installs.
 	AgentCLIs map[string]string `json:"agentCLIs,omitempty"`
+	// Keybindings stores only user overrides of keyboard shortcuts.
+	Keybindings KeybindingOverrides `json:"keybindings,omitempty"`
 }
 
 type Store struct {

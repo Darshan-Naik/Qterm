@@ -274,6 +274,16 @@ func (a *App) SaveFontSize(size int) error {
 	})
 }
 
+func (a *App) SaveKeybindings(bindings config.KeybindingOverrides) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		if len(bindings) == 0 {
+			cfg.Keybindings = nil
+			return
+		}
+		cfg.Keybindings = bindings
+	})
+}
+
 func (a *App) SaveLayout(key string, layout config.SplitNode) error {
 	return a.store.Update(func(cfg *config.AppConfig) {
 		if cfg.Layouts == nil {

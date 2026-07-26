@@ -47,6 +47,8 @@ export function SaveActiveScope(arg1:string):Promise<void>;
 
 export function SaveFontSize(arg1:number):Promise<void>;
 
+export function SaveKeybindings(arg1:config.KeybindingOverrides):Promise<void>;
+
 export function SaveLayout(arg1:string,arg2:config.SplitNode):Promise<void>;
 
 export function SaveShell(arg1:string):Promise<void>;

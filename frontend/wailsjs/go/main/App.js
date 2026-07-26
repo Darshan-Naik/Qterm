@@ -86,6 +86,10 @@ export function SaveFontSize(arg1) {
   return window['go']['main']['App']['SaveFontSize'](arg1);
 }
 
+export function SaveKeybindings(arg1) {
+  return window['go']['main']['App']['SaveKeybindings'](arg1);
+}
+
 export function SaveLayout(arg1, arg2) {
   return window['go']['main']['App']['SaveLayout'](arg1, arg2);
 }

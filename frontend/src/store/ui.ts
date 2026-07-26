@@ -32,6 +32,10 @@ export {
   clampUiZoom,
   hydrateUIPrefs,
   persistUIPrefs,
+  resetAllKeybindings,
+  resetKeybinding,
+  sanitizeKeybindings,
+  setKeybinding,
   setUiZoom,
   toggleProjectCollapsed,
 } from "./prefs";

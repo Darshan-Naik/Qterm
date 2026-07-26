@@ -53,7 +53,7 @@ export function AppearancePage() {
         <SettingCard>
           <SettingRow
             title="UI scale"
-            description={`Scales the whole app (${UI_ZOOM_MIN}–${UI_ZOOM_MAX}%). ⌘+ / ⌘− to adjust, ⌘0 to reset.`}
+            description={`Scales the whole app (${UI_ZOOM_MIN}–${UI_ZOOM_MAX}%). Remap zoom shortcuts under Shortcuts.`}
             control={
               <Input
                 type="number"

@@ -27,6 +27,7 @@ export const uiStore = createStore<UIState>({
   pendingIntent: null,
   suggestText: null,
   collapsedProjects: {},
+  keybindings: {},
 });
 
 export const useUI = createUseStore(uiStore);

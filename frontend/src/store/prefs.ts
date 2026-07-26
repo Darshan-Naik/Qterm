@@ -1,8 +1,38 @@
 import { createDB } from "qortex-db";
+import { chordsEqual } from "@/lib/shortcuts/chords";
+import { DEFAULT_BINDINGS } from "@/lib/shortcuts/defaults";
+import type { KeyChord, KeybindingOverrides, ShortcutId } from "@/lib/shortcuts/types";
+import { SaveKeybindings } from "../../wailsjs/go/main/App";
 import { uiStore, SIDEBAR_MAX, SIDEBAR_MIN } from "./store";
 import type { ThemeMode } from "./types";
 
 const db = createDB("q-term");
+
+/** Validate + drop unknown ids / default-equal overrides (for config.json). */
+export function sanitizeKeybindings(raw: unknown): KeybindingOverrides {
+  if (!raw || typeof raw !== "object") return {};
+  const out: KeybindingOverrides = {};
+  for (const [id, chords] of Object.entries(raw as Record<string, unknown>)) {
+    if (!(id in DEFAULT_BINDINGS)) continue;
+    if (!Array.isArray(chords) || chords.length === 0) continue;
+    const cleaned = chords.filter(
+      (c): c is KeyChord =>
+        Boolean(c) &&
+        typeof c === "object" &&
+        typeof (c as KeyChord).key === "string" &&
+        (c as KeyChord).key.length > 0
+    );
+    if (!cleaned.length) continue;
+    const def = DEFAULT_BINDINGS[id as ShortcutId];
+    if (chordsEqual(cleaned, def)) continue;
+    out[id as ShortcutId] = cleaned;
+  }
+  return out;
+}
+
+async function persistKeybindings(overrides: KeybindingOverrides) {
+  await SaveKeybindings(overrides);
+}
 
 /** Whole-app UI zoom (percent). Scales chrome, spacing, and terminal together. */
 export const UI_ZOOM_MIN = 80;
@@ -88,4 +118,29 @@ export function toggleProjectCollapsed(projectId: string) {
     collapsedProjects: { ...cur, [projectId]: !cur[projectId] },
   });
   void persistUIPrefs();
+}
+
+export async function setKeybinding(id: ShortcutId, chords: KeyChord[]) {
+  const cur = { ...uiStore.get().keybindings };
+  if (!chords.length || chordsEqual(chords, DEFAULT_BINDINGS[id])) {
+    delete cur[id];
+  } else {
+    cur[id] = chords;
+  }
+  uiStore.set({ keybindings: cur });
+  await persistKeybindings(cur);
+}
+
+export async function resetKeybinding(id: ShortcutId) {
+  const cur = { ...uiStore.get().keybindings };
+  if (!(id in cur)) return;
+  delete cur[id];
+  uiStore.set({ keybindings: cur });
+  await persistKeybindings(cur);
+}
+
+export async function resetAllKeybindings() {
+  if (!Object.keys(uiStore.get().keybindings).length) return;
+  uiStore.set({ keybindings: {} });
+  await persistKeybindings({});
 }

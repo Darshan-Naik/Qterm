@@ -1,7 +1,11 @@
+import type { KeybindingOverrides } from "@/lib/shortcuts/types";
+
 export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "action_required" | "task_complete" | "thinking";
-export type SettingsPage = "appearance" | "terminal" | "agent";
+export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts";
 export type AppMode = "workspace" | "settings";
+
+export type { KeybindingOverrides };
 
 export type SplitNode =
   | { type: "leaf"; id: string; sessionId: string }
@@ -62,4 +66,6 @@ export type UIState = {
   pendingIntent: HookIntent | null;
   suggestText: string | null;
   collapsedProjects: Record<string, boolean>;
+  /** Custom keybinding overrides (defaults live in shortcut catalog). */
+  keybindings: KeybindingOverrides;
 };
