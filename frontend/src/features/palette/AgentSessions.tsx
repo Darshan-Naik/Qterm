@@ -70,8 +70,8 @@ export function AgentSessions() {
     void (async () => {
       try {
         const list = ((await ListAgentCLIs()) as Array<{ id: string; installed?: boolean; available?: boolean }>) || [];
-        // Show every registered CLI — sessions live on disk even when PATH/plugin checks fail in the GUI app.
-        setInstalledCLIs(list.map((c) => c.id));
+        // Only connected CLIs — disconnect in settings to hide from this palette.
+        setInstalledCLIs(list.filter((c) => c.installed).map((c) => c.id));
       } catch {
         setInstalledCLIs([]);
       }
@@ -298,7 +298,7 @@ export function AgentSessions() {
               <Command.Empty className="px-2 py-6 text-center text-[13px] text-muted-foreground">
                 {loading
                   ? "Searching…"
-                  : "No agent sessions found. Run Claude / Codex / Gemini / Cursor in a project — history is read from those CLIs on disk."}
+                  : "No connected agent sessions. Connect a CLI in Settings → Agent, or run one in a project after connecting."}
               </Command.Empty>
 
               {groups.map((group) => (
@@ -327,14 +327,17 @@ export function AgentSessions() {
                         key={`${item.cli}:${item.id}`}
                         value={`${item.title} ${item.cwd} ${item.preview} ${item.id}`}
                         onSelect={() => selectHit(item)}
-                        className="my-0.5 flex cursor-pointer items-start gap-2.5 rounded-md px-2.5 py-2.5 text-[13px] aria-selected:bg-accent"
+                        className={cn(
+                          "my-0.5 flex cursor-pointer items-start gap-2.5 rounded-md px-2.5 py-2.5 text-[13px] text-foreground aria-selected:bg-accent",
+                          openId && "bg-primary/10 aria-selected:bg-primary/15"
+                        )}
                       >
                         <AgentIcon agent={item.cli} className="mt-0.5" />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="min-w-0 flex-1 truncate">{item.title}</span>
                             {openId ? (
-                              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-foreground">
+                              <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
                                 Open
                               </span>
                             ) : null}
