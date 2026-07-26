@@ -1,4 +1,4 @@
-package agentbridge
+package bridge
 
 import (
 	"bufio"
@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"qterm/internal/agentcli/core"
 )
 
 // RunMCP serves a minimal stdio MCP server that proxies tools to the Qterm bridge HTTP API.
@@ -21,7 +23,7 @@ func RunMCP() {
 	url := os.Getenv("QTERM_BRIDGE_URL")
 	token := os.Getenv("QTERM_BRIDGE_TOKEN")
 	if dataDir := os.Getenv("QTERM_DATA_DIR"); dataDir != "" {
-		if ep, err := ReadEndpoint(dataDir); err == nil {
+		if ep, err := core.ReadEndpoint(dataDir); err == nil {
 			if url == "" {
 				url = ep.URL
 			}
@@ -31,7 +33,7 @@ func RunMCP() {
 		}
 	}
 	if url == "" {
-		url = fmt.Sprintf("http://127.0.0.1:%d", DefaultPort)
+		url = fmt.Sprintf("http://127.0.0.1:%d", core.DefaultPort)
 	}
 	terminalHint := strings.TrimSpace(os.Getenv("QTERM_SESSION_ID"))
 	inQterm := terminalHint != ""
@@ -57,7 +59,7 @@ func RunMCP() {
 			writeMCPResult(id, map[string]any{
 				"protocolVersion": "2024-11-05",
 				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "qterm", "version": qtermPluginVersion},
+				"serverInfo":      map[string]any{"name": "qterm", "version": core.PluginVersion()},
 			})
 		case "notifications/initialized", "initialized":
 			// no-op

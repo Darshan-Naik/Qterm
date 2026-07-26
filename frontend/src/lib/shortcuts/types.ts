@@ -2,6 +2,7 @@
 export type ShortcutId =
   | "commandPalette"
   | "quickOpen"
+  | "agentSessions"
   | "findInTerminal"
   | "openSettings"
   | "newTerminal"

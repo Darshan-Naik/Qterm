@@ -37,6 +37,7 @@ export const uiStore = createStore<UIState>({
   paletteOpen: false,
   quickOpen: false,
   terminalFindOpen: false,
+  agentSessionsOpen: false,
   appMode: "workspace",
   settingsPage: "appearance",
   splitTree: null,
@@ -59,6 +60,7 @@ export function openSettings(page: SettingsPage = "appearance") {
     paletteOpen: false,
     quickOpen: false,
     terminalFindOpen: false,
+    agentSessionsOpen: false,
   });
 }
 

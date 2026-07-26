@@ -57,6 +57,8 @@ export type UIState = {
   quickOpen: boolean;
   /** ⌘F find-in-terminal bar on the focused session */
   terminalFindOpen: boolean;
+  /** ⌘⇧A agent session history palette */
+  agentSessionsOpen: boolean;
   appMode: AppMode;
   settingsPage: SettingsPage;
   splitTree: SplitNode | null;

@@ -4,30 +4,30 @@ import (
 	"fmt"
 	"os"
 
-	"qterm/internal/agentbridge"
+	"qterm/internal/agentcli"
+	"qterm/internal/agentcli/bridge"
 	"qterm/internal/config"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 func (a *App) startAgentBridge() {
-	onIntent := func(intent agentbridge.Intent) {
+	onIntent := func(intent agentcli.Intent) {
 		cwd, _ := intent.Payload["cwd"].(string)
 		cliID := intent.SessionID
-		// Prefer PTY-injected QTERM_SESSION_ID (via hook header) over focus heuristics.
 		if sid := a.resolveSessionForAgent(cliID, cwd, intent.TerminalID); sid != "" {
 			intent.SessionID = sid
 			intent.TerminalID = sid
 		}
 
-		if intent.Type == agentbridge.IntentAutoTitle {
+		if intent.Type == agentcli.IntentAutoTitle {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
 				_ = a.applyFirstPromptTitle(intent.SessionID, name)
 			}
 			return
 		}
-		if intent.Type == agentbridge.IntentRename {
+		if intent.Type == agentcli.IntentRename {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
 				_ = a.applyHookSessionTitle(intent.SessionID, name)
@@ -39,7 +39,7 @@ func (a *App) startAgentBridge() {
 		}
 		runtime.EventsEmit(a.ctx, "hook:intent", intent)
 	}
-	srv, err := agentbridge.NewServer(a.store.DataDir(), onIntent, &bridgeAPI{app: a})
+	srv, err := bridge.NewServer(a.store.DataDir(), onIntent, &bridgeAPI{app: a})
 	if err != nil {
 		println("agent bridge:", err.Error())
 		return
@@ -49,14 +49,12 @@ func (a *App) startAgentBridge() {
 		return
 	}
 	a.bridge = srv
-	// Rewrite installed plugin relays so in-app-only gating ships without reconnect.
-	agentbridge.RefreshInstalledRelays(a.store.DataDir())
-	// Full reinstall when the app's plugin version moved past what was last connected.
+	agentcli.RefreshInstalledRelays(a.store.DataDir())
 	a.upgradeOutdatedAgentCLIs()
 }
 
-func (a *App) ListAgentCLIs() []agentbridge.CLIInfo {
-	list := agentbridge.ListPlugins(a.store.DataDir())
+func (a *App) ListAgentCLIs() []agentcli.CLIInfo {
+	list := agentcli.ListCLIs(a.store.DataDir())
 	recorded := a.store.Get().AgentCLIs
 	if recorded == nil {
 		recorded = map[string]string{}
@@ -71,7 +69,7 @@ func (a *App) ListAgentCLIs() []agentbridge.CLIInfo {
 				next[list[i].ID] = ver
 			}
 		} else if _, ok := recorded[list[i].ID]; ok {
-			dirty = true // disk gone but config still lists it
+			dirty = true
 		}
 	}
 	if dirty || len(next) != len(recorded) {
@@ -82,9 +80,9 @@ func (a *App) ListAgentCLIs() []agentbridge.CLIInfo {
 	return list
 }
 
-func (a *App) InstallAgentCLI(id string) (agentbridge.InstallResult, error) {
+func (a *App) InstallAgentCLI(id string) (agentcli.InstallResult, error) {
 	exe, _ := os.Executable()
-	result, err := agentbridge.InstallPlugin(id, a.store.DataDir(), exe)
+	result, err := agentcli.Install(id, a.store.DataDir(), exe)
 	if err != nil {
 		return result, err
 	}
@@ -92,17 +90,17 @@ func (a *App) InstallAgentCLI(id string) (agentbridge.InstallResult, error) {
 		if cfg.AgentCLIs == nil {
 			cfg.AgentCLIs = map[string]string{}
 		}
-		cfg.AgentCLIs[id] = agentbridge.PluginVersion()
+		cfg.AgentCLIs[id] = agentcli.PluginVersion()
 	})
 	result.Installed = true
 	if result.Message == "" {
-		result.Message = "Connected (plugin " + agentbridge.PluginVersion() + ")"
+		result.Message = "Connected (plugin " + agentcli.PluginVersion() + ")"
 	}
 	return result, nil
 }
 
 func (a *App) UninstallAgentCLI(id string) error {
-	if err := agentbridge.UninstallPlugin(id, a.store.DataDir()); err != nil {
+	if err := agentcli.Uninstall(id, a.store.DataDir()); err != nil {
 		return err
 	}
 	_ = a.store.Update(func(cfg *config.AppConfig) {
@@ -114,8 +112,6 @@ func (a *App) UninstallAgentCLI(id string) error {
 	return nil
 }
 
-// upgradeOutdatedAgentCLIs reinstalls connected plugins whose recorded version
-// lags the app's current qtermPluginVersion (hooks/MCP/skills/relay changes).
 func (a *App) upgradeOutdatedAgentCLIs() {
 	for _, cli := range a.ListAgentCLIs() {
 		if !cli.Installed || !cli.Outdated {
@@ -125,7 +121,7 @@ func (a *App) upgradeOutdatedAgentCLIs() {
 			println("agent plugin upgrade:", cli.ID, err.Error())
 			continue
 		}
-		println("agent plugin upgraded:", cli.ID, "→", agentbridge.PluginVersion())
+		println("agent plugin upgraded:", cli.ID, "→", agentcli.PluginVersion())
 	}
 }
 
@@ -147,8 +143,6 @@ func (b *bridgeAPI) RenameTerminal(id, name string) error {
 	if id == "" {
 		return fmt.Errorf("no agent terminal — call get_terminal_id first, or open an agent in a pane")
 	}
-	// MCP rename is intentional — allowed even after a user rename.
-	// Only first-prompt / hook auto-titles respect nameLocked.
 	if looksLikeAgentStatusTitle(name) {
 		return fmt.Errorf("refusing status title %q", name)
 	}
@@ -170,7 +164,6 @@ func (b *bridgeAPI) ListTerminals() ([]map[string]any, error) {
 }
 
 func (b *bridgeAPI) GetTerminal(id string) (map[string]any, error) {
-	// id may be QTERM_SESSION_ID from MCP env, or empty → sticky agent pane.
 	resolved := b.app.resolveSessionForAgent("", "", id)
 	if resolved == "" {
 		return nil, fmt.Errorf("could not identify this terminal — is the agent running inside a Qterm pane?")

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CommandPalette, QuickOpen } from "@/features/palette";
+import { CommandPalette, QuickOpen, AgentSessions } from "@/features/palette";
 import { HookIntentListener } from "@/features/hooks";
 
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -10,6 +10,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       {children}
       <CommandPalette />
       <QuickOpen />
+      <AgentSessions />
       <HookIntentListener />
       <Toaster richColors position="bottom-right" />
     </TooltipProvider>

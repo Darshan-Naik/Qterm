@@ -34,7 +34,14 @@ export function CommandPalette() {
         id: "quick-open",
         label: "Quick open terminals",
         run: async () => {
-          uiStore.set({ quickOpen: true, paletteOpen: false });
+          uiStore.set({ quickOpen: true, paletteOpen: false, agentSessionsOpen: false });
+        },
+      },
+      {
+        id: "agent-sessions",
+        label: "Resume agent session",
+        run: async () => {
+          uiStore.set({ agentSessionsOpen: true, paletteOpen: false, quickOpen: false });
         },
       },
       {
@@ -145,7 +152,7 @@ export function CommandPalette() {
     <Dialog open={open} onOpenChange={(v) => uiStore.set({ paletteOpen: v, quickOpen: v ? false : uiStore.get().quickOpen })}>
       <DialogContent
         position="top"
-        className="flex max-w-lg flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
+        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
         aria-describedby={undefined}
       >
         <Command className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover" label="Command palette">

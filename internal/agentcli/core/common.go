@@ -1,4 +1,4 @@
-package agentbridge
+package core
 
 import (
 	"fmt"
@@ -7,36 +7,37 @@ import (
 	"strings"
 )
 
-const qtermPluginName = "qterm"
+// PluginName is the on-disk plugin / extension folder name.
+const PluginName = "qterm"
 
-// qtermPluginVersion is bumped when plugin artifacts change (hooks, MCP, skills, relay).
+// Version is bumped when plugin artifacts change (hooks, MCP, skills, relay).
 // Connected CLIs with an older recorded version are marked outdated and reinstalled.
-const qtermPluginVersion = "1.2.5"
+const Version = "1.2.5"
 
 // PluginVersion is the qterm plugin package version shipped with this app build.
-func PluginVersion() string { return qtermPluginVersion }
+func PluginVersion() string { return Version }
 
-func userHomeDir() string {
+// UserHomeDir returns the current user's home directory (empty on error).
+func UserHomeDir() string {
 	home, _ := os.UserHomeDir()
 	return home
 }
 
-// relayScriptBody is the shared hook relay used by plugins and the legacy shared script.
+// RelayScriptBody is the shared hook relay used by plugins and the legacy shared script.
 // It only posts when QTERM_SESSION_ID is set (injected into Qterm PTYs). Outside Qterm
 // the same global CLI hooks fire but no-op — cmux CMUX_SURFACE_ID pattern.
 //
 // Usage: relay.sh <source> [event]
-// Optional event (e.g. PreInvocation) is injected as hook_event_name when the CLI
-// payload omits it (Antigravity).
-func relayScriptBody(dataDir, token, sourceDefault string) string {
+// Optional event is injected as hook_event_name when the CLI payload omits it.
+func RelayScriptBody(dataDir, token, sourceDefault string) string {
 	if sourceDefault == "" {
-		sourceDefault = "claude"
+		sourceDefault = "unknown"
 	}
 	return fmt.Sprintf(`#!/bin/bash
 # %s — plugin hook relay (Qterm panes only)
 SOURCE="${1:-%s}"
 EVENT="${2:-}"
-# Always emit JSON for CLIs that require stdout (Antigravity PostToolUse/Stop).
+# Always emit JSON for CLIs that require stdout on hook completion.
 emit_ok() { echo '{}'; }
 # Outside Qterm: CLI plugins stay installed globally but must not talk to the bridge.
 if [[ -z "${QTERM_SESSION_ID:-}" ]]; then
@@ -78,15 +79,16 @@ exit 0
 `, HookMarker, sourceDefault, EndpointPath(dataDir), token, DefaultPort, HookMarker)
 }
 
-// writePluginRelay writes a stdin→bridge hook script. sourceDefault is used when argv[1] is empty.
-func writePluginRelay(path, dataDir, token, sourceDefault string) error {
+// WritePluginRelay writes a stdin→bridge hook script. sourceDefault is used when argv[1] is empty.
+func WritePluginRelay(path, dataDir, token, sourceDefault string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, []byte(relayScriptBody(dataDir, token, sourceDefault)), 0o755)
+	return os.WriteFile(path, []byte(RelayScriptBody(dataDir, token, sourceDefault)), 0o755)
 }
 
-func writeQtermSkill(dir string) error {
+// WriteQtermSkill writes the shared qterm-terminal SKILL.md under dir.
+func WriteQtermSkill(dir string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
@@ -131,7 +133,8 @@ func writeQtermSkill(dir string) error {
 	return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(skill), 0o644)
 }
 
-func qtermMCPServer(mcpCommand, dataDir, token string) map[string]any {
+// QtermMCPServer returns the shared MCP server entry for plugin manifests.
+func QtermMCPServer(mcpCommand, dataDir, token string) map[string]any {
 	if mcpCommand == "" {
 		mcpCommand = os.Args[0]
 	}
@@ -146,7 +149,8 @@ func qtermMCPServer(mcpCommand, dataDir, token string) map[string]any {
 	}
 }
 
-func nestedCommandHooks(events []string, command string, args []any, opts map[string]any) map[string]any {
+// NestedCommandHooks builds Claude/Gemini-style nested command hook groups.
+func NestedCommandHooks(events []string, command string, args []any, opts map[string]any) map[string]any {
 	hooks := map[string]any{}
 	for _, event := range events {
 		inner := map[string]any{

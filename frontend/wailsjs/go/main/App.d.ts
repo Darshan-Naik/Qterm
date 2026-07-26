@@ -3,7 +3,7 @@
 import {config} from '../models';
 import {main} from '../models';
 import {git} from '../models';
-import {agentbridge} from '../models';
+import {core} from '../models';
 
 export function AddProject(arg1:string,arg2:string):Promise<config.ProjectMeta>;
 
@@ -17,11 +17,13 @@ export function GetLayout(arg1:string):Promise<config.SplitNode>;
 
 export function GetScrollback(arg1:string):Promise<Record<string, any>>;
 
-export function InstallAgentCLI(arg1:string):Promise<agentbridge.InstallResult>;
+export function InstallAgentCLI(arg1:string):Promise<core.InstallResult>;
 
 export function KillSession(arg1:string):Promise<void>;
 
-export function ListAgentCLIs():Promise<Array<agentbridge.CLIInfo>>;
+export function ListAgentCLIs():Promise<Array<core.CLIInfo>>;
+
+export function ListAgentSessions(arg1:string,arg2:string):Promise<Array<core.Session>>;
 
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 
@@ -42,6 +44,8 @@ export function RenameSession(arg1:string,arg2:string):Promise<boolean>;
 export function ResizeSession(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function ResolveHookIntent(arg1:string,arg2:boolean):Promise<Record<string, any>>;
+
+export function ResumeAgentSession(arg1:string,arg2:string):Promise<main.SessionDTO>;
 
 export function SaveActiveScope(arg1:string):Promise<void>;
 

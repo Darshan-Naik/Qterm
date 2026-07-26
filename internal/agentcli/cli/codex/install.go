@@ -1,4 +1,4 @@
-package agentbridge
+package codex
 
 import (
 	"encoding/json"
@@ -9,107 +9,139 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"qterm/internal/agentcli/core"
 )
 
 const (
 	// Official personal layout: plugin under ~/.codex/plugins/, catalog at ~/.agents/plugins/marketplace.json
 	// (marketplace root = $HOME, source.path = ./.codex/plugins/qterm).
-	codexPersonalMarketplaceName = "home"
+	personalMarketplaceName = "home"
 )
 
-func codexHome() string {
-	return filepath.Join(userHomeDir(), ".codex")
+type adapter struct{}
+
+// New returns the Codex CLI adapter.
+func New() core.Adapter { return adapter{} }
+
+func (adapter) ID() string         { return "codex" }
+func (adapter) Name() string       { return "Codex" }
+func (adapter) Binaries() []string { return []string{"codex"} }
+func (a adapter) Available() (string, bool) {
+	return core.LookPath(a.Binaries())
+}
+func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) RelayPath() string {
+	return filepath.Join(pluginRoot(), "hooks", "relay.sh")
+}
+func (adapter) MapHook(raw map[string]any) []core.Intent {
+	return core.MapHookDefault("codex", "Codex", raw)
 }
 
-func codexPluginRoot() string {
-	return filepath.Join(codexHome(), "plugins", qtermPluginName)
+func (a adapter) Install(ctx core.InstallCtx) (core.InstallResult, error) {
+	if err := core.RequireCLI(a); err != nil {
+		return core.InstallResult{CLI: a.ID()}, err
+	}
+	return install(ctx)
 }
 
-func codexConfigToml() string {
-	return filepath.Join(codexHome(), "config.toml")
+func (adapter) Uninstall(core.InstallCtx) error {
+	return uninstall()
 }
 
-func codexUserHooksJSON() string {
-	return filepath.Join(codexHome(), "hooks.json")
+func home() string {
+	return filepath.Join(core.UserHomeDir(), ".codex")
+}
+
+func pluginRoot() string {
+	return filepath.Join(home(), "plugins", core.PluginName)
+}
+
+func configToml() string {
+	return filepath.Join(home(), "config.toml")
+}
+
+func userHooksJSON() string {
+	return filepath.Join(home(), "hooks.json")
 }
 
 func personalMarketplaceJSON() string {
-	return filepath.Join(userHomeDir(), ".agents", "plugins", "marketplace.json")
+	return filepath.Join(core.UserHomeDir(), ".agents", "plugins", "marketplace.json")
 }
 
-func legacyCodexMarketplaceRoot() string {
-	return filepath.Join(codexHome(), "qterm-marketplace")
+func legacyMarketplaceRoot() string {
+	return filepath.Join(home(), "qterm-marketplace")
 }
 
-// installCodexPlugin writes ~/.codex/plugins/qterm (hooks + MCP + skill),
+// install writes ~/.codex/plugins/qterm (hooks + MCP + skill),
 // upserts the personal marketplace catalog, enables the plugin, and cleans legacy installs.
-func installCodexPlugin(ctx InstallCtx) (InstallResult, error) {
-	root := codexPluginRoot()
+func install(ctx core.InstallCtx) (core.InstallResult, error) {
+	root := pluginRoot()
 	if err := os.MkdirAll(filepath.Join(root, ".codex-plugin"), 0o755); err != nil {
-		return InstallResult{CLI: "codex"}, err
+		return core.InstallResult{CLI: "codex"}, err
 	}
 	if err := os.MkdirAll(filepath.Join(root, "hooks"), 0o755); err != nil {
-		return InstallResult{CLI: "codex"}, err
+		return core.InstallResult{CLI: "codex"}, err
 	}
 
-	if err := writePluginRelay(filepath.Join(root, "hooks", "relay.sh"), ctx.DataDir, ctx.Token, "codex"); err != nil {
-		return InstallResult{CLI: "codex"}, err
+	if err := core.WritePluginRelay(filepath.Join(root, "hooks", "relay.sh"), ctx.DataDir, ctx.Token, "codex"); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
 	}
-	if err := writeCodexPluginManifest(root); err != nil {
-		return InstallResult{CLI: "codex"}, err
+	if err := writePluginManifest(root); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
 	}
-	if err := writeCodexPluginHooks(root); err != nil {
-		return InstallResult{CLI: "codex"}, err
+	if err := writePluginHooks(root); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
 	}
-	if err := writeCodexPluginMCP(root, ctx.MCPCommand, ctx.DataDir, ctx.Token); err != nil {
-		return InstallResult{CLI: "codex"}, err
+	if err := writePluginMCP(root, ctx.MCPCommand, ctx.DataDir, ctx.Token); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
 	}
-	if err := writeQtermSkill(filepath.Join(root, "skills", "qterm-terminal")); err != nil {
-		return InstallResult{CLI: "codex"}, err
+	if err := core.WriteQtermSkill(filepath.Join(root, "skills", "qterm-terminal")); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
 	}
 	marketName, err := upsertPersonalMarketplaceEntry()
 	if err != nil {
-		return InstallResult{CLI: "codex"}, err
+		return core.InstallResult{CLI: "codex"}, err
 	}
 	if err := ensurePersonalMarketplaceRegistered(marketName); err != nil {
-		return InstallResult{CLI: "codex"}, err
+		return core.InstallResult{CLI: "codex"}, err
 	}
-	if err := ensureCodexQtermMCPApproval(marketName); err != nil {
-		return InstallResult{CLI: "codex"}, err
+	if err := ensureQtermMCPApproval(marketName); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
 	}
 
-	_ = exec.Command("codex", "plugin", "marketplace", "add", userHomeDir()).Run()
-	_ = exec.Command("codex", "plugin", "add", qtermPluginName+"@"+marketName).Run()
+	_ = exec.Command("codex", "plugin", "marketplace", "add", core.UserHomeDir()).Run()
+	_ = exec.Command("codex", "plugin", "add", core.PluginName+"@"+marketName).Run()
 
 	// Clean legacy installs (root hooks.json + nested qterm-marketplace + top-level mcp).
-	_ = stripQtermFromUserHooksJSON(codexUserHooksJSON())
-	_ = removeCodexMCPToml(codexConfigToml())
-	_ = os.RemoveAll(legacyCodexMarketplaceRoot())
+	_ = stripQtermFromUserHooksJSON(userHooksJSON())
+	_ = removeMCPToml(configToml())
+	_ = os.RemoveAll(legacyMarketplaceRoot())
 
-	return InstallResult{
+	return core.InstallResult{
 		CLI:       "codex",
 		Installed: true,
 		Message:   "Installed ~/.codex/plugins/qterm (hooks + MCP, auto-approved). Restart Codex.",
 	}, nil
 }
 
-func uninstallCodexPlugin() error {
+func uninstall() error {
 	marketName := readPersonalMarketplaceName()
-	_ = disableCodexPlugin(marketName)
-	_ = exec.Command("codex", "plugin", "remove", qtermPluginName+"@"+marketName).Run()
+	_ = disablePlugin(marketName)
+	_ = exec.Command("codex", "plugin", "remove", core.PluginName+"@"+marketName).Run()
 	_ = removeQtermFromPersonalMarketplace()
-	_ = stripQtermFromUserHooksJSON(codexUserHooksJSON())
-	_ = removeCodexMCPToml(codexConfigToml())
-	_ = os.RemoveAll(codexPluginRoot())
-	_ = os.RemoveAll(legacyCodexMarketplaceRoot())
+	_ = stripQtermFromUserHooksJSON(userHooksJSON())
+	_ = removeMCPToml(configToml())
+	_ = os.RemoveAll(pluginRoot())
+	_ = os.RemoveAll(legacyMarketplaceRoot())
 	return nil
 }
 
-func codexPluginInstalled() bool {
-	if _, err := os.Stat(filepath.Join(codexPluginRoot(), ".codex-plugin", "plugin.json")); err != nil {
+func pluginInstalled() bool {
+	if _, err := os.Stat(filepath.Join(pluginRoot(), ".codex-plugin", "plugin.json")); err != nil {
 		return false
 	}
-	b, err := os.ReadFile(codexConfigToml())
+	b, err := os.ReadFile(configToml())
 	if err != nil {
 		return false
 	}
@@ -119,10 +151,10 @@ func codexPluginInstalled() bool {
 		strings.Contains(s, "enabled = true")
 }
 
-func writeCodexPluginManifest(root string) error {
+func writePluginManifest(root string) error {
 	manifest := map[string]any{
-		"name":        qtermPluginName,
-		"version":     qtermPluginVersion,
+		"name":        core.PluginName,
+		"version":     core.Version,
 		"description": "Connect Codex to the Qterm macOS terminal — live status, rename, and app control.",
 		"author": map[string]any{
 			"name": "Qterm",
@@ -146,10 +178,10 @@ func writeCodexPluginManifest(root string) error {
 			},
 		},
 	}
-	return writeConfigJSON(filepath.Join(root, ".codex-plugin", "plugin.json"), manifest)
+	return core.WriteConfigJSON(filepath.Join(root, ".codex-plugin", "plugin.json"), manifest)
 }
 
-func writeCodexPluginHooks(root string) error {
+func writePluginHooks(root string) error {
 	events := []string{
 		"SessionStart", "SessionEnd", "UserPromptSubmit", "Stop",
 		"Notification", "PermissionRequest", "PreToolUse", "PostToolUse",
@@ -173,21 +205,21 @@ func writeCodexPluginHooks(root string) error {
 			},
 		}
 	}
-	return writeConfigJSON(filepath.Join(root, "hooks", "hooks.json"), map[string]any{
-		"description": "Qterm agent bridge (" + HookMarker + ")",
+	return core.WriteConfigJSON(filepath.Join(root, "hooks", "hooks.json"), map[string]any{
+		"description": "Qterm agent bridge (" + core.HookMarker + ")",
 		"hooks":       hooks,
 	})
 }
 
-func writeCodexPluginMCP(root, mcpCommand, dataDir, token string) error {
-	return writeConfigJSON(filepath.Join(root, ".mcp.json"), map[string]any{
-		"mcpServers": map[string]any{"qterm": qtermMCPServer(mcpCommand, dataDir, token)},
+func writePluginMCP(root, mcpCommand, dataDir, token string) error {
+	return core.WriteConfigJSON(filepath.Join(root, ".mcp.json"), map[string]any{
+		"mcpServers": map[string]any{"qterm": core.QtermMCPServer(mcpCommand, dataDir, token)},
 	})
 }
 
 func qtermMarketplacePluginEntry() map[string]any {
 	return map[string]any{
-		"name": qtermPluginName,
+		"name": core.PluginName,
 		"source": map[string]any{
 			"source": "local",
 			"path":   "./.codex/plugins/qterm",
@@ -209,7 +241,7 @@ func upsertPersonalMarketplaceEntry() (marketName string, err error) {
 	if b, readErr := os.ReadFile(path); readErr == nil && len(b) > 0 {
 		_ = json.Unmarshal(b, &root)
 	}
-	marketName = codexPersonalMarketplaceName
+	marketName = personalMarketplaceName
 	if n, ok := root["name"].(string); ok && n != "" {
 		marketName = n
 	} else {
@@ -227,29 +259,29 @@ func upsertPersonalMarketplaceEntry() (marketName string, err error) {
 			out = append(out, p)
 			continue
 		}
-		if name, _ := pm["name"].(string); name == qtermPluginName {
+		if name, _ := pm["name"].(string); name == core.PluginName {
 			continue // replace
 		}
 		out = append(out, p)
 	}
 	out = append(out, qtermMarketplacePluginEntry())
 	root["plugins"] = out
-	return marketName, writeConfigJSON(path, root)
+	return marketName, core.WriteConfigJSON(path, root)
 }
 
 func readPersonalMarketplaceName() string {
 	b, err := os.ReadFile(personalMarketplaceJSON())
 	if err != nil {
-		return codexPersonalMarketplaceName
+		return personalMarketplaceName
 	}
 	var root map[string]any
 	if json.Unmarshal(b, &root) != nil {
-		return codexPersonalMarketplaceName
+		return personalMarketplaceName
 	}
 	if n, ok := root["name"].(string); ok && n != "" {
 		return n
 	}
-	return codexPersonalMarketplaceName
+	return personalMarketplaceName
 }
 
 func removeQtermFromPersonalMarketplace() error {
@@ -267,24 +299,24 @@ func removeQtermFromPersonalMarketplace() error {
 	for _, p := range plugins {
 		pm, ok := p.(map[string]any)
 		if ok {
-			if name, _ := pm["name"].(string); name == qtermPluginName {
+			if name, _ := pm["name"].(string); name == core.PluginName {
 				continue
 			}
 		}
 		out = append(out, p)
 	}
 	root["plugins"] = out
-	return writeConfigJSON(path, root)
+	return core.WriteConfigJSON(path, root)
 }
 
 func ensurePersonalMarketplaceRegistered(marketName string) error {
-	path := codexConfigToml()
+	path := configToml()
 	b, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	text := string(b)
-	text = ensureCodexHooksFeature(text)
+	text = ensureHooksFeature(text)
 	// Drop legacy nested marketplace key if present.
 	text = regexp.MustCompile(`(?s)\n?\[marketplaces\.qterm\][^\[]*`).ReplaceAllString(text, "\n")
 
@@ -295,7 +327,7 @@ func ensurePersonalMarketplaceRegistered(marketName string) error {
 last_updated = %q
 source_type = "local"
 source = %q
-`, blockKey, time.Now().UTC().Format(time.RFC3339), userHomeDir())
+`, blockKey, time.Now().UTC().Format(time.RFC3339), core.UserHomeDir())
 		if !strings.HasSuffix(text, "\n") && text != "" {
 			text += "\n"
 		}
@@ -304,17 +336,13 @@ source = %q
 	return os.WriteFile(path, []byte(text), 0o644)
 }
 
-func enableCodexPlugin(marketName string) error {
-	return ensureCodexQtermMCPApproval(marketName)
-}
-
-func disableCodexPlugin(marketName string) error {
-	path := codexConfigToml()
+func disablePlugin(marketName string) error {
+	path := configToml()
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil
 	}
-	text := stripCodexPluginTables(string(b), marketName)
+	text := stripPluginTables(string(b), marketName)
 	text = regexp.MustCompile(`(?s)\n?\[marketplaces\.qterm\][^\[]*`).ReplaceAllString(text, "\n")
 	return os.WriteFile(path, []byte(text), 0o644)
 }
@@ -334,7 +362,7 @@ func stripQtermFromUserHooksJSON(path string) error {
 	}
 	for k, v := range hooks {
 		groups, _ := v.([]any)
-		cleaned := stripQtermGroups(groups)
+		cleaned := core.StripQtermGroups(groups)
 		if len(cleaned) == 0 {
 			delete(hooks, k)
 		} else {
@@ -342,8 +370,8 @@ func stripQtermFromUserHooksJSON(path string) error {
 		}
 	}
 	root["hooks"] = hooks
-	if desc, ok := root["description"].(string); ok && strings.Contains(desc, HookMarker) {
+	if desc, ok := root["description"].(string); ok && strings.Contains(desc, core.HookMarker) {
 		delete(root, "description")
 	}
-	return writeConfigJSON(path, root)
+	return core.WriteConfigJSON(path, root)
 }

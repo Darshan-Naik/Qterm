@@ -125,7 +125,7 @@ export function QuickOpen() {
     >
       <DialogContent
         position="top"
-        className="flex max-w-lg flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
+        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
         aria-describedby={undefined}
       >
         <Command className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover" label="Quick open" shouldFilter>
