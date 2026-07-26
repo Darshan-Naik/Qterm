@@ -23,7 +23,9 @@ type Store struct {
 	stopped bool
 }
 
+// buffer is locked independently so one busy session cannot stall others.
 type buffer struct {
+	mu   sync.Mutex
 	data []byte
 	seq  uint64
 }
@@ -47,22 +49,7 @@ func (s *Store) path(id string) string {
 	return filepath.Join(s.dir, id+".bin")
 }
 
-// Append stores chunk and returns the buffer sequence after the write.
-func (s *Store) Append(id string, chunk []byte) uint64 {
-	if id == "" || len(chunk) == 0 {
-		return 0
-	}
-	chunk = stripColorOSC(chunk)
-	if len(chunk) == 0 {
-		s.mu.Lock()
-		b := s.bufs[id]
-		var seq uint64
-		if b != nil {
-			seq = b.seq
-		}
-		s.mu.Unlock()
-		return seq
-	}
+func (s *Store) getOrCreate(id string) *buffer {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	b := s.bufs[id]
@@ -70,24 +57,59 @@ func (s *Store) Append(id string, chunk []byte) uint64 {
 		b = &buffer{}
 		s.bufs[id] = b
 	}
-	b.data = append(b.data, chunk...)
-	if len(b.data) > s.max {
-		b.data = trimFront(b.data, s.max)
-	}
-	b.seq++
+	return b
+}
+
+func (s *Store) markDirty(id string) {
+	s.mu.Lock()
 	s.dirty[id] = true
+	s.mu.Unlock()
 	select {
 	case s.saveCh <- struct{}{}:
 	default:
 	}
-	return b.seq
+}
+
+// Append stores chunk and returns the buffer sequence after the write.
+func (s *Store) Append(id string, chunk []byte) uint64 {
+	if id == "" || len(chunk) == 0 {
+		return 0
+	}
+	chunk = stripColorOSC(chunk)
+	if len(chunk) == 0 {
+		b := s.getOrCreate(id)
+		b.mu.Lock()
+		seq := b.seq
+		b.mu.Unlock()
+		return seq
+	}
+
+	b := s.getOrCreate(id)
+	b.mu.Lock()
+	b.data = append(b.data, chunk...)
+	// Amortized trim: only cut when we grow past 2× max, then drop to max
+	// in-place (keeps capacity so the next growth window is cheap).
+	if len(b.data) > s.max*2 {
+		b.data = trimFrontInPlace(b.data, s.max)
+	}
+	b.seq++
+	seq := b.seq
+	b.mu.Unlock()
+
+	s.markDirty(id)
+	return seq
 }
 
 func (s *Store) Snapshot(id string) (data []byte, seq uint64) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	b := s.bufs[id]
-	if b == nil || len(b.data) == 0 {
+	s.mu.Unlock()
+	if b == nil {
+		return nil, 0
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if len(b.data) == 0 {
 		return nil, 0
 	}
 	clean := syncStart(b.data)
@@ -107,9 +129,10 @@ func (s *Store) Load(id string) {
 		data = trimFront(data, s.max)
 	}
 	data = syncStart(data)
+	b := &buffer{data: append([]byte(nil), data...), seq: 1}
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.bufs[id] = &buffer{data: append([]byte(nil), data...), seq: 1}
+	s.bufs[id] = b
+	s.mu.Unlock()
 }
 
 func (s *Store) Remove(id string) {
@@ -131,7 +154,9 @@ func (s *Store) Flush() {
 	snapshots := make(map[string][]byte, len(ids))
 	for _, id := range ids {
 		if b := s.bufs[id]; b != nil {
+			b.mu.Lock()
 			snapshots[id] = append([]byte(nil), b.data...)
+			b.mu.Unlock()
 		}
 		s.dirty[id] = false
 	}
@@ -183,8 +208,21 @@ func (s *Store) persistLoop() {
 	}
 }
 
-// trimFront drops oldest bytes, preferring a cut after a newline so we don't
-// leave a half-finished CSI/OSC sequence at the start of history.
+// trimFrontInPlace drops oldest bytes into the front of the same backing array
+// so capacity is retained (avoids realloc on every subsequent Append).
+func trimFrontInPlace(data []byte, max int) []byte {
+	if len(data) <= max {
+		return data
+	}
+	cut := len(data) - max
+	if i := bytes.IndexByte(data[cut:], '\n'); i >= 0 && cut+i+1 < len(data) {
+		cut = cut + i + 1
+	}
+	n := copy(data, data[cut:])
+	return data[:n]
+}
+
+// trimFront allocates a trimmed copy (tests / one-shot Load).
 func trimFront(data []byte, max int) []byte {
 	if len(data) <= max {
 		return data
@@ -226,7 +264,7 @@ func escapeEnd(data []byte) int {
 		return -1
 	}
 	switch data[1] {
-	case '[': // CSI: ends with @-~ 
+	case '[': // CSI: ends with @-~
 		for i := 2; i < len(data); i++ {
 			if data[i] >= 0x40 && data[i] <= 0x7e {
 				return i + 1

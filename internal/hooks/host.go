@@ -60,10 +60,10 @@ type Host struct {
 }
 
 type runtime struct {
-	meta InstalledHook
-	cmd  *exec.Cmd
+	meta  InstalledHook
+	cmd   *exec.Cmd
 	stdin io.WriteCloser
-	enc  *json.Encoder
+	enc   *json.Encoder
 }
 
 type envelope struct {
@@ -290,14 +290,25 @@ func (h *Host) ActivateAll() {
 func (h *Host) BroadcastOutput(sessionID string, data []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	var targets []*runtime
 	for _, rt := range h.hooks {
-		if !rt.meta.Granted.ReadOutput {
-			continue
+		if rt.meta.Granted.ReadOutput {
+			targets = append(targets, rt)
 		}
-		_ = h.send(rt, "onOutput", map[string]any{
-			"sessionId": sessionID,
-			"data":      string(data),
-		})
+	}
+	if len(targets) == 0 {
+		return
+	}
+	params, err := json.Marshal(map[string]any{
+		"sessionId": sessionID,
+		"data":      string(data),
+	})
+	if err != nil {
+		return
+	}
+	env := envelope{Method: "onOutput", Params: params}
+	for _, rt := range targets {
+		_ = rt.enc.Encode(env)
 	}
 }
 

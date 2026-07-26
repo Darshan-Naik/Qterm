@@ -20,7 +20,8 @@ export function useTrafficLightsVisible() {
     void sync();
     window.addEventListener("resize", sync);
     window.addEventListener("focus", sync);
-    const id = window.setInterval(sync, 500);
+    // Rare fallback — fullscreen usually fires resize/focus already.
+    const id = window.setInterval(sync, 5000);
     return () => {
       alive = false;
       window.removeEventListener("resize", sync);

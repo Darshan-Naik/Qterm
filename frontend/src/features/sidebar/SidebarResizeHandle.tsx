@@ -4,6 +4,8 @@ import { persistUIPrefs, SIDEBAR_MAX, SIDEBAR_MIN, uiStore } from "@/store/ui";
 
 export function SidebarResizeHandle() {
   const dragging = useRef(false);
+  const pending = useRef(0);
+  const raf = useRef(0);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     dragging.current = true;
@@ -14,13 +16,22 @@ export function SidebarResizeHandle() {
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
-    const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, e.clientX));
-    uiStore.set({ sidebarWidth: next });
+    pending.current = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, e.clientX));
+    if (raf.current) return;
+    raf.current = requestAnimationFrame(() => {
+      raf.current = 0;
+      uiStore.set({ sidebarWidth: pending.current });
+    });
   };
 
   const endDrag = () => {
     if (!dragging.current) return;
     dragging.current = false;
+    if (raf.current) {
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
+      uiStore.set({ sidebarWidth: pending.current });
+    }
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
     void persistUIPrefs();

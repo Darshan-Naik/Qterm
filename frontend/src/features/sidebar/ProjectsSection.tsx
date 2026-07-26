@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
@@ -9,7 +10,11 @@ import { ProjectRow } from "./ProjectRow";
 
 export function ProjectsSection() {
   const projects = useUI((s) => s.projects);
-  const unboundSessions = useUI((s) => s.sessions.filter((s) => isUnbound(s.projectId)));
+  const sessions = useUI((s) => s.sessions);
+  const unboundSessions = useMemo(
+    () => sessions.filter((s) => isUnbound(s.projectId)),
+    [sessions]
+  );
 
   return (
     <div className={cn(unboundSessions.length > 0 ? "mt-5" : "mt-3")}>

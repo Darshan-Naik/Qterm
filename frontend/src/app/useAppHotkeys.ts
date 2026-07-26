@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { handleAppShortcut, isAppShortcut } from "./appShortcuts";
+import { handleAppShortcut } from "./appShortcuts";
 
 /**
  * Global shortcuts in capture phase so they win over xterm.js when a
@@ -8,7 +8,6 @@ import { handleAppShortcut, isAppShortcut } from "./appShortcuts";
 export function useAppHotkeys() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!isAppShortcut(e)) return;
       handleAppShortcut(e);
     };
     window.addEventListener("keydown", onKeyDown, { capture: true });

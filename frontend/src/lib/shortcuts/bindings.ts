@@ -2,13 +2,19 @@ import { DEFAULT_BINDINGS, SHORTCUT_META, metaFor } from "./defaults";
 import { chordId, eventMatchesChord, formatChords } from "./chords";
 import type { KeyChord, KeybindingOverrides, ShortcutId } from "./types";
 
-/** Effective bindings = defaults with user overrides applied. */
+/** Effective bindings = defaults with user overrides applied. Cached per overrides ref. */
+let cachedOverrides: KeybindingOverrides | undefined;
+let cachedBindings: Record<ShortcutId, KeyChord[]> | undefined;
+
 export function resolveBindings(overrides: KeybindingOverrides = {}): Record<ShortcutId, KeyChord[]> {
+  if (overrides === cachedOverrides && cachedBindings) return cachedBindings;
   const out = { ...DEFAULT_BINDINGS };
   for (const id of Object.keys(overrides) as ShortcutId[]) {
     const chords = overrides[id];
     if (chords && chords.length > 0) out[id] = chords;
   }
+  cachedOverrides = overrides;
+  cachedBindings = out;
   return out;
 }
 

@@ -7,8 +7,11 @@ import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsj
 import { isAppShortcut } from "@/app/appShortcuts";
 
 function b64encode(u8: Uint8Array) {
+  const CHUNK = 0x8000;
   let s = "";
-  u8.forEach((b) => (s += String.fromCharCode(b)));
+  for (let i = 0; i < u8.length; i += CHUNK) {
+    s += String.fromCharCode(...u8.subarray(i, i + CHUNK));
+  }
   return btoa(s);
 }
 

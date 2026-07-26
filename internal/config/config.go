@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"qterm/internal/appmode"
 )
@@ -78,9 +79,11 @@ type UIPrefs struct {
 }
 
 type Store struct {
-	mu   sync.RWMutex
-	path string
-	cfg  AppConfig
+	mu      sync.RWMutex
+	path    string
+	cfg     AppConfig
+	saveCh  chan struct{}
+	stopped bool
 }
 
 func DefaultConfig() AppConfig {
@@ -113,10 +116,15 @@ func NewStore() (*Store, error) {
 		return nil, err
 	}
 	path := filepath.Join(base, "config.json")
-	s := &Store{path: path, cfg: DefaultConfig()}
+	s := &Store{
+		path:   path,
+		cfg:    DefaultConfig(),
+		saveCh: make(chan struct{}, 1),
+	}
 	_ = s.Load()
 	// Persist migrations (legacy quick/home → _default) if any.
-	_ = s.Save()
+	_ = s.SaveNow()
+	go s.persistLoop()
 	return s, nil
 }
 
@@ -205,14 +213,54 @@ func (s *Store) Load() error {
 	return nil
 }
 
-func (s *Store) Save() error {
+func (s *Store) SaveNow() error {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
 	data, err := json.MarshalIndent(s.cfg, "", "  ")
+	path := s.path
+	s.mu.RUnlock()
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.path, data, 0o644)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// Save schedules a debounced flush (non-blocking). Prefer this on hot paths.
+func (s *Store) Save() error {
+	s.scheduleSave()
+	return nil
+}
+
+func (s *Store) scheduleSave() {
+	select {
+	case s.saveCh <- struct{}{}:
+	default:
+	}
+}
+
+func (s *Store) persistLoop() {
+	for range s.saveCh {
+		s.mu.RLock()
+		stopped := s.stopped
+		s.mu.RUnlock()
+		if stopped {
+			return
+		}
+		// Coalesce rapid Updates (sidebar drag end + theme + layout…).
+		time.Sleep(250 * time.Millisecond)
+	drain:
+		for {
+			select {
+			case <-s.saveCh:
+			default:
+				break drain
+			}
+		}
+		_ = s.SaveNow()
+	}
 }
 
 func (s *Store) Get() AppConfig {
@@ -225,5 +273,14 @@ func (s *Store) Update(fn func(cfg *AppConfig)) error {
 	s.mu.Lock()
 	fn(&s.cfg)
 	s.mu.Unlock()
-	return s.Save()
+	s.scheduleSave()
+	return nil
+}
+
+// Close flushes pending writes. Call on app shutdown.
+func (s *Store) Close() {
+	s.mu.Lock()
+	s.stopped = true
+	s.mu.Unlock()
+	_ = s.SaveNow()
 }
