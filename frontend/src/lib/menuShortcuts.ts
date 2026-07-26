@@ -22,6 +22,14 @@ export const TerminalShortcuts = {
     hotkey: "meta+shift+j, ctrl+shift+j",
     label: shortcutLabel("mod", "shift", "J"),
   },
+  next: {
+    hotkey: "meta+shift+], ctrl+tab",
+    label: shortcutLabel("mod", "shift", "]"),
+  },
+  prev: {
+    hotkey: "meta+shift+[, ctrl+shift+tab",
+    label: shortcutLabel("mod", "shift", "["),
+  },
 } as const;
 
 export const ProjectShortcuts = {

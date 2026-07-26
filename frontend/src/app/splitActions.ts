@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { createDefaultTerminal, DEFAULT_SCOPE } from "@/lib/sessions";
+import { createDefaultTerminal, DEFAULT_SCOPE, focusSession } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane } from "@/lib/panes";
 import { leaf, listLeaves, splitPane, uiStore } from "@/store/ui";
@@ -11,6 +11,22 @@ export function cycleFocus(dir: number) {
   const idx = Math.max(0, leaves.findIndex((l) => l.id === uiStore.get().focusedPaneId));
   const next = leaves[(idx + dir + leaves.length) % leaves.length];
   uiStore.set({ focusedPaneId: next.id, focusedSessionId: next.sessionId });
+}
+
+/** Next/previous terminal across all projects (sidebar order). */
+export async function cycleTerminal(dir: number) {
+  const state = uiStore.get();
+  const sessions = state.sessions;
+  if (!sessions.length) return;
+  if (sessions.length === 1) {
+    await focusSession(sessions[0].id);
+    return;
+  }
+
+  let idx = sessions.findIndex((s) => s.id === state.focusedSessionId);
+  if (idx < 0) idx = 0;
+  const next = sessions[(idx + dir + sessions.length) % sessions.length];
+  await focusSession(next.id);
 }
 
 export async function splitFocused(direction: "horizontal" | "vertical") {
