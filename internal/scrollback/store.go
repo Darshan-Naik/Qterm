@@ -118,6 +118,116 @@ func (s *Store) Snapshot(id string) (data []byte, seq uint64) {
 	return out, b.seq
 }
 
+// Hit is one session whose scrollback contains the query.
+type Hit struct {
+	SessionID string
+	Snippet   string
+}
+
+// Search returns sessions whose plain-text scrollback contains query
+// (case-insensitive). ids limits the scan; empty means all loaded buffers.
+func (s *Store) Search(query string, ids []string) []Hit {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if len(q) < 2 {
+		return nil
+	}
+	needle := []byte(q)
+
+	s.mu.Lock()
+	if len(ids) == 0 {
+		ids = make([]string, 0, len(s.bufs))
+		for id := range s.bufs {
+			ids = append(ids, id)
+		}
+	}
+	bufs := make([]*buffer, len(ids))
+	for i, id := range ids {
+		bufs[i] = s.bufs[id]
+	}
+	s.mu.Unlock()
+
+	out := make([]Hit, 0, 8)
+	for i, b := range bufs {
+		if b == nil {
+			continue
+		}
+		b.mu.Lock()
+		plain := stripANSI(syncStart(b.data))
+		b.mu.Unlock()
+		if len(plain) == 0 {
+			continue
+		}
+		lower := bytes.ToLower(plain)
+		idx := bytes.Index(lower, needle)
+		if idx < 0 {
+			continue
+		}
+		out = append(out, Hit{
+			SessionID: ids[i],
+			Snippet:   snippetAround(plain, idx, len(needle)),
+		})
+	}
+	return out
+}
+
+// stripANSI removes ESC sequences and most C0 controls so scrollback is searchable as text.
+func stripANSI(in []byte) []byte {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]byte, 0, len(in))
+	i := 0
+	for i < len(in) {
+		c := in[i]
+		if c == 0x1b {
+			if end := escapeEnd(in[i:]); end > 0 {
+				i += end
+				continue
+			}
+			i++
+			continue
+		}
+		if c < 0x20 {
+			if c == '\n' || c == '\t' || c == '\r' {
+				out = append(out, ' ')
+			}
+			i++
+			continue
+		}
+		if c == 0x7f {
+			i++
+			continue
+		}
+		out = append(out, c)
+		i++
+	}
+	return out
+}
+
+func snippetAround(plain []byte, idx, matchLen int) string {
+	const pad = 36
+	start := idx - pad
+	if start < 0 {
+		start = 0
+	}
+	end := idx + matchLen + pad
+	if end > len(plain) {
+		end = len(plain)
+	}
+	snip := string(plain[start:end])
+	snip = strings.Join(strings.Fields(snip), " ")
+	if start > 0 {
+		snip = "…" + snip
+	}
+	if end < len(plain) {
+		snip = snip + "…"
+	}
+	if len(snip) > 120 {
+		snip = snip[:117] + "…"
+	}
+	return snip
+}
+
 // Load reads a session's scrollback from disk into memory (before PTY restore).
 func (s *Store) Load(id string) {
 	data, err := os.ReadFile(s.path(id))

@@ -2,6 +2,7 @@
 export type ShortcutId =
   | "commandPalette"
   | "quickOpen"
+  | "findInTerminal"
   | "openSettings"
   | "newTerminal"
   | "toggleSidebar"

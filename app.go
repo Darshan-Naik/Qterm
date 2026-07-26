@@ -354,6 +354,26 @@ func (a *App) GetScrollback(sessionID string) map[string]any {
 	}
 }
 
+// SearchScrollback finds sessions whose output/prompt text contains query.
+// Returns [{sessionId, snippet}, …] for the quick-open palette.
+func (a *App) SearchScrollback(query string, sessionIDs []string) []map[string]any {
+	if a.scrollback == nil {
+		return nil
+	}
+	hits := a.scrollback.Search(query, sessionIDs)
+	if len(hits) == 0 {
+		return nil
+	}
+	out := make([]map[string]any, len(hits))
+	for i, h := range hits {
+		out[i] = map[string]any{
+			"sessionId": h.SessionID,
+			"snippet":   h.Snippet,
+		}
+	}
+	return out
+}
+
 // --- Projects ---
 
 func (a *App) ListProjects() []config.ProjectMeta {

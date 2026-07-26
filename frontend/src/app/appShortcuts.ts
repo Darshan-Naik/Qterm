@@ -24,10 +24,15 @@ import { closeFocused, cycleFocus, cycleTerminal, splitFocused } from "@/app/spl
 
 const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   commandPalette: () => {
-    uiStore.set({ paletteOpen: true, quickOpen: false });
+    uiStore.set({ paletteOpen: true, quickOpen: false, terminalFindOpen: false });
   },
   quickOpen: () => {
-    uiStore.set({ quickOpen: true, paletteOpen: false });
+    uiStore.set({ quickOpen: true, paletteOpen: false, terminalFindOpen: false });
+  },
+  findInTerminal: () => {
+    const { focusedSessionId, appMode } = uiStore.get();
+    if (appMode !== "workspace" || !focusedSessionId) return;
+    uiStore.set({ terminalFindOpen: true, paletteOpen: false, quickOpen: false });
   },
   openSettings: () => openSettings(),
   toggleTheme: () => {
@@ -71,6 +76,19 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
   const settings = uiStore.get().appMode === "settings";
 
   if (e.key === "Escape") {
+    if (uiStore.get().terminalFindOpen) {
+      e.preventDefault();
+      e.stopPropagation();
+      uiStore.set({ terminalFindOpen: false });
+      const id = uiStore.get().focusedSessionId;
+      if (id) {
+        void import("@/features/terminal/sessionTerminals").then((m) => {
+          m.clearSessionFind(id);
+          m.focusTerminal(id);
+        });
+      }
+      return true;
+    }
     if (!settings) return false;
     e.preventDefault();
     e.stopPropagation();
@@ -93,6 +111,8 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
 export function isAppShortcut(e: KeyboardEvent): boolean {
   if (e.isComposing) return false;
   if (isKeybindingCapturing()) return true;
-  if (e.key === "Escape" && uiStore.get().appMode === "settings") return true;
+  if (e.key === "Escape" && (uiStore.get().appMode === "settings" || uiStore.get().terminalFindOpen)) {
+    return true;
+  }
   return matchShortcut(e, uiStore.get().keybindings) !== null;
 }

@@ -106,6 +106,10 @@ export function SaveUIPrefs(arg1) {
   return window['go']['main']['App']['SaveUIPrefs'](arg1);
 }
 
+export function SearchScrollback(arg1, arg2) {
+  return window['go']['main']['App']['SearchScrollback'](arg1, arg2);
+}
+
 export function SetFocusedSession(arg1) {
   return window['go']['main']['App']['SetFocusedSession'](arg1);
 }

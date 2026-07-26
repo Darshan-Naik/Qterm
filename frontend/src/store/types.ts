@@ -55,6 +55,8 @@ export type UIState = {
   paletteOpen: boolean;
   /** ⌘P project/terminal quick switcher */
   quickOpen: boolean;
+  /** ⌘F find-in-terminal bar on the focused session */
+  terminalFindOpen: boolean;
   appMode: AppMode;
   settingsPage: SettingsPage;
   splitTree: SplitNode | null;
