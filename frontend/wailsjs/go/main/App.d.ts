@@ -5,6 +5,8 @@ import {main} from '../models';
 import {git} from '../models';
 import {core} from '../models';
 
+export function ActiveAgentBinds():Promise<Record<string, string>>;
+
 export function AddProject(arg1:string,arg2:string):Promise<config.ProjectMeta>;
 
 export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
@@ -45,7 +47,7 @@ export function ResizeSession(arg1:string,arg2:number,arg3:number):Promise<void>
 
 export function ResolveHookIntent(arg1:string,arg2:boolean):Promise<Record<string, any>>;
 
-export function ResumeAgentSession(arg1:string,arg2:string):Promise<main.SessionDTO>;
+export function ResumeAgentSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
 
 export function SaveActiveScope(arg1:string):Promise<void>;
 

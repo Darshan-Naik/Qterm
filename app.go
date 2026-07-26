@@ -389,11 +389,24 @@ func (a *App) ListAgentSessions(query, cliID string) []agentcli.AgentSession {
 }
 
 // ResumeAgentSession asks the CLI adapter for the resume command, opens a
-// terminal in that cwd, and types the command to continue the session.
-func (a *App) ResumeAgentSession(cli, sessionID string) (SessionDTO, error) {
+// terminal, and types the command to continue the session.
+// projectID selects the Qterm project scope; empty means home/unbound (cwd still used).
+// If this agent session is already bound to a live terminal, that terminal is returned
+// instead of opening a duplicate.
+func (a *App) ResumeAgentSession(cli, sessionID, projectID string) (SessionDTO, error) {
 	if cli == "" || sessionID == "" {
 		return SessionDTO{}, fmt.Errorf("missing agent session")
 	}
+
+	if qid := a.lookupAgentBind(sessionID); qid != "" {
+		if s, ok := a.pty.Get(qid); ok {
+			return SessionDTO{
+				ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned,
+			}, nil
+		}
+		a.clearAgentBind(sessionID)
+	}
+
 	spec, err := agentcli.Resume(cli, sessionID)
 	if err != nil {
 		return SessionDTO{}, err
@@ -402,15 +415,12 @@ func (a *App) ResumeAgentSession(cli, sessionID string) (SessionDTO, error) {
 		return SessionDTO{}, fmt.Errorf("adapter returned empty resume command")
 	}
 
-	projectID := ""
-	if spec.Cwd != "" {
-		for _, proj := range a.projects.List() {
-			if proj.Path == spec.Cwd {
-				projectID = proj.ID
-				break
-			}
+	if projectID != "" {
+		if _, ok := a.projects.Get(projectID); !ok {
+			projectID = ""
 		}
 	}
+
 	name := strings.TrimSpace(spec.Title)
 	if name == "" {
 		if p, ok := agentcli.Find(cli); ok {
@@ -423,10 +433,12 @@ func (a *App) ResumeAgentSession(cli, sessionID string) (SessionDTO, error) {
 		name = name[:45] + "…"
 	}
 
-	dto, err := a.CreateSession(projectID, name, spec.Cwd)
+	cwd := strings.TrimSpace(spec.Cwd)
+	dto, err := a.CreateSession(projectID, name, cwd)
 	if err != nil {
 		return SessionDTO{}, err
 	}
+	a.bindAgentSession(sessionID, dto.ID)
 
 	cmd := spec.Command
 	if !strings.HasSuffix(cmd, "\n") {
@@ -438,6 +450,26 @@ func (a *App) ResumeAgentSession(cli, sessionID string) (SessionDTO, error) {
 	}(dto.ID, cmd)
 
 	return dto, nil
+}
+
+// ActiveAgentBinds returns live agent conversation id → Qterm terminal id.
+func (a *App) ActiveAgentBinds() map[string]string {
+	a.agentMu.Lock()
+	snap := make(map[string]string, len(a.agentBind))
+	for k, v := range a.agentBind {
+		if k != "" && v != "" {
+			snap[k] = v
+		}
+	}
+	a.agentMu.Unlock()
+
+	out := make(map[string]string, len(snap))
+	for k, v := range snap {
+		if _, ok := a.pty.Get(v); ok {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 // --- Projects ---
