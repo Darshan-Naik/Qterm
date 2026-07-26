@@ -143,13 +143,16 @@ func RefreshInstalledRelays(dataDir string) {
 	}
 }
 
-// ListSessions aggregates on-disk history from every registered CLI adapter.
-// Does not require the binary to be on PATH (GUI apps often lack shell PATH).
+// ListSessions aggregates on-disk history from connected (installed) CLI adapters only.
+// Disconnect a CLI in settings to hide its sessions from search.
 func ListSessions(dataDir string, q core.SessionQuery) []core.Session {
 	limit := core.NormalizeLimit(q.Limit)
 	out := make([]core.Session, 0, limit)
 	for _, a := range All() {
 		if q.CLI != "" && a.ID() != q.CLI {
+			continue
+		}
+		if !a.Installed() {
 			continue
 		}
 		sessions, err := a.ListSessions(core.SessionQuery{Query: q.Query, Limit: limit})
