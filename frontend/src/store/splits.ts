@@ -41,23 +41,25 @@ export function splitPane(
   node: SplitNode,
   paneId: string,
   direction: "horizontal" | "vertical",
-  newSessionId: string
+  newSessionId: string,
+  place: "before" | "after" = "after"
 ): SplitNode {
   if (node.type === "leaf") {
     if (node.id !== paneId) return node;
+    const neu = leaf(newSessionId);
     return {
       type: "split",
       id: crypto.randomUUID(),
       direction,
       size: 0.5,
-      children: [node, leaf(newSessionId)],
+      children: place === "before" ? [neu, node] : [node, neu],
     };
   }
   return {
     ...node,
     children: [
-      splitPane(node.children[0], paneId, direction, newSessionId),
-      splitPane(node.children[1], paneId, direction, newSessionId),
+      splitPane(node.children[0], paneId, direction, newSessionId, place),
+      splitPane(node.children[1], paneId, direction, newSessionId, place),
     ],
   };
 }

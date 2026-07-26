@@ -4,6 +4,7 @@ import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
 import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsjs/go/main/App";
+import { isAppShortcut } from "@/app/appShortcuts";
 
 function b64encode(u8: Uint8Array) {
   let s = "";
@@ -140,6 +141,12 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
+  // Let app chords (⌘K, ⌘P, …) skip xterm so the capture-phase window
+  // handler can open palettes instead of feeding the PTY.
+  term.attachCustomKeyEventHandler((ev) => {
+    if (ev.type !== "keydown") return true;
+    return !isAppShortcut(ev);
+  });
   const dataDisposable = term.onData((data) => {
     // Shell (normal buffer) only: drop auto protocol replies / mouse reports that
     // TUIs leave pending so they don't type into the prompt. Keep them on the

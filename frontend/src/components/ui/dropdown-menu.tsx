@@ -19,7 +19,12 @@ export function DropdownMenuContent({ className, sideOffset = 6, ...props }: Rea
   )
 }
 
-export function DropdownMenuItem({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Item>) {
+export function DropdownMenuItem({
+  className,
+  shortcut,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & { shortcut?: string }) {
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
@@ -27,7 +32,14 @@ export function DropdownMenuItem({ className, ...props }: React.ComponentProps<t
         className
       )}
       {...props}
-    />
+    >
+      <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>
+      {shortcut ? (
+        <span className="ml-3 shrink-0 text-[11px] tabular-nums tracking-wide text-muted-foreground">
+          {shortcut}
+        </span>
+      ) : null}
+    </DropdownMenuPrimitive.Item>
   )
 }
 

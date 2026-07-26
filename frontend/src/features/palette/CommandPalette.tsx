@@ -31,6 +31,13 @@ export function CommandPalette() {
   const actions = useMemo(
     () => [
       {
+        id: "quick-open",
+        label: "Quick open terminals",
+        run: async () => {
+          uiStore.set({ quickOpen: true, paletteOpen: false });
+        },
+      },
+      {
         id: "new-term",
         label: "New terminal",
         run: async () => {
@@ -122,14 +129,14 @@ export function CommandPalette() {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(v) => uiStore.set({ paletteOpen: v })}>
-      <DialogContent className="max-w-lg overflow-hidden rounded-lg p-0 shadow-xl">
+    <Dialog open={open} onOpenChange={(v) => uiStore.set({ paletteOpen: v, quickOpen: v ? false : uiStore.get().quickOpen })}>
+      <DialogContent className="max-w-lg overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden" aria-describedby={undefined}>
         <Command className="bg-popover" label="Command palette">
           <Command.Input
             value={q}
             onValueChange={setQ}
             placeholder="Type a command…"
-            className="h-10 w-full bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
+            className="h-11 w-full bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
           />
           <div className="mx-3 h-px bg-secondary" />
           <Command.List className="max-h-72 overflow-auto p-2">

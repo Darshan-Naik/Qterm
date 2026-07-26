@@ -143,8 +143,8 @@ textarea {
 /* Actionable cursor defaults — keep UI controls feeling clickable */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),
-[role="menuitem"]:not([data-disabled]),
-[role="option"],
+[role="menuitem"]:not([data-disabled="true"]),
+[role="option"]:not([data-disabled="true"]):not([aria-disabled="true"]),
 [role="tab"],
 [role="switch"],
 [role="checkbox"],
@@ -167,7 +167,7 @@ input[type="range"]:not(:disabled) {
 
 button:disabled,
 [aria-disabled="true"],
-[data-disabled],
+[data-disabled="true"],
 input:disabled,
 select:disabled,
 textarea:disabled {
