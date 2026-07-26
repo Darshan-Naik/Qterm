@@ -6,6 +6,7 @@ import { uiStore, useUI, type SessionInfo } from "@/store/ui";
 import { focusSession, isUnbound } from "@/lib/sessions";
 import { AgentIcon } from "@/features/sidebar/AgentIcon";
 import { cn } from "@/lib/utils";
+import { SearchScrollback } from "../../../wailsjs/go/main/App";
 
 type TerminalItem = {
   id: string;
@@ -14,6 +15,7 @@ type TerminalItem = {
   projectLabel: string;
   keywords: string;
   agent: string;
+  snippet?: string;
 };
 
 type ProjectGroup = {
@@ -29,10 +31,46 @@ export function QuickOpen() {
   const sessionAgents = useUI((s) => s.sessionAgents);
   const focusedSessionId = useUI((s) => s.focusedSessionId);
   const [q, setQ] = useState("");
+  const [contentHits, setContentHits] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!open) setQ("");
+    if (!open) {
+      setQ("");
+      setContentHits({});
+    }
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const query = q.trim();
+    if (query.length < 2) {
+      setContentHits({});
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const hits = (await SearchScrollback(
+            query,
+            sessions.map((s) => s.id)
+          )) as Array<{ sessionId?: string; snippet?: string }> | null;
+          if (cancelled) return;
+          const next: Record<string, string> = {};
+          for (const h of hits || []) {
+            if (h?.sessionId && h.snippet) next[h.sessionId] = h.snippet;
+          }
+          setContentHits(next);
+        } catch {
+          if (!cancelled) setContentHits({});
+        }
+      })();
+    }, 120);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [q, open, sessions]);
 
   const groups = useMemo(() => {
     const byProject = new Map<string, ProjectGroup>();
@@ -58,18 +96,20 @@ export function QuickOpen() {
       const projectId = unbound ? "" : s.projectId;
       const projectLabel = project?.name || "Home";
       const group = ensure(projectId, projectLabel);
+      const snippet = contentHits[s.id];
       group.terminals.push({
         id: s.id,
         label: s.name,
         projectId,
         projectLabel,
         agent: sessionAgents[s.id] || "",
-        keywords: `${s.name} ${projectLabel} ${s.cwd} terminal`,
+        snippet,
+        keywords: `${s.name} ${projectLabel} ${s.cwd} terminal ${snippet || ""}`,
       });
     }
 
     return [...byProject.values()].filter((g) => g.terminals.length > 0);
-  }, [projects, sessions, sessionAgents]);
+  }, [projects, sessions, sessionAgents, contentHits]);
 
   const close = () => uiStore.set({ quickOpen: false });
 
@@ -92,7 +132,7 @@ export function QuickOpen() {
           <Command.Input
             value={q}
             onValueChange={setQ}
-            placeholder="Search terminals…"
+            placeholder="Search terminals or output…"
             className="h-11 w-full shrink-0 bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
           />
           <div className="mx-3 h-px shrink-0 bg-secondary" />
@@ -133,7 +173,14 @@ export function QuickOpen() {
                     ) : (
                       <TerminalSquare className="size-4 shrink-0 opacity-50" />
                     )}
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{item.label}</span>
+                      {item.snippet ? (
+                        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                          {item.snippet}
+                        </span>
+                      ) : null}
+                    </span>
                   </Command.Item>
                 ))}
               </Command.Group>

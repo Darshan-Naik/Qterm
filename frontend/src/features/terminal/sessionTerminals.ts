@@ -2,6 +2,7 @@
 
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon, type ISearchOptions } from "@xterm/addon-search";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
 import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsjs/go/main/App";
 import { isAppShortcut } from "@/app/appShortcuts";
@@ -125,6 +126,7 @@ type Pending = { data: string; seq: number };
 type Entry = {
   term: Terminal;
   fit: FitAddon;
+  search: SearchAddon;
   appliedSeq: number;
   seeding: boolean;
   pending: Pending[];
@@ -133,6 +135,15 @@ type Entry = {
 
 const entries = new Map<string, Entry>();
 let listening = false;
+
+const FIND_DECORATIONS: NonNullable<ISearchOptions["decorations"]> = {
+  matchBackground: "#5c4b1f",
+  matchBorder: "#b58900",
+  matchOverviewRuler: "#b58900",
+  activeMatchBackground: "#cb4b16",
+  activeMatchBorder: "#ff6b2d",
+  activeMatchColorOverviewRuler: "#cb4b16",
+};
 
 function applyChunk(entry: Entry, data: string, seq: number) {
   if (seq && seq <= entry.appliedSeq) return;
@@ -177,6 +188,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
+  const search = new SearchAddon();
+  term.loadAddon(search);
   // Let app chords (⌘K, ⌘P, …) skip xterm so the capture-phase window
   // handler can open palettes instead of feeding the PTY.
   term.attachCustomKeyEventHandler((ev) => {
@@ -204,6 +217,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   entry = {
     term,
     fit,
+    search,
     appliedSeq: 0,
     seeding: true,
     pending: [],
@@ -272,6 +286,7 @@ export function disposeSession(sessionId: string) {
   const entry = entries.get(sessionId);
   if (!entry) return;
   entry.dataDisposable.dispose();
+  entry.search.dispose();
   entry.term.dispose();
   entries.delete(sessionId);
 }
@@ -286,4 +301,38 @@ export function refreshAllTerminalThemes() {
     entry.term.options.theme = theme;
     entry.term.options.overviewRuler = { width: 4 };
   }
+}
+
+/** Find next/previous match in a session's live xterm buffer. */
+export function findInSession(
+  sessionId: string,
+  term: string,
+  direction: "next" | "prev",
+  incremental = false
+): boolean {
+  const entry = entries.get(sessionId);
+  if (!entry || !term) {
+    entry?.search.clearDecorations();
+    return false;
+  }
+  const opts: ISearchOptions = {
+    caseSensitive: false,
+    incremental,
+    decorations: FIND_DECORATIONS,
+  };
+  return direction === "next" ? entry.search.findNext(term, opts) : entry.search.findPrevious(term, opts);
+}
+
+export function clearSessionFind(sessionId: string) {
+  entries.get(sessionId)?.search.clearDecorations();
+}
+
+export function onSessionFindResults(
+  sessionId: string,
+  cb: (ev: { resultIndex: number; resultCount: number }) => void
+): (() => void) | undefined {
+  const entry = entries.get(sessionId);
+  if (!entry) return undefined;
+  const sub = entry.search.onDidChangeResults(cb);
+  return () => sub.dispose();
 }

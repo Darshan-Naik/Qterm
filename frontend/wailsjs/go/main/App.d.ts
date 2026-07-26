@@ -57,6 +57,8 @@ export function SaveTheme(arg1:string):Promise<void>;
 
 export function SaveUIPrefs(arg1:config.UIPrefs):Promise<void>;
 
+export function SearchScrollback(arg1:string,arg2:Array<string>):Promise<Array<Record<string, any>>>;
+
 export function SetFocusedSession(arg1:string):Promise<void>;
 
 export function SetSessionName(arg1:string,arg2:string):Promise<boolean>;

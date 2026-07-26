@@ -10,8 +10,15 @@ export const SHORTCUT_META: ShortcutMeta[] = [
   {
     id: "quickOpen",
     label: "Quick open",
-    description: "Jump to a terminal",
+    description: "Jump to a terminal (name, path, or output text)",
     group: "General",
+    whenSettings: "block",
+  },
+  {
+    id: "findInTerminal",
+    label: "Find in terminal",
+    description: "Search within the focused terminal",
+    group: "Terminal",
     whenSettings: "block",
   },
   {
@@ -148,6 +155,7 @@ const modShift = (key: string, extra?: Partial<KeyChord>): KeyChord =>
 export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   commandPalette: [mod("k")],
   quickOpen: [mod("p")],
+  findInTerminal: [mod("f")],
   openSettings: [mod(",", { codes: ["Comma"] })],
   toggleTheme: [modShift("d")],
   zoomIn: [mod("=", { codes: ["Equal", "NumpadAdd"] })],

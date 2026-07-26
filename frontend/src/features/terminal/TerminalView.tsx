@@ -8,6 +8,7 @@ import {
   focusTerminal,
   refreshAllTerminalThemes,
 } from "./sessionTerminals";
+import { TerminalFindBar } from "./TerminalFindBar";
 
 export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -16,6 +17,7 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   const uiZoom = useUI((s) => s.uiZoom);
   const focusedPaneId = useUI((s) => s.focusedPaneId);
   const anim = useUI((s) => s.paneAnimations[sessionId] || "none");
+  const findOpen = useUI((s) => s.terminalFindOpen && s.focusedSessionId === sessionId);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -54,8 +56,8 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   }, [theme, fontSize, uiZoom, sessionId]);
 
   useEffect(() => {
-    if (focusedPaneId === paneId) focusTerminal(sessionId);
-  }, [focusedPaneId, paneId, sessionId]);
+    if (focusedPaneId === paneId && !findOpen) focusTerminal(sessionId);
+  }, [focusedPaneId, paneId, sessionId, findOpen]);
 
   // Pane chrome only for finite attention cues. "thinking" is sidebar-only —
   // opacity-pulsing the whole terminal on first prompt is distracting.
@@ -73,6 +75,7 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
         void SetFocusedSession(sessionId);
       }}
     >
+      {findOpen ? <TerminalFindBar sessionId={sessionId} /> : null}
       <div ref={hostRef} className="absolute bottom-2.5 left-2.5 right-1 top-0 bg-background" />
     </div>
   );

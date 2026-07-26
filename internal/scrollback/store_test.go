@@ -2,6 +2,7 @@ package scrollback
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -49,5 +50,23 @@ func TestSyncStartIncomplete(t *testing.T) {
 	partial := []byte("\x1b[38;2;250;250")
 	if got := syncStart(partial); len(got) != 0 {
 		t.Fatalf("expected drop incomplete, got %q", got)
+	}
+}
+
+func TestSearchPlain(t *testing.T) {
+	dir := t.TempDir()
+	s, err := NewStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	s.Append("a", []byte("hello \x1b[31mworld\x1b[0m from shell\n"))
+	s.Append("b", []byte("no match here\n"))
+	hits := s.Search("WORLD", []string{"a", "b"})
+	if len(hits) != 1 || hits[0].SessionID != "a" {
+		t.Fatalf("%+v", hits)
+	}
+	if !bytes.Contains([]byte(strings.ToLower(hits[0].Snippet)), []byte("world")) {
+		t.Fatalf("snippet %q", hits[0].Snippet)
 	}
 }
