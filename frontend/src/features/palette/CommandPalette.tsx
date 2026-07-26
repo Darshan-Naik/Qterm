@@ -99,7 +99,6 @@ export function CommandPalette() {
           uiStore.set({ theme: "dark" });
           applyTheme("dark");
           await SaveTheme("dark");
-          await persistUIPrefs();
         },
       },
       {
@@ -109,7 +108,6 @@ export function CommandPalette() {
           uiStore.set({ theme: "light" });
           applyTheme("light");
           await SaveTheme("light");
-          await persistUIPrefs();
         },
       },
       {
@@ -119,7 +117,6 @@ export function CommandPalette() {
           uiStore.set({ theme: "system" });
           applyTheme("system");
           await SaveTheme("system");
-          await persistUIPrefs();
         },
       },
       {

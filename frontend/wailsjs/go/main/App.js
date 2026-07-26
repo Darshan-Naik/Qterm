@@ -102,6 +102,10 @@ export function SaveTheme(arg1) {
   return window['go']['main']['App']['SaveTheme'](arg1);
 }
 
+export function SaveUIPrefs(arg1) {
+  return window['go']['main']['App']['SaveUIPrefs'](arg1);
+}
+
 export function SetFocusedSession(arg1) {
   return window['go']['main']['App']['SetFocusedSession'](arg1);
 }

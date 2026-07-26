@@ -311,6 +311,36 @@ func (a *App) SaveActiveScope(scope string) error {
 	})
 }
 
+func (a *App) SaveUIPrefs(prefs config.UIPrefs) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		open := prefs.SidebarOpen
+		cfg.SidebarOpen = &open
+		width := prefs.SidebarWidth
+		if width < 180 {
+			width = 180
+		}
+		if width > 480 {
+			width = 480
+		}
+		cfg.SidebarWidth = width
+		zoom := prefs.UiZoom
+		if zoom < 80 {
+			zoom = 80
+		}
+		if zoom > 150 {
+			zoom = 150
+		}
+		// Snap to 10% steps (matches frontend).
+		zoom = ((zoom + 5) / 10) * 10
+		cfg.UiZoom = zoom
+		if prefs.CollapsedProjects == nil {
+			cfg.CollapsedProjects = map[string]bool{}
+		} else {
+			cfg.CollapsedProjects = prefs.CollapsedProjects
+		}
+	})
+}
+
 // GetScrollback returns base64 terminal output history and a sequence number
 // so the UI can ignore duplicate live events already covered by the snapshot.
 func (a *App) GetScrollback(sessionID string) map[string]any {

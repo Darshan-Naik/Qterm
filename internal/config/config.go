@@ -57,11 +57,24 @@ type AppConfig struct {
 	Theme       string        `json:"theme"` // system | dark | light
 	Shell       string        `json:"shell"`
 	FontSize    int           `json:"fontSize"`
+	// UI chrome (sidebar / zoom) — app-level, not browser storage.
+	SidebarOpen       *bool           `json:"sidebarOpen,omitempty"`
+	SidebarWidth      int             `json:"sidebarWidth,omitempty"`
+	UiZoom            int             `json:"uiZoom,omitempty"`
+	CollapsedProjects map[string]bool `json:"collapsedProjects,omitempty"`
 	// AgentCLIs maps connected CLI plugin id → qterm plugin version at connect/update time.
 	// Compared to the app's current plugin version to detect stale installs.
 	AgentCLIs map[string]string `json:"agentCLIs,omitempty"`
 	// Keybindings stores only user overrides of keyboard shortcuts.
 	Keybindings KeybindingOverrides `json:"keybindings,omitempty"`
+}
+
+// UIPrefs is the subset of config written by the frontend chrome (sidebar/zoom/collapse).
+type UIPrefs struct {
+	SidebarOpen       bool            `json:"sidebarOpen"`
+	SidebarWidth      int             `json:"sidebarWidth"`
+	UiZoom            int             `json:"uiZoom"`
+	CollapsedProjects map[string]bool `json:"collapsedProjects"`
 }
 
 type Store struct {
@@ -71,15 +84,20 @@ type Store struct {
 }
 
 func DefaultConfig() AppConfig {
+	open := true
 	return AppConfig{
-		Projects:    []ProjectMeta{},
-		Sessions:    []SessionMeta{},
-		Layouts:     LayoutStore{},
-		ActiveScope: "_default",
-		Theme:       "system",
-		Shell:       "",
-		FontSize:    13,
-		AgentCLIs:   map[string]string{},
+		Projects:          []ProjectMeta{},
+		Sessions:          []SessionMeta{},
+		Layouts:           LayoutStore{},
+		ActiveScope:       "_default",
+		Theme:             "system",
+		Shell:             "",
+		FontSize:          13,
+		SidebarOpen:       &open,
+		SidebarWidth:      240,
+		UiZoom:            100,
+		CollapsedProjects: map[string]bool{},
+		AgentCLIs:         map[string]string{},
 	}
 }
 
@@ -141,6 +159,19 @@ func (s *Store) Load() error {
 	}
 	if cfg.ActiveScope == "" {
 		cfg.ActiveScope = "_default"
+	}
+	if cfg.SidebarWidth <= 0 {
+		cfg.SidebarWidth = 240
+	}
+	if cfg.UiZoom <= 0 {
+		cfg.UiZoom = 100
+	}
+	if cfg.SidebarOpen == nil {
+		open := true
+		cfg.SidebarOpen = &open
+	}
+	if cfg.CollapsedProjects == nil {
+		cfg.CollapsedProjects = map[string]bool{}
 	}
 	// Migrate legacy "quick"/"home" unbound ids to empty projectId.
 	for i := range cfg.Sessions {

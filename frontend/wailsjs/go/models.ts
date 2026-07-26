@@ -127,6 +127,60 @@ export namespace config {
 	        this.path = source["path"];
 	    }
 	}
+	export class AppConfig {
+	    projects: ProjectMeta[];
+	    sessions: SessionMeta[];
+	    layouts: Record<string, SplitNode>;
+	    activeScope: string;
+	    theme: string;
+	    shell: string;
+	    fontSize: number;
+	    sidebarOpen?: boolean;
+	    sidebarWidth?: number;
+	    uiZoom?: number;
+	    collapsedProjects?: Record<string, boolean>;
+	    agentCLIs?: Record<string, string>;
+	    keybindings?: Record<string, Array<KeyChord>>;
+	
+	    static createFrom(source: any = {}) {
+	        return new AppConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.projects = this.convertValues(source["projects"], ProjectMeta);
+	        this.sessions = this.convertValues(source["sessions"], SessionMeta);
+	        this.layouts = this.convertValues(source["layouts"], SplitNode, true);
+	        this.activeScope = source["activeScope"];
+	        this.theme = source["theme"];
+	        this.shell = source["shell"];
+	        this.fontSize = source["fontSize"];
+	        this.sidebarOpen = source["sidebarOpen"];
+	        this.sidebarWidth = source["sidebarWidth"];
+	        this.uiZoom = source["uiZoom"];
+	        this.collapsedProjects = source["collapsedProjects"];
+	        this.agentCLIs = source["agentCLIs"];
+	        this.keybindings = this.convertValues(source["keybindings"], Array<KeyChord>, true);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class KeyChord {
 	    key: string;
 	    codes?: string[];
@@ -149,52 +203,26 @@ export namespace config {
 	        this.alt = source["alt"];
 	    }
 	}
-	export type KeybindingOverrides = Record<string, KeyChord[]>;
-	export class AppConfig {
-	    projects: ProjectMeta[];
-	    sessions: SessionMeta[];
-	    layouts: Record<string, SplitNode>;
-	    activeScope: string;
-	    theme: string;
-	    shell: string;
-	    fontSize: number;
-	    agentCLIs?: Record<string, string>;
-	    keybindings?: KeybindingOverrides;
+	
+	
+	
+	export class UIPrefs {
+	    sidebarOpen: boolean;
+	    sidebarWidth: number;
+	    uiZoom: number;
+	    collapsedProjects: Record<string, boolean>;
 	
 	    static createFrom(source: any = {}) {
-	        return new AppConfig(source);
+	        return new UIPrefs(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.projects = this.convertValues(source["projects"], ProjectMeta);
-	        this.sessions = this.convertValues(source["sessions"], SessionMeta);
-	        this.layouts = this.convertValues(source["layouts"], SplitNode, true);
-	        this.activeScope = source["activeScope"];
-	        this.theme = source["theme"];
-	        this.shell = source["shell"];
-	        this.fontSize = source["fontSize"];
-	        this.agentCLIs = source["agentCLIs"];
-	        this.keybindings = source["keybindings"] || undefined;
+	        this.sidebarOpen = source["sidebarOpen"];
+	        this.sidebarWidth = source["sidebarWidth"];
+	        this.uiZoom = source["uiZoom"];
+	        this.collapsedProjects = source["collapsedProjects"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 
 }
