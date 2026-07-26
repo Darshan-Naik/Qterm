@@ -4,6 +4,7 @@ import { randomTerminalName } from "@/lib/terminalNames";
 import {
   applyConfigChrome,
   applyTheme,
+  clampFontSize,
   openSettings,
   persistUIPrefs,
   sanitizeKeybindings,
@@ -40,7 +41,7 @@ export function useAppBootstrap() {
       applyConfigChrome(cfg);
       uiStore.set({
         theme: themeMode,
-        fontSize: cfg.fontSize || 12,
+        fontSize: clampFontSize(cfg.fontSize),
         shell: cfg.shell || "",
         activeScope: cfg.activeScope || DEFAULT_SCOPE,
         projects: cfg.projects || [],

@@ -276,11 +276,11 @@ func (a *App) SaveShell(shell string) error {
 }
 
 func (a *App) SaveFontSize(size int) error {
-	if size < 10 {
-		size = 10
+	if size < config.MinFontSize {
+		size = config.MinFontSize
 	}
-	if size > 24 {
-		size = 24
+	if size > config.MaxFontSize {
+		size = config.MaxFontSize
 	}
 	return a.store.Update(func(cfg *config.AppConfig) {
 		cfg.FontSize = size

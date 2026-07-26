@@ -5,6 +5,16 @@ export const SIDEBAR_MIN = 180;
 export const SIDEBAR_MAX = 480;
 export const SIDEBAR_DEFAULT = 240;
 
+/** Terminal font size (px). Keep in sync with `config.DefaultFontSize` in Go. */
+export const FONT_SIZE_MIN = 10;
+export const FONT_SIZE_MAX = 24;
+export const FONT_SIZE_DEFAULT = 12;
+
+export function clampFontSize(n: number) {
+  const v = Math.round(Number(n) || FONT_SIZE_DEFAULT);
+  return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, v));
+}
+
 export const uiStore = createStore<UIState>({
   sidebarOpen: true,
   sidebarWidth: SIDEBAR_DEFAULT,
@@ -12,7 +22,7 @@ export const uiStore = createStore<UIState>({
   focusedPaneId: null,
   focusedSessionId: null,
   theme: "dark",
-  fontSize: 12,
+  fontSize: FONT_SIZE_DEFAULT,
   uiZoom: 100,
   shell: "",
   paletteOpen: false,
