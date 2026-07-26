@@ -16,6 +16,7 @@ export const uiStore = createStore<UIState>({
   uiZoom: 100,
   shell: "",
   paletteOpen: false,
+  quickOpen: false,
   appMode: "workspace",
   settingsPage: "appearance",
   splitTree: null,
@@ -31,7 +32,7 @@ export const uiStore = createStore<UIState>({
 export const useUI = createUseStore(uiStore);
 
 export function openSettings(page: SettingsPage = "appearance") {
-  uiStore.set({ appMode: "settings", settingsPage: page, paletteOpen: false });
+  uiStore.set({ appMode: "settings", settingsPage: page, paletteOpen: false, quickOpen: false });
 }
 
 export function closeSettings() {

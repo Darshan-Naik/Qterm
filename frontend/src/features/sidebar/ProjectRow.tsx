@@ -22,15 +22,13 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { toggleProjectCollapsed, uiStore, useUI } from "@/store/ui";
-import {
-  RemoveProject,
-  RenameProject,
-  OpenInFinder,
-} from "../../../wailsjs/go/main/App";
+import { toggleProjectCollapsed, useUI } from "@/store/ui";
+import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
-import { DEFAULT_SCOPE, createTerminal, focusScope } from "@/lib/sessions";
+import { createTerminal, focusScope } from "@/lib/sessions";
+import { removeProjectById, renameProjectById } from "@/lib/menuActions";
+import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { SessionRow } from "./SessionRow";
 
 export function ProjectRow({ id, name, path }: { id: string; name: string; path: string }) {
@@ -80,12 +78,12 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </span>
               )}
             </button>
-            <WithTooltip label="New terminal">
+            <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="hidden size-7 shrink-0 group-hover:inline-flex"
+                className="size-7 shrink-0 opacity-0 group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   void createTerminal(id);
@@ -101,38 +99,37 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="hidden size-7 shrink-0 group-hover:inline-flex"
+                    className="size-7 shrink-0 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
               </WithTooltip>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => void createTerminal(id)}>New terminal</DropdownMenuItem>
+              <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="min-w-[14rem]">
                 <DropdownMenuItem
-                  onClick={async () => {
-                    const next = prompt("Rename project", name);
-                    if (!next) return;
-                    await RenameProject(id, next);
-                    uiStore.set({
-                      projects: uiStore.get().projects.map((p) => (p.id === id ? { ...p, name: next } : p)),
-                    });
-                  }}
+                  shortcut={ProjectShortcuts.newTerminal.label}
+                  onClick={() => void createTerminal(id)}
+                >
+                  New terminal
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  shortcut={ProjectShortcuts.rename.label}
+                  onClick={() => void renameProjectById(id, name)}
                 >
                   Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void OpenInFinder(path)}>Reveal in Finder</DropdownMenuItem>
+                <DropdownMenuItem
+                  shortcut={ProjectShortcuts.reveal.label}
+                  onClick={() => void OpenInFinder(path)}
+                >
+                  Reveal in Finder
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={async () => {
-                    await RemoveProject(id);
-                    uiStore.set({
-                      projects: uiStore.get().projects.filter((p) => p.id !== id),
-                      sessions: uiStore.get().sessions.filter((s) => s.projectId !== id),
-                    });
-                    await focusScope(DEFAULT_SCOPE);
-                  }}
+                  shortcut={ProjectShortcuts.remove.label}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  onClick={() => void removeProjectById(id)}
                 >
                   Remove
                 </DropdownMenuItem>
@@ -140,17 +137,29 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </DropdownMenu>
           </div>
         </ContextMenuTrigger>
-        <ContextMenuContent>
-          <ContextMenuItem onClick={() => void createTerminal(id)}>New terminal</ContextMenuItem>
-          <ContextMenuItem onClick={() => void OpenInFinder(path)}>Reveal in Finder</ContextMenuItem>
+        <ContextMenuContent className="min-w-[14rem]">
+          <ContextMenuItem
+            shortcut={ProjectShortcuts.newTerminal.label}
+            onClick={() => void createTerminal(id)}
+          >
+            New terminal
+          </ContextMenuItem>
+          <ContextMenuItem
+            shortcut={ProjectShortcuts.rename.label}
+            onClick={() => void renameProjectById(id, name)}
+          >
+            Rename
+          </ContextMenuItem>
+          <ContextMenuItem
+            shortcut={ProjectShortcuts.reveal.label}
+            onClick={() => void OpenInFinder(path)}
+          >
+            Reveal in Finder
+          </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
-            onClick={async () => {
-              await RemoveProject(id);
-              uiStore.set({
-                projects: uiStore.get().projects.filter((p) => p.id !== id),
-              });
-            }}
+            shortcut={ProjectShortcuts.remove.label}
+            onClick={() => void removeProjectById(id)}
           >
             Remove project
           </ContextMenuItem>

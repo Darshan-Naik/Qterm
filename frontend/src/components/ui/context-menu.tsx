@@ -18,7 +18,12 @@ export function ContextMenuContent({ className, ...props }: React.ComponentProps
   )
 }
 
-export function ContextMenuItem({ className, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Item>) {
+export function ContextMenuItem({
+  className,
+  shortcut,
+  children,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Item> & { shortcut?: string }) {
   return (
     <ContextMenuPrimitive.Item
       className={cn(
@@ -26,7 +31,14 @@ export function ContextMenuItem({ className, ...props }: React.ComponentProps<ty
         className
       )}
       {...props}
-    />
+    >
+      <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>
+      {shortcut ? (
+        <span className="ml-3 shrink-0 text-[11px] tabular-nums tracking-wide text-muted-foreground">
+          {shortcut}
+        </span>
+      ) : null}
+    </ContextMenuPrimitive.Item>
   )
 }
 

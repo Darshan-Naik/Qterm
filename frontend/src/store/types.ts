@@ -49,6 +49,8 @@ export type UIState = {
   uiZoom: number;
   shell: string;
   paletteOpen: boolean;
+  /** ⌘P project/terminal quick switcher */
+  quickOpen: boolean;
   appMode: AppMode;
   settingsPage: SettingsPage;
   splitTree: SplitNode | null;

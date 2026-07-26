@@ -1,5 +1,6 @@
 import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil } from "lucide-react";
 import { closePane, deleteSession } from "@/lib/panes";
+import { TerminalShortcuts } from "@/lib/menuShortcuts";
 import { listLeaves, uiStore, useUI } from "@/store/ui";
 import { splitFocused } from "@/app/splitActions";
 import {
@@ -30,13 +31,17 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
           </Button>
         </DropdownMenuTrigger>
       </WithTooltip>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => requestSessionRename(sessionId)}>
+      <DropdownMenuContent align="end" className="min-w-[13rem]">
+        <DropdownMenuItem
+          shortcut={TerminalShortcuts.rename.label}
+          onClick={() => requestSessionRename(sessionId)}
+        >
           <Pencil className="size-3.5 opacity-70" />
           Rename…
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          shortcut={TerminalShortcuts.splitRight.label}
           onClick={() => {
             uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId });
             void splitFocused("horizontal");
@@ -46,6 +51,7 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
           Split right
         </DropdownMenuItem>
         <DropdownMenuItem
+          shortcut={TerminalShortcuts.splitDown.label}
           onClick={() => {
             uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId });
             void splitFocused("vertical");
@@ -55,16 +61,21 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
           Split down
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={!canClosePane} onClick={() => void closePane(paneId)}>
+        <DropdownMenuItem
+          shortcut={TerminalShortcuts.close.label}
+          disabled={!canClosePane}
+          onClick={() => void closePane(paneId)}
+        >
           <X className="size-3.5 opacity-70" />
-          Close pane
+          Close
         </DropdownMenuItem>
         <DropdownMenuItem
+          shortcut={TerminalShortcuts.delete.label}
           className="text-destructive focus:bg-destructive/10 focus:text-destructive"
           onClick={() => void deleteSession(sessionId)}
         >
           <Trash2 className="size-3.5 opacity-70" />
-          Delete terminal
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

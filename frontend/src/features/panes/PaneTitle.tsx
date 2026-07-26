@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { RenameSession } from "../../../wailsjs/go/main/App";
 import { uiStore, useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
-import { WithTooltip } from "@/components/ui/tooltip";
 
 export const RENAME_SESSION_EVENT = "qterm:rename-session";
 
@@ -79,7 +78,6 @@ export function PaneTitle({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <WithTooltip label="Double-click to rename">
       <button
         type="button"
         className={cn(
@@ -95,6 +93,5 @@ export function PaneTitle({ sessionId }: { sessionId: string }) {
       >
         {name}
       </button>
-    </WithTooltip>
   );
 }
