@@ -127,6 +127,29 @@ export namespace config {
 	        this.path = source["path"];
 	    }
 	}
+	export class KeyChord {
+	    key: string;
+	    codes?: string[];
+	    metaOrCtrl?: boolean;
+	    ctrlOnly?: boolean;
+	    shift?: boolean;
+	    alt?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new KeyChord(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.key = source["key"];
+	        this.codes = source["codes"];
+	        this.metaOrCtrl = source["metaOrCtrl"];
+	        this.ctrlOnly = source["ctrlOnly"];
+	        this.shift = source["shift"];
+	        this.alt = source["alt"];
+	    }
+	}
+	export type KeybindingOverrides = Record<string, KeyChord[]>;
 	export class AppConfig {
 	    projects: ProjectMeta[];
 	    sessions: SessionMeta[];
@@ -136,6 +159,7 @@ export namespace config {
 	    shell: string;
 	    fontSize: number;
 	    agentCLIs?: Record<string, string>;
+	    keybindings?: KeybindingOverrides;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -151,6 +175,7 @@ export namespace config {
 	        this.shell = source["shell"];
 	        this.fontSize = source["fontSize"];
 	        this.agentCLIs = source["agentCLIs"];
+	        this.keybindings = source["keybindings"] || undefined;
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -171,8 +196,6 @@ export namespace config {
 		    return a;
 		}
 	}
-	
-	
 
 }
 

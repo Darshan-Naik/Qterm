@@ -1,52 +1,46 @@
-/** Shared shortcut chords for terminal + project menus (react-hotkeys-hook + labels). */
-import { shortcutLabel } from "@/lib/shortcutLabel";
+/** Menu shortcut labels — always reflect current (possibly rebound) bindings. */
+import { shortcutLabelFor, type ShortcutId } from "@/lib/shortcuts";
+import { uiStore } from "@/store/ui";
+
+function label(id: ShortcutId): string {
+  return shortcutLabelFor(id, uiStore.get().keybindings);
+}
 
 export const TerminalShortcuts = {
-  rename: {
-    hotkey: "meta+shift+r, ctrl+shift+r",
-    label: shortcutLabel("mod", "shift", "R"),
+  get rename() {
+    return { label: label("renameTerminal") };
   },
-  close: {
-    hotkey: "meta+shift+w, ctrl+shift+w",
-    label: shortcutLabel("mod", "shift", "W"),
+  get close() {
+    return { label: label("closePane") };
   },
-  delete: {
-    hotkey: "meta+shift+backspace, ctrl+shift+backspace",
-    label: shortcutLabel("mod", "shift", "backspace"),
+  get delete() {
+    return { label: label("deleteTerminal") };
   },
-  splitRight: {
-    hotkey: "meta+shift+l, ctrl+shift+l",
-    label: shortcutLabel("mod", "shift", "L"),
+  get splitRight() {
+    return { label: label("splitRight") };
   },
-  splitDown: {
-    hotkey: "meta+shift+j, ctrl+shift+j",
-    label: shortcutLabel("mod", "shift", "J"),
+  get splitDown() {
+    return { label: label("splitDown") };
   },
-  next: {
-    hotkey: "meta+shift+], ctrl+tab",
-    label: shortcutLabel("mod", "shift", "]"),
+  get next() {
+    return { label: label("cycleTerminalNext") };
   },
-  prev: {
-    hotkey: "meta+shift+[, ctrl+shift+tab",
-    label: shortcutLabel("mod", "shift", "["),
+  get prev() {
+    return { label: label("cycleTerminalPrev") };
   },
-} as const;
+};
 
 export const ProjectShortcuts = {
-  newTerminal: {
-    hotkey: "meta+shift+t, ctrl+shift+t",
-    label: shortcutLabel("mod", "shift", "T"),
+  get newTerminal() {
+    return { label: label("newTerminalInProject") };
   },
-  rename: {
-    hotkey: "meta+shift+e, ctrl+shift+e",
-    label: shortcutLabel("mod", "shift", "E"),
+  get rename() {
+    return { label: label("renameProject") };
   },
-  reveal: {
-    hotkey: "meta+shift+o, ctrl+shift+o",
-    label: shortcutLabel("mod", "shift", "O"),
+  get reveal() {
+    return { label: label("revealProject") };
   },
-  remove: {
-    hotkey: "meta+alt+shift+backspace, ctrl+alt+shift+backspace",
-    label: shortcutLabel("mod", "alt", "shift", "backspace"),
+  get remove() {
+    return { label: label("removeProject") };
   },
-} as const;
+};

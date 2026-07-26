@@ -6,6 +6,7 @@ import {
   hydrateUIPrefs,
   openSettings,
   persistUIPrefs,
+  sanitizeKeybindings,
   uiStore,
   useUI,
   type ThemeMode,
@@ -43,6 +44,7 @@ export function useAppBootstrap() {
         shell: cfg.shell || "",
         activeScope: cfg.activeScope || DEFAULT_SCOPE,
         projects: cfg.projects || [],
+        keybindings: sanitizeKeybindings(cfg.keybindings),
       });
       const [projects, sessions] = await Promise.all([ListProjects(), ListSessions()]);
       const usedNames: string[] = [];
@@ -141,7 +143,10 @@ export function useAppBootstrap() {
       uiStore.set({ sessions: merged, sessionAgents: agents, paneAnimations: anims });
     });
     const offSettings = (EventsOn as any)("app:open-settings", (page?: string) => {
-      const p = page === "terminal" || page === "agent" || page === "appearance" ? page : "appearance";
+      const p =
+        page === "terminal" || page === "agent" || page === "appearance" || page === "shortcuts"
+          ? page
+          : "appearance";
       openSettings(p);
     });
     const offInspector = (EventsOn as any)("app:open-inspector", () => {

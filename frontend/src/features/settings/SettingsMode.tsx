@@ -6,6 +6,7 @@ import { SettingsSidebar } from "./SettingsSidebar";
 import { AppearancePage } from "./pages/AppearancePage";
 import { TerminalPage } from "./pages/TerminalPage";
 import { AgentPage } from "./pages/AgentPage";
+import { ShortcutsPage } from "./pages/ShortcutsPage";
 
 export function SettingsMode() {
   const page = useUI((s) => s.settingsPage);
@@ -35,6 +36,7 @@ export function SettingsMode() {
           <div className="mx-auto w-full max-w-[640px] px-8 pb-16 pt-4">
             {page === "appearance" && <AppearancePage />}
             {page === "terminal" && <TerminalPage />}
+            {page === "shortcuts" && <ShortcutsPage />}
             {page === "agent" && <AgentPage />}
           </div>
         </ScrollArea>
