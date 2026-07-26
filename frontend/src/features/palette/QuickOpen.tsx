@@ -84,18 +84,19 @@ export function QuickOpen() {
       onOpenChange={(v) => uiStore.set({ quickOpen: v, paletteOpen: v ? false : uiStore.get().paletteOpen })}
     >
       <DialogContent
-        className="max-w-lg overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
+        position="top"
+        className="flex max-w-lg flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
         aria-describedby={undefined}
       >
-        <Command className="bg-popover" label="Quick open" shouldFilter>
+        <Command className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover" label="Quick open" shouldFilter>
           <Command.Input
             value={q}
             onValueChange={setQ}
             placeholder="Search terminals…"
-            className="h-11 w-full bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
+            className="h-11 w-full shrink-0 bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
           />
-          <div className="mx-3 h-px bg-secondary" />
-          <Command.List className="max-h-80 overflow-auto p-2">
+          <div className="mx-3 h-px shrink-0 bg-secondary" />
+          <Command.List className="min-h-0 flex-1 overflow-auto p-2">
             <Command.Empty className="px-2 py-6 text-center text-[13px] text-muted-foreground">
               No terminals.
             </Command.Empty>
