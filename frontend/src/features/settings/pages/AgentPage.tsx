@@ -18,11 +18,31 @@ type CLIInfo = {
   outdated?: boolean;
 };
 
-function statusFor(cli: CLIInfo): { label: string; tone: "ok" | "warn" | "ready" | "muted" } {
-  if (cli.installed && cli.outdated) return { label: "Update available", tone: "warn" };
-  if (cli.installed) return { label: "Connected", tone: "ok" };
-  if (cli.available) return { label: "Ready", tone: "ready" };
-  return { label: "Not installed", tone: "muted" };
+function statusFor(cli: CLIInfo): {
+  label: string;
+  tone: "ok" | "warn" | "muted";
+  hint?: string;
+} | null {
+  if (cli.installed && cli.outdated) {
+    return {
+      label: "Update available",
+      tone: "warn",
+      hint: cli.expectedVersion
+        ? `Installed ${cli.version || "unknown"} · app wants ${cli.expectedVersion}`
+        : undefined,
+    };
+  }
+  if (cli.installed) {
+    return { label: "Connected", tone: "ok" };
+  }
+  if (cli.available) {
+    return null;
+  }
+  return {
+    label: "CLI not found",
+    tone: "muted",
+    hint: "Install this agent CLI on your Mac, then connect here.",
+  };
 }
 
 function sameList(a: CLIInfo[], b: CLIInfo[]) {
@@ -135,31 +155,29 @@ export function AgentPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <div className="truncate text-[13px] font-medium leading-snug">{cli.name}</div>
-                  <span
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium tracking-wide",
-                      status.tone === "ok" && "bg-emerald-500/12 text-emerald-400",
-                      status.tone === "warn" && "bg-amber-500/12 text-amber-400",
-                      status.tone === "ready" && "bg-sky-500/12 text-sky-400",
-                      status.tone === "muted" && "bg-secondary text-muted-foreground",
-                    )}
-                  >
+                  {status ? (
                     <span
                       className={cn(
-                        "size-1.5 rounded-full",
-                        status.tone === "ok" && "bg-emerald-400",
-                        status.tone === "warn" && "bg-amber-400",
-                        status.tone === "ready" && "bg-sky-400",
-                        status.tone === "muted" && "bg-muted-foreground/50",
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium tracking-wide",
+                        status.tone === "ok" && "bg-emerald-500/12 text-emerald-400",
+                        status.tone === "warn" && "bg-amber-500/12 text-amber-400",
+                        status.tone === "muted" && "bg-secondary text-muted-foreground",
                       )}
-                    />
-                    {status.label}
-                  </span>
+                    >
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          status.tone === "ok" && "bg-emerald-400",
+                          status.tone === "warn" && "bg-amber-400",
+                          status.tone === "muted" && "bg-muted-foreground/50",
+                        )}
+                      />
+                      {status.label}
+                    </span>
+                  ) : null}
                 </div>
-                {cli.installed && cli.outdated && cli.expectedVersion ? (
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    Installed {cli.version || "unknown"} · app wants {cli.expectedVersion}
-                  </div>
+                {status?.hint ? (
+                  <div className="mt-1 text-[11px] text-muted-foreground">{status.hint}</div>
                 ) : null}
               </div>
 
@@ -193,7 +211,7 @@ export function AgentPage() {
                     variant="secondary"
                     className="h-8 min-w-[5.5rem] rounded-lg text-[12.5px]"
                     disabled={!cli.available || working}
-                    title={!cli.available ? "CLI not installed" : undefined}
+                    title={!cli.available ? "Install the agent CLI first" : "Connect this CLI to Qterm"}
                     onClick={() => void connect(cli.id)}
                   >
                     {working ? "Connecting…" : "Connect"}
