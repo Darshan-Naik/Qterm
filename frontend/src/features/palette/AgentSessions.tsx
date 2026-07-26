@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Command } from "cmdk";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { uiStore, useUI, leaf, type SessionInfo } from "@/store/ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { uiStore, useUI, leaf, type ProjectInfo, type SessionInfo } from "@/store/ui";
 import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
 import { cn } from "@/lib/utils";
 import {
+  ActiveAgentBinds,
+  AddProject,
   ListAgentCLIs,
   ListAgentSessions,
   ResumeAgentSession,
@@ -12,7 +15,7 @@ import {
   SaveLayout,
   SetFocusedSession,
 } from "../../../wailsjs/go/main/App";
-import { scopeKey } from "@/lib/sessions";
+import { focusSession, scopeKey } from "@/lib/sessions";
 
 type AgentHit = {
   id: string;
@@ -39,14 +42,31 @@ export function AgentSessions() {
   const [hits, setHits] = useState<AgentHit[]>([]);
   const [installedCLIs, setInstalledCLIs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<AgentHit | null>(null);
+  const [resuming, setResuming] = useState(false);
+  /** agent conversation id → live Qterm terminal id */
+  const [activeBinds, setActiveBinds] = useState<Record<string, string>>({});
+
+  const refreshBinds = async () => {
+    try {
+      const binds = ((await ActiveAgentBinds()) as Record<string, string>) || {};
+      setActiveBinds(binds);
+    } catch {
+      setActiveBinds({});
+    }
+  };
 
   useEffect(() => {
     if (!open) {
       setQ("");
       setCliFilter("");
       setHits([]);
+      setPending(null);
+      setResuming(false);
+      setActiveBinds({});
       return;
     }
+    void refreshBinds();
     void (async () => {
       try {
         const list = ((await ListAgentCLIs()) as Array<{ id: string; installed?: boolean; available?: boolean }>) || [];
@@ -59,14 +79,17 @@ export function AgentSessions() {
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || pending) return;
     let cancelled = false;
     setLoading(true);
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          const list = ((await ListAgentSessions(q.trim(), cliFilter)) as AgentHit[]) || [];
-          if (!cancelled) setHits(list);
+          const [list] = await Promise.all([
+            ListAgentSessions(q.trim(), cliFilter) as Promise<AgentHit[]>,
+            refreshBinds(),
+          ]);
+          if (!cancelled) setHits(list || []);
         } catch {
           if (!cancelled) setHits([]);
         } finally {
@@ -78,7 +101,7 @@ export function AgentSessions() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [open, q, cliFilter]);
+  }, [open, q, cliFilter, pending]);
 
   const groups = useMemo(() => {
     const byCLI = new Map<string, CLIGroup>();
@@ -93,12 +116,28 @@ export function AgentSessions() {
     return [...byCLI.values()];
   }, [hits]);
 
-  const close = () => uiStore.set({ agentSessionsOpen: false });
+  const close = () => {
+    setPending(null);
+    uiStore.set({ agentSessionsOpen: false });
+  };
 
-  const run = async (hit: AgentHit) => {
+  const focusOpen = async (terminalId: string, cli: string) => {
     close();
+    uiStore.set({
+      sessionAgents: { ...uiStore.get().sessionAgents, [terminalId]: cli },
+    });
+    await focusSession(terminalId);
+  };
+
+  const openResumed = async (hit: AgentHit, projectId: string) => {
+    setResuming(true);
     try {
-      const sess = await ResumeAgentSession(hit.cli, hit.id);
+      const sess = await ResumeAgentSession(hit.cli, hit.id, projectId);
+      const alreadyOpen = uiStore.get().sessions.some((s) => s.id === sess.id);
+      if (alreadyOpen) {
+        await focusOpen(sess.id, hit.cli);
+        return;
+      }
       const info: SessionInfo = {
         id: sess.id,
         name: sess.name,
@@ -120,6 +159,45 @@ export function AgentSessions() {
       void SetFocusedSession(info.id);
       void SaveActiveScope(scope);
       await SaveLayout(scope, n as any);
+      close();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setResuming(false);
+    }
+  };
+
+  const openTerminalId = (hit: AgentHit) => {
+    const id = activeBinds[hit.id];
+    if (!id) return "";
+    return uiStore.get().sessions.some((s) => s.id === id) ? id : "";
+  };
+
+  const selectHit = (hit: AgentHit) => {
+    const openId = openTerminalId(hit);
+    if (openId) {
+      void focusOpen(openId, hit.cli);
+      return;
+    }
+    const project = findProjectForCwd(hit.cwd, projects);
+    if (project) {
+      void openResumed(hit, project.id);
+      return;
+    }
+    if (!hit.cwd?.trim()) {
+      void openResumed(hit, "");
+      return;
+    }
+    // Known folder on disk, but not in the sidebar yet — ask.
+    setPending(hit);
+  };
+
+  const addProjectAndResume = async () => {
+    if (!pending?.cwd) return;
+    try {
+      const p = await AddProject(pending.cwd, "");
+      uiStore.set({ projects: [...uiStore.get().projects, p] });
+      await openResumed(pending, p.id);
     } catch (e) {
       console.error(e);
     }
@@ -127,7 +205,7 @@ export function AgentSessions() {
 
   const projectName = (cwd?: string) => {
     if (!cwd) return "";
-    const p = projects.find((x) => x.path === cwd);
+    const p = findProjectForCwd(cwd, projects);
     if (p) return p.name;
     return cwd.split("/").filter(Boolean).slice(-2).join("/") || cwd;
   };
@@ -145,95 +223,137 @@ export function AgentSessions() {
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) =>
+      onOpenChange={(v) => {
+        if (!v) setPending(null);
         uiStore.set({
           agentSessionsOpen: v,
           paletteOpen: v ? false : uiStore.get().paletteOpen,
           quickOpen: v ? false : uiStore.get().quickOpen,
-        })
-      }
+        });
+      }}
     >
       <DialogContent
         position="top"
         className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
         aria-describedby={undefined}
       >
-        <Command
-          className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover"
-          label="Agent sessions"
-          shouldFilter={false}
-        >
-          <Command.Input
-            value={q}
-            onValueChange={setQ}
-            placeholder="Search agent sessions…"
-            className="h-11 w-full shrink-0 bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
-          />
-          {installedCLIs.length > 0 ? (
-            <div className="mx-3 flex shrink-0 flex-wrap gap-1 pb-2">
-              <FilterChip active={!cliFilter} label="All" onClick={() => setCliFilter("")} />
-              {installedCLIs.map((id) => (
-                <FilterChip
-                  key={id}
-                  active={cliFilter === id}
-                  label={agentLabel(id)}
-                  onClick={() => setCliFilter(cliFilter === id ? "" : id)}
-                />
-              ))}
-            </div>
-          ) : null}
-          <div className="mx-3 h-px shrink-0 bg-secondary" />
-          <Command.List className="min-h-0 flex-1 overflow-auto p-2">
-            <Command.Empty className="px-2 py-6 text-center text-[13px] text-muted-foreground">
-              {loading
-                ? "Searching…"
-                : "No agent sessions found. Run Claude / Codex / Gemini / Cursor in a project — history is read from those CLIs on disk."}
-            </Command.Empty>
-
-            {groups.map((group) => (
-              <Command.Group
-                key={group.cli}
-                heading={group.cliName}
-                className={cn(
-                  "relative mt-1 first:mt-0",
-                  "[&_[cmdk-group-heading]]:pointer-events-none",
-                  "[&_[cmdk-group-heading]]:px-2.5",
-                  "[&_[cmdk-group-heading]]:pb-1",
-                  "[&_[cmdk-group-heading]]:pt-2",
-                  "[&_[cmdk-group-heading]]:text-[11px]",
-                  "[&_[cmdk-group-heading]]:font-medium",
-                  "[&_[cmdk-group-heading]]:uppercase",
-                  "[&_[cmdk-group-heading]]:tracking-[0.08em]",
-                  "[&_[cmdk-group-heading]]:text-muted-foreground/55"
-                )}
+        {pending ? (
+          <div className="flex flex-col gap-4 p-5">
+            <DialogHeader>
+              <DialogTitle>Open where?</DialogTitle>
+              <DialogDescription>
+                This session lived in{" "}
+                <span className="break-all font-medium text-foreground">{pending.cwd}</span>, which
+                isn’t in your project list yet.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void addProjectAndResume();
+              }}
+            >
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                disabled={resuming}
+                onClick={() => void openResumed(pending, "")}
               >
-                {group.sessions.map((item) => {
-                  const left = subtitleLeft(item);
-                  const age = formatSessionAge(item.updatedAt);
-                  return (
-                  <Command.Item
-                    key={`${item.cli}:${item.id}`}
-                    value={`${item.title} ${item.cwd} ${item.preview} ${item.id}`}
-                    onSelect={() => void run(item)}
-                    className="my-0.5 flex cursor-pointer items-start gap-2.5 rounded-md px-2.5 py-2.5 text-[13px] aria-selected:bg-accent"
-                  >
-                    <AgentIcon agent={item.cli} className="mt-0.5" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{item.title}</span>
-                      {left || age ? (
-                        <span className="mt-0.5 flex items-baseline gap-3 text-[11px] text-muted-foreground">
-                          <span className="min-w-0 flex-1 truncate">{left}</span>
-                          {age ? <span className="shrink-0 tabular-nums">{age}</span> : null}
+                Open
+              </Button>
+              <Button type="submit" className="flex-1" disabled={resuming} autoFocus>
+                Add project and open
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <Command
+            className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover"
+            label="Agent sessions"
+            shouldFilter={false}
+          >
+            <Command.Input
+              value={q}
+              onValueChange={setQ}
+              placeholder="Search agent sessions…"
+              className="h-11 w-full shrink-0 bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
+            />
+            {installedCLIs.length > 0 ? (
+              <div className="mx-3 flex shrink-0 flex-wrap gap-1 pb-2">
+                <FilterChip active={!cliFilter} label="All" onClick={() => setCliFilter("")} />
+                {installedCLIs.map((id) => (
+                  <FilterChip
+                    key={id}
+                    active={cliFilter === id}
+                    label={agentLabel(id)}
+                    onClick={() => setCliFilter(cliFilter === id ? "" : id)}
+                  />
+                ))}
+              </div>
+            ) : null}
+            <div className="mx-3 h-px shrink-0 bg-secondary" />
+            <Command.List className="min-h-0 flex-1 overflow-auto p-2">
+              <Command.Empty className="px-2 py-6 text-center text-[13px] text-muted-foreground">
+                {loading
+                  ? "Searching…"
+                  : "No agent sessions found. Run Claude / Codex / Gemini / Cursor in a project — history is read from those CLIs on disk."}
+              </Command.Empty>
+
+              {groups.map((group) => (
+                <Command.Group
+                  key={group.cli}
+                  heading={group.cliName}
+                  className={cn(
+                    "relative mt-1 first:mt-0",
+                    "[&_[cmdk-group-heading]]:pointer-events-none",
+                    "[&_[cmdk-group-heading]]:px-2.5",
+                    "[&_[cmdk-group-heading]]:pb-1",
+                    "[&_[cmdk-group-heading]]:pt-2",
+                    "[&_[cmdk-group-heading]]:text-[11px]",
+                    "[&_[cmdk-group-heading]]:font-medium",
+                    "[&_[cmdk-group-heading]]:uppercase",
+                    "[&_[cmdk-group-heading]]:tracking-[0.08em]",
+                    "[&_[cmdk-group-heading]]:text-muted-foreground/55"
+                  )}
+                >
+                  {group.sessions.map((item) => {
+                    const left = subtitleLeft(item);
+                    const age = formatSessionAge(item.updatedAt);
+                    const openId = openTerminalId(item);
+                    return (
+                      <Command.Item
+                        key={`${item.cli}:${item.id}`}
+                        value={`${item.title} ${item.cwd} ${item.preview} ${item.id}`}
+                        onSelect={() => selectHit(item)}
+                        className="my-0.5 flex cursor-pointer items-start gap-2.5 rounded-md px-2.5 py-2.5 text-[13px] aria-selected:bg-accent"
+                      >
+                        <AgentIcon agent={item.cli} className="mt-0.5" />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                            {openId ? (
+                              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-foreground">
+                                Open
+                              </span>
+                            ) : null}
+                          </span>
+                          {left || age ? (
+                            <span className="mt-0.5 flex items-baseline gap-3 text-[11px] text-muted-foreground">
+                              <span className="min-w-0 flex-1 truncate">{left}</span>
+                              {age ? <span className="shrink-0 tabular-nums">{age}</span> : null}
+                            </span>
+                          ) : null}
                         </span>
-                      ) : null}
-                    </span>
-                  </Command.Item>
-                  );
-                })}
-              </Command.Group>
-            ))}
-          </Command.List>
-        </Command>
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              ))}
+            </Command.List>
+          </Command>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -262,6 +382,21 @@ function FilterChip({
       {label}
     </button>
   );
+}
+
+/** Exact path or longest project prefix that contains cwd. */
+function findProjectForCwd(cwd: string | undefined, projects: ProjectInfo[]): ProjectInfo | null {
+  if (!cwd?.trim()) return null;
+  const norm = cwd.replace(/\/+$/, "");
+  let best: ProjectInfo | null = null;
+  for (const p of projects) {
+    const base = (p.path || "").replace(/\/+$/, "");
+    if (!base) continue;
+    if (norm === base || norm.startsWith(base + "/")) {
+      if (!best || base.length > best.path.replace(/\/+$/, "").length) best = p;
+    }
+  }
+  return best;
 }
 
 /** Relative age from unix ms — keeps “how old” without stuffing dates into titles. */
