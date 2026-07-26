@@ -95,7 +95,7 @@ func DefaultConfig() AppConfig {
 		ActiveScope:       "_default",
 		Theme:             "system",
 		Shell:             "",
-		FontSize:          13,
+		FontSize:          12,
 		SidebarOpen:       &open,
 		SidebarWidth:      240,
 		UiZoom:            100,
@@ -163,7 +163,7 @@ func (s *Store) Load() error {
 		cfg.Theme = "system"
 	}
 	if cfg.FontSize == 0 {
-		cfg.FontSize = 13
+		cfg.FontSize = 12
 	}
 	if cfg.ActiveScope == "" {
 		cfg.ActiveScope = "_default"

@@ -33,7 +33,7 @@ export function TerminalPage() {
               className="h-8 w-20 rounded-lg border-border/60 bg-secondary/50 text-center text-[12.5px] shadow-none"
               value={fontSize}
               onChange={async (e) => {
-                const n = Number(e.target.value) || 13;
+                const n = Number(e.target.value) || 12;
                 uiStore.set({ fontSize: n });
                 await SaveFontSize(n);
               }}

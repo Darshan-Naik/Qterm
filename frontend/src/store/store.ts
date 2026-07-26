@@ -12,7 +12,7 @@ export const uiStore = createStore<UIState>({
   focusedPaneId: null,
   focusedSessionId: null,
   theme: "dark",
-  fontSize: 13,
+  fontSize: 12,
   uiZoom: 100,
   shell: "",
   paletteOpen: false,

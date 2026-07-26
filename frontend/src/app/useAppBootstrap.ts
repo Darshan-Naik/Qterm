@@ -40,7 +40,7 @@ export function useAppBootstrap() {
       applyConfigChrome(cfg);
       uiStore.set({
         theme: themeMode,
-        fontSize: cfg.fontSize || 13,
+        fontSize: cfg.fontSize || 12,
         shell: cfg.shell || "",
         activeScope: cfg.activeScope || DEFAULT_SCOPE,
         projects: cfg.projects || [],
