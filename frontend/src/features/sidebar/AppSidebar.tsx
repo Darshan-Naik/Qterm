@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Plus, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
@@ -11,7 +12,11 @@ import { SidebarResizeHandle } from "./SidebarResizeHandle";
 export function AppSidebar() {
   const open = useUI((s) => s.sidebarOpen);
   const width = useUI((s) => s.sidebarWidth);
-  const unboundSessions = useUI((s) => s.sessions.filter((s) => isUnbound(s.projectId)));
+  const sessions = useUI((s) => s.sessions);
+  const unboundSessions = useMemo(
+    () => sessions.filter((s) => isUnbound(s.projectId)),
+    [sessions]
+  );
 
   if (!open) return null;
 

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Folder,
   FolderGit2,
@@ -32,7 +33,8 @@ import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { SessionRow } from "./SessionRow";
 
 export function ProjectRow({ id, name, path }: { id: string; name: string; path: string }) {
-  const sessions = useUI((s) => s.sessions.filter((s) => s.projectId === id));
+  const allSessions = useUI((s) => s.sessions);
+  const sessions = useMemo(() => allSessions.filter((s) => s.projectId === id), [allSessions, id]);
   const collapsed = useUI((s) => !!s.collapsedProjects[id]);
   const { data: gitData } = useGitStatus(path);
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;

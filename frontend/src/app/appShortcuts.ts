@@ -59,14 +59,6 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   removeProject: () => void removeActiveProject(),
 };
 
-/** True when this key should be owned by the app (not the PTY / xterm). */
-export function isAppShortcut(e: KeyboardEvent): boolean {
-  if (e.isComposing) return false;
-  if (isKeybindingCapturing()) return true;
-  if (e.key === "Escape" && uiStore.get().appMode === "settings") return true;
-  return matchShortcut(e, uiStore.get().keybindings) !== null;
-}
-
 /**
  * Handle an app shortcut. Returns true if the event was consumed.
  * Safe to call from capture-phase window listeners and xterm custom key handlers.
@@ -95,4 +87,12 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
   e.stopPropagation();
   void HANDLERS[id]();
   return true;
+}
+
+/** True when this key should be owned by the app (not the PTY / xterm). */
+export function isAppShortcut(e: KeyboardEvent): boolean {
+  if (e.isComposing) return false;
+  if (isKeybindingCapturing()) return true;
+  if (e.key === "Escape" && uiStore.get().appMode === "settings") return true;
+  return matchShortcut(e, uiStore.get().keybindings) !== null;
 }

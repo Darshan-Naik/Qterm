@@ -1,8 +1,16 @@
 import { useCallback } from "react";
+import { DEFAULT_SCOPE } from "@/lib/sessions";
 import { setSplitSize, uiStore, type SplitNode } from "@/store/ui";
 import { cn } from "@/lib/utils";
+import { SaveLayout } from "../../../wailsjs/go/main/App";
 import { PaneLeaf } from "./PaneLeaf";
 import { Splitter } from "./Splitter";
+
+function liveSplitSize(tree: SplitNode, id: string): number | null {
+  if (tree.type === "leaf") return null;
+  if (tree.id === id) return tree.size;
+  return liveSplitSize(tree.children[0], id) ?? liveSplitSize(tree.children[1], id);
+}
 
 export function SplitNodeView({
   node,
@@ -15,13 +23,21 @@ export function SplitNodeView({
 }) {
   const onResize = useCallback(
     (delta: number) => {
+      if (node.type !== "split") return;
       const tree = uiStore.get().splitTree;
-      if (!tree || node.type !== "split") return;
-      const nextSize = Math.min(0.85, Math.max(0.15, node.size + delta));
+      if (!tree) return;
+      const current = liveSplitSize(tree, node.id) ?? node.size;
+      const nextSize = Math.min(0.85, Math.max(0.15, current + delta));
       uiStore.set({ splitTree: setSplitSize(tree, node.id, nextSize) });
     },
     [node]
   );
+
+  const onResizeEnd = useCallback(() => {
+    const { splitTree, activeScope } = uiStore.get();
+    if (!splitTree) return;
+    void SaveLayout(activeScope || DEFAULT_SCOPE, splitTree as any);
+  }, []);
 
   if (node.type === "leaf") {
     const isPrimary = node.id === primaryPaneId;
@@ -52,7 +68,7 @@ export function SplitNodeView({
       >
         <SplitNodeView node={node.children[0]} primaryPaneId={primaryPaneId} sidebarOpen={sidebarOpen} />
       </div>
-      <Splitter direction={node.direction} onDrag={onResize} />
+      <Splitter direction={node.direction} onDrag={onResize} onDragEnd={onResizeEnd} />
       <div
         className="min-h-0 min-w-0 flex-1 overflow-hidden"
         style={horizontal ? { height: "100%" } : { width: "100%" }}

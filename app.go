@@ -16,6 +16,7 @@ import (
 	"qterm/internal/hooks"
 	"qterm/internal/project"
 	ptymgr "qterm/internal/pty"
+	"qterm/internal/ptyemit"
 	"qterm/internal/scrollback"
 
 	"github.com/wailsapp/wails/v2/pkg/menu"
@@ -30,6 +31,7 @@ type App struct {
 	projects         *project.Service
 	hooks            *hooks.Host
 	scrollback       *scrollback.Store
+	ptyOut           *ptyemit.Coalescer
 	bridge           *agentbridge.Server
 	shuttingDown     bool
 	focusedSessionID string
@@ -58,6 +60,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 	a.scrollback = sb
 
+	a.ptyOut = ptyemit.New(a.emitPtyData)
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
 	a.projects = project.NewService(store)
 	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
@@ -111,11 +114,17 @@ func (a *App) setupMenu() {
 
 func (a *App) shutdown(ctx context.Context) {
 	a.shuttingDown = true
+	if a.ptyOut != nil {
+		a.ptyOut.FlushAll()
+	}
 	if a.bridge != nil {
 		_ = a.bridge.Stop(ctx)
 	}
 	if a.scrollback != nil {
 		a.scrollback.Close()
+	}
+	if a.store != nil {
+		a.store.Close()
 	}
 	if a.pty != nil {
 		a.pty.CloseAll()
@@ -153,6 +162,14 @@ func (a *App) restoreSessions() {
 }
 
 func (a *App) onPtyData(sessionID string, data []byte) {
+	if a.ptyOut != nil {
+		a.ptyOut.Push(sessionID, data)
+		return
+	}
+	a.emitPtyData(sessionID, data)
+}
+
+func (a *App) emitPtyData(sessionID string, data []byte) {
 	var seq uint64
 	if a.scrollback != nil {
 		seq = a.scrollback.Append(sessionID, data)
@@ -165,10 +182,6 @@ func (a *App) onPtyData(sessionID string, data []byte) {
 	if a.hooks != nil {
 		a.hooks.BroadcastOutput(sessionID, data)
 	}
-	// Do not adopt OSC 0/2 window titles into the sidebar name.
-	// Agent CLIs set those to the process ("codex") then the project folder —
-	// that overrides Qterm's random names. Use MCP rename_terminal / hook
-	// session_title for intentional renames instead.
 }
 
 func (a *App) onPtyExit(sessionID string, code int) {

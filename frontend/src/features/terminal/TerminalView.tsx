@@ -15,21 +15,26 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   const fontSize = useUI((s) => s.fontSize);
   const uiZoom = useUI((s) => s.uiZoom);
   const focusedPaneId = useUI((s) => s.focusedPaneId);
-  const paneAnimations = useUI((s) => s.paneAnimations);
-  const anim = paneAnimations[sessionId] || "none";
+  const anim = useUI((s) => s.paneAnimations[sessionId] || "none");
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     const entry = attachTerminal(sessionId, host, { fontSize });
 
+    let resizeTimer = 0;
     const ro = new ResizeObserver(() => {
       entry.fit.fit();
-      void ResizeSession(sessionId, entry.term.cols, entry.term.rows);
+      // Fit immediately for crisp local layout; debounce PTY resize IPC.
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        void ResizeSession(sessionId, entry.term.cols, entry.term.rows);
+      }, 80);
     });
     ro.observe(host);
 
     return () => {
+      window.clearTimeout(resizeTimer);
       ro.disconnect();
       detachTerminal(sessionId, host);
     };
