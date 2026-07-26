@@ -41,4 +41,4 @@ frontend/src/
 - **Scalability** — new screens/features get their own folder; don’t grow monolith files.
 - Match existing naming, `@/` imports, and Wails path depth from the feature folder.
 - Stay on task — no drive-by refactors or unsolicited docs.
-- **Defaults live once** — app defaults are named constants (`config.DefaultFontSize`, `FONT_SIZE_DEFAULT`), not scattered magic numbers. Call sites clamp/normalize via helpers; don’t re-literal the default.
+- **Defaults live once** — app defaults are named constants in `store/defaults.ts` (TS) and `internal/config` (Go). Callers use clamp helpers / `currentScope()` — never re-literal `12`, `240`, `100`, or `"_default"`.

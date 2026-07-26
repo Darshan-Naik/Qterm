@@ -12,13 +12,20 @@ export type {
 } from "./types";
 
 export {
+  DEFAULT_SCOPE,
   FONT_SIZE_DEFAULT,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
   SIDEBAR_DEFAULT,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
+  UI_ZOOM_DEFAULT,
+  UI_ZOOM_MAX,
+  UI_ZOOM_MIN,
+  UI_ZOOM_STEP,
   clampFontSize,
+  clampSidebarWidth,
+  clampUiZoom,
   closeSettings,
   openSettings,
   uiStore,
@@ -27,14 +34,9 @@ export {
 
 export { applyTheme } from "./theme";
 export {
-  UI_ZOOM_DEFAULT,
-  UI_ZOOM_MAX,
-  UI_ZOOM_MIN,
-  UI_ZOOM_STEP,
   adjustUiZoom,
   applyConfigChrome,
   applyUiZoom,
-  clampUiZoom,
   persistUIPrefs,
   resetAllKeybindings,
   resetKeybinding,

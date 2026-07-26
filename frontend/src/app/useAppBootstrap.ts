@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { createDefaultTerminal, DEFAULT_SCOPE, focusScope, focusSession } from "@/lib/sessions";
+import { createDefaultTerminal, DEFAULT_SCOPE, focusScope, focusSession, isUnbound } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import {
   applyConfigChrome,
@@ -79,8 +79,7 @@ export function useAppBootstrap() {
         await focusScope(scope);
         if (!uiStore.get().splitTree && sessions?.[0]) {
           const first = sessions[0];
-          const fallback =
-            !first.projectId || first.projectId === "home" ? DEFAULT_SCOPE : first.projectId;
+          const fallback = isUnbound(first.projectId) ? DEFAULT_SCOPE : first.projectId;
           await focusScope(fallback);
         }
       } else {

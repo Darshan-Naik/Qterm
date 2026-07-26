@@ -328,24 +328,8 @@ func (a *App) SaveUIPrefs(prefs config.UIPrefs) error {
 	return a.store.Update(func(cfg *config.AppConfig) {
 		open := prefs.SidebarOpen
 		cfg.SidebarOpen = &open
-		width := prefs.SidebarWidth
-		if width < 180 {
-			width = 180
-		}
-		if width > 480 {
-			width = 480
-		}
-		cfg.SidebarWidth = width
-		zoom := prefs.UiZoom
-		if zoom < 80 {
-			zoom = 80
-		}
-		if zoom > 150 {
-			zoom = 150
-		}
-		// Snap to 10% steps (matches frontend).
-		zoom = ((zoom + 5) / 10) * 10
-		cfg.UiZoom = zoom
+		cfg.SidebarWidth = config.ClampSidebarWidth(prefs.SidebarWidth)
+		cfg.UiZoom = config.ClampUiZoom(prefs.UiZoom)
 		if prefs.CollapsedProjects == nil {
 			cfg.CollapsedProjects = map[string]bool{}
 		} else {

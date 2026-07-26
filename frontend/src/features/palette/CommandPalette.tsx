@@ -10,7 +10,7 @@ import {
   persistUIPrefs,
   openSettings,
 } from "@/store/ui";
-import { createTerminal, createDefaultTerminal, DEFAULT_SCOPE } from "@/lib/sessions";
+import { createTerminal, createDefaultTerminal, currentScope, DEFAULT_SCOPE } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane, deleteSession } from "@/lib/panes";
 import {
@@ -48,7 +48,7 @@ export function CommandPalette() {
         id: "new-term-scope",
         label: "New terminal in current project",
         run: async () => {
-          const scope = uiStore.get().activeScope || DEFAULT_SCOPE;
+          const scope = currentScope();
           if (scope === DEFAULT_SCOPE) await createDefaultTerminal();
           else await createTerminal(scope);
         },
@@ -177,7 +177,7 @@ export function CommandPalette() {
 async function splitCurrent(direction: "horizontal" | "vertical") {
   const state = uiStore.get();
   const paneId = state.focusedPaneId || listLeaves(state.splitTree)[0]?.id;
-  const scope = state.activeScope || DEFAULT_SCOPE;
+  const scope = currentScope();
   if (!paneId) {
     await createDefaultTerminal();
     return;

@@ -3,6 +3,7 @@ import {
   DEFAULT_SCOPE,
   createTerminal,
   createDefaultTerminal,
+  currentScope,
   focusScope,
   isUnbound,
 } from "@/lib/sessions";
@@ -16,7 +17,7 @@ function focusedSessionId() {
 }
 
 function activeProject() {
-  const scope = uiStore.get().activeScope || DEFAULT_SCOPE;
+  const scope = currentScope();
   if (scope === DEFAULT_SCOPE || isUnbound(scope)) return null;
   return uiStore.get().projects.find((p) => p.id === scope) || null;
 }

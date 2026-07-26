@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { DEFAULT_SCOPE } from "@/lib/sessions";
+import { currentScope } from "@/lib/sessions";
 import { setSplitSize, uiStore, type SplitNode } from "@/store/ui";
 import { cn } from "@/lib/utils";
 import { SaveLayout } from "../../../wailsjs/go/main/App";
@@ -34,9 +34,9 @@ export function SplitNodeView({
   );
 
   const onResizeEnd = useCallback(() => {
-    const { splitTree, activeScope } = uiStore.get();
+    const { splitTree } = uiStore.get();
     if (!splitTree) return;
-    void SaveLayout(activeScope || DEFAULT_SCOPE, splitTree as any);
+    void SaveLayout(currentScope(), splitTree as any);
   }, []);
 
   if (node.type === "leaf") {

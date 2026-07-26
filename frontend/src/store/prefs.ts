@@ -2,7 +2,14 @@ import { chordsEqual } from "@/lib/shortcuts/chords";
 import { DEFAULT_BINDINGS } from "@/lib/shortcuts/defaults";
 import type { KeyChord, KeybindingOverrides, ShortcutId } from "@/lib/shortcuts/types";
 import { SaveKeybindings, SaveUIPrefs } from "../../wailsjs/go/main/App";
-import { uiStore, SIDEBAR_MAX, SIDEBAR_MIN } from "./store";
+import {
+  clampSidebarWidth,
+  clampUiZoom,
+  SIDEBAR_DEFAULT,
+  UI_ZOOM_DEFAULT,
+  UI_ZOOM_STEP,
+  uiStore,
+} from "./store";
 
 /** Validate + drop unknown ids / default-equal overrides (for config.json). */
 export function sanitizeKeybindings(raw: unknown): KeybindingOverrides {
@@ -28,22 +35,6 @@ export function sanitizeKeybindings(raw: unknown): KeybindingOverrides {
 
 async function persistKeybindings(overrides: KeybindingOverrides) {
   await SaveKeybindings(overrides);
-}
-
-/** Whole-app UI zoom (percent). Scales chrome, spacing, and terminal together. */
-export const UI_ZOOM_MIN = 80;
-export const UI_ZOOM_MAX = 150;
-export const UI_ZOOM_DEFAULT = 100;
-export const UI_ZOOM_STEP = 10;
-
-export function clampUiZoom(zoom: number) {
-  const n = Math.round(Number(zoom) || UI_ZOOM_DEFAULT);
-  const stepped = Math.round(n / UI_ZOOM_STEP) * UI_ZOOM_STEP;
-  return Math.min(UI_ZOOM_MAX, Math.max(UI_ZOOM_MIN, stepped));
-}
-
-export function clampSidebarWidth(width: number) {
-  return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(Number(width) || SIDEBAR_MIN)));
 }
 
 export function applyUiZoom(zoom: number) {
@@ -98,7 +89,7 @@ export function applyConfigChrome(cfg: {
   applyUiZoom(zoom);
   uiStore.set({
     sidebarOpen: cfg.sidebarOpen !== false,
-    sidebarWidth: clampSidebarWidth(cfg.sidebarWidth ?? 240),
+    sidebarWidth: clampSidebarWidth(cfg.sidebarWidth ?? SIDEBAR_DEFAULT),
     uiZoom: zoom,
     collapsedProjects:
       cfg.collapsedProjects && typeof cfg.collapsedProjects === "object" ? cfg.collapsedProjects : {},
