@@ -18,7 +18,7 @@ import {
   uiStore,
 } from "@/store/ui";
 import { SaveTheme } from "../../wailsjs/go/main/App";
-import { closeFocused, cycleFocus, splitFocused } from "@/app/splitActions";
+import { closeFocused, cycleFocus, cycleTerminal, splitFocused } from "@/app/splitActions";
 
 function mod(e: KeyboardEvent) {
   return e.metaKey || e.ctrlKey;
@@ -57,11 +57,29 @@ export function isAppShortcut(e: KeyboardEvent): boolean {
 
   // Shift chords
   if (withShift(e) && !e.altKey) {
-    if (key === "l" || key === "j" || key === "w" || key === "r" || key === "t" || key === "e" || key === "o" || key === "d") {
+    if (
+      key === "l" ||
+      key === "j" ||
+      key === "w" ||
+      key === "r" ||
+      key === "t" ||
+      key === "e" ||
+      key === "o" ||
+      key === "d" ||
+      key === "]" ||
+      key === "[" ||
+      code === "BracketRight" ||
+      code === "BracketLeft" ||
+      key === "Tab" ||
+      code === "Tab"
+    ) {
       return true;
     }
     if (key === "Backspace" || code === "Backspace") return true;
   }
+
+  // Ctrl+Tab / Ctrl+Shift+Tab (no meta) — next/prev terminal
+  if (e.ctrlKey && !e.metaKey && !e.altKey && (key === "Tab" || code === "Tab")) return true;
 
   // Project remove: ⌘⌥⇧⌫
   if (withShift(e) && e.altKey && (key === "Backspace" || code === "Backspace")) return true;
@@ -155,7 +173,7 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
     return true;
   }
 
-  // ⌘] / ⌘[
+  // ⌘] / ⌘[ — cycle panes in the current split
   if (noShift(e) && !e.altKey && (key === "]" || code === "BracketRight")) {
     if (settings) return false;
     e.preventDefault();
@@ -168,6 +186,31 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
     e.preventDefault();
     e.stopPropagation();
     cycleFocus(-1);
+    return true;
+  }
+
+  // ⌃Tab / ⌃⇧Tab — next / previous terminal
+  if (e.ctrlKey && !e.metaKey && !e.altKey && (key === "Tab" || code === "Tab")) {
+    if (settings) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    void cycleTerminal(e.shiftKey ? -1 : 1);
+    return true;
+  }
+
+  // ⌘⇧] / ⌘⇧[ — next / previous terminal
+  if (withShift(e) && !e.altKey && (key === "]" || code === "BracketRight")) {
+    if (settings) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    void cycleTerminal(1);
+    return true;
+  }
+  if (withShift(e) && !e.altKey && (key === "[" || code === "BracketLeft")) {
+    if (settings) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    void cycleTerminal(-1);
     return true;
   }
 

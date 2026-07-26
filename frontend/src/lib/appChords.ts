@@ -25,6 +25,9 @@ export function isAppChord(e: KeyboardEvent): boolean {
     return false;
   }
 
+  // ⌃Tab / ⌃⇧Tab — next/prev terminal
+  if (e.ctrlKey && !e.metaKey && !e.altKey && (key === "Tab" || code === "Tab")) return true;
+
   // ⌘/Ctrl+Shift…
   if (e.shiftKey && !e.altKey) {
     if (key === "l" || code === "KeyL") return true; // split right
@@ -35,6 +38,9 @@ export function isAppChord(e: KeyboardEvent): boolean {
     if (key === "e" || code === "KeyE") return true; // rename project
     if (key === "o" || code === "KeyO") return true; // reveal
     if (key === "d" || code === "KeyD") return true; // theme
+    if (key === "]" || code === "BracketRight") return true; // next terminal
+    if (key === "[" || code === "BracketLeft") return true; // prev terminal
+    if (key === "Tab" || code === "Tab") return true;
     if (key === "Backspace" || code === "Backspace") return true; // delete terminal
     return false;
   }

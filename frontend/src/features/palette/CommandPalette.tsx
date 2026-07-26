@@ -64,6 +64,22 @@ export function CommandPalette() {
         run: async () => splitCurrent("vertical"),
       },
       {
+        id: "next-terminal",
+        label: "Next terminal",
+        run: async () => {
+          const { cycleTerminal } = await import("@/app/splitActions");
+          await cycleTerminal(1);
+        },
+      },
+      {
+        id: "prev-terminal",
+        label: "Previous terminal",
+        run: async () => {
+          const { cycleTerminal } = await import("@/app/splitActions");
+          await cycleTerminal(-1);
+        },
+      },
+      {
         id: "toggle-sidebar",
         label: "Toggle sidebar",
         run: async () => {
