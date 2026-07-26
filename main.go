@@ -4,7 +4,7 @@ import (
 	"embed"
 	"os"
 
-	"qterm/internal/agentbridge"
+	"qterm/internal/agentcli/bridge"
 	"qterm/internal/appmode"
 
 	"github.com/wailsapp/wails/v2"
@@ -21,7 +21,7 @@ var appIcon []byte
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		agentbridge.RunMCP()
+		bridge.RunMCP()
 		return
 	}
 

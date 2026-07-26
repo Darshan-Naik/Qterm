@@ -1,50 +1,3 @@
-export namespace agentbridge {
-	
-	export class CLIInfo {
-	    id: string;
-	    name: string;
-	    available: boolean;
-	    path: string;
-	    installed: boolean;
-	    version?: string;
-	    expectedVersion?: string;
-	    outdated?: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new CLIInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.available = source["available"];
-	        this.path = source["path"];
-	        this.installed = source["installed"];
-	        this.version = source["version"];
-	        this.expectedVersion = source["expectedVersion"];
-	        this.outdated = source["outdated"];
-	    }
-	}
-	export class InstallResult {
-	    cli: string;
-	    installed: boolean;
-	    message: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new InstallResult(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.cli = source["cli"];
-	        this.installed = source["installed"];
-	        this.message = source["message"];
-	    }
-	}
-
-}
-
 export namespace config {
 	
 	export class SplitNode {
@@ -222,6 +175,79 @@ export namespace config {
 	        this.sidebarWidth = source["sidebarWidth"];
 	        this.uiZoom = source["uiZoom"];
 	        this.collapsedProjects = source["collapsedProjects"];
+	    }
+	}
+
+}
+
+export namespace core {
+	
+	export class CLIInfo {
+	    id: string;
+	    name: string;
+	    available: boolean;
+	    path: string;
+	    installed: boolean;
+	    version?: string;
+	    expectedVersion?: string;
+	    outdated?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CLIInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.available = source["available"];
+	        this.path = source["path"];
+	        this.installed = source["installed"];
+	        this.version = source["version"];
+	        this.expectedVersion = source["expectedVersion"];
+	        this.outdated = source["outdated"];
+	    }
+	}
+	export class InstallResult {
+	    cli: string;
+	    installed: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InstallResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cli = source["cli"];
+	        this.installed = source["installed"];
+	        this.message = source["message"];
+	    }
+	}
+	export class Session {
+	    id: string;
+	    cli: string;
+	    cliName: string;
+	    title: string;
+	    cwd?: string;
+	    preview?: string;
+	    updatedAt: number;
+	    match?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Session(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.cli = source["cli"];
+	        this.cliName = source["cliName"];
+	        this.title = source["title"];
+	        this.cwd = source["cwd"];
+	        this.preview = source["preview"];
+	        this.updatedAt = source["updatedAt"];
+	        this.match = source["match"];
 	    }
 	}
 

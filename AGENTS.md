@@ -27,7 +27,15 @@ frontend/src/
   lib/           # shared domain logic (sessions, panes, utils)
   components/ui/ # shadcn primitives
   hooks/         # shared React hooks
+
+internal/agentcli/
+  core/          # Adapter interface, schema, shared install/hook helpers
+  cli/<name>/    # one folder per CLI (claude, codex, gemini, cursor, agy)
+  api.go         # app/bridge facade — ListCLIs, Install, ListSessions, Resume
+  bridge/        # HTTP hook server + stdio MCP
 ```
+
+App code talks to **agentcli** (not CLI paths). Resume = `adapter.Resume(id)` → open PTY → type command.
 
 ## Rules
 

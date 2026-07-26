@@ -15,6 +15,13 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     whenSettings: "block",
   },
   {
+    id: "agentSessions",
+    label: "Agent sessions",
+    description: "Resume a Claude / Codex / Gemini / Cursor session from disk",
+    group: "General",
+    whenSettings: "block",
+  },
+  {
     id: "findInTerminal",
     label: "Find in terminal",
     description: "Search within the focused terminal",
@@ -155,6 +162,7 @@ const modShift = (key: string, extra?: Partial<KeyChord>): KeyChord =>
 export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   commandPalette: [mod("k")],
   quickOpen: [mod("p")],
+  agentSessions: [modShift("a")],
   findInTerminal: [mod("f")],
   openSettings: [mod(",", { codes: ["Comma"] })],
   toggleTheme: [modShift("d")],

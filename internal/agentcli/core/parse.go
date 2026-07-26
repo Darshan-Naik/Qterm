@@ -1,4 +1,4 @@
-package agentbridge
+package core
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ func ParseHook(in ParseInput) []Intent {
 	switch normalizeEvent(in.Event) {
 	case "session_start", "before_agent", "pre_invocation":
 		out = []Intent{anim("thinking")}
-		// Some CLIs (Gemini/Agy) put the prompt on BeforeAgent / PreInvocation.
+		// Some CLIs put the prompt on agent-start events.
 		if prompt := promptFromRaw(in.Raw); prompt != "" {
 			if title := TitleFromPrompt(prompt); title != "" {
 				out = append(out, autoTitleIntent(in.Source, in.SessionID, title, in.Cwd))
@@ -46,7 +46,7 @@ func ParseHook(in ParseInput) []Intent {
 	case "stop_failure":
 		out = []Intent{anim("action_required")}
 	case "notification":
-		nType := firstString(in.Raw, "notification_type", "notificationType")
+		nType := FirstString(in.Raw, "notification_type", "notificationType")
 		switch nType {
 		case "permission_prompt", "agent_needs_input", "elicitation_dialog", "idle_prompt":
 			out = []Intent{anim("action_required")}
@@ -82,19 +82,19 @@ func sessionTitleFromRaw(raw map[string]any) string {
 	if raw == nil {
 		return ""
 	}
-	if t := firstString(raw,
+	if t := FirstString(raw,
 		"session_title", "sessionTitle",
 		"custom_title", "customTitle",
 	); t != "" {
 		return strings.TrimSpace(t)
 	}
-	if t := nestedString(raw, "session", "title"); t != "" {
+	if t := NestedString(raw, "session", "title"); t != "" {
 		return strings.TrimSpace(t)
 	}
-	if t := nestedString(raw, "session", "customTitle"); t != "" {
+	if t := NestedString(raw, "session", "customTitle"); t != "" {
 		return strings.TrimSpace(t)
 	}
-	if t := nestedString(raw, "session", "custom_title"); t != "" {
+	if t := NestedString(raw, "session", "custom_title"); t != "" {
 		return strings.TrimSpace(t)
 	}
 	return ""
@@ -177,7 +177,8 @@ func renameIntentWithCwd(hookID, sessionID, name, cwd string) Intent {
 	return intent
 }
 
-func firstString(m map[string]any, keys ...string) string {
+// FirstString returns the first non-empty string value for any of the keys.
+func FirstString(m map[string]any, keys ...string) string {
 	if m == nil {
 		return ""
 	}
@@ -189,7 +190,8 @@ func firstString(m map[string]any, keys ...string) string {
 	return ""
 }
 
-func nestedString(m map[string]any, path ...string) string {
+// NestedString walks nested map keys and returns a string leaf.
+func NestedString(m map[string]any, path ...string) string {
 	var cur any = m
 	for _, p := range path {
 		obj, ok := cur.(map[string]any)

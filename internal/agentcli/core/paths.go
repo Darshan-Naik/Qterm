@@ -1,4 +1,4 @@
-package agentbridge
+package core
 
 import (
 	"crypto/rand"
@@ -18,6 +18,7 @@ const (
 // so wails dev and the packaged app can run side by side.
 var DefaultPort = appmode.BridgePort
 
+// EndpointFile is the on-disk bridge endpoint published for CLI relays.
 type EndpointFile struct {
 	URL   string `json:"url"`
 	Token string `json:"token"`

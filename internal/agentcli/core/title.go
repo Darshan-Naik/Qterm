@@ -1,4 +1,4 @@
-package agentbridge
+package core
 
 import (
 	"fmt"
@@ -16,13 +16,13 @@ func promptFromRaw(raw map[string]any) string {
 	if raw == nil {
 		return ""
 	}
-	if p := firstString(raw, "prompt", "user_prompt", "userPrompt", "text", "message", "content"); p != "" {
+	if p := FirstString(raw, "prompt", "user_prompt", "userPrompt", "text", "message", "content"); p != "" {
 		return strings.TrimSpace(p)
 	}
-	if p := nestedString(raw, "input", "prompt"); p != "" {
+	if p := NestedString(raw, "input", "prompt"); p != "" {
 		return strings.TrimSpace(p)
 	}
-	if p := nestedString(raw, "prompt", "text"); p != "" {
+	if p := NestedString(raw, "prompt", "text"); p != "" {
 		return strings.TrimSpace(p)
 	}
 	return ""

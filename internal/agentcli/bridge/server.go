@@ -1,4 +1,4 @@
-package agentbridge
+package bridge
 
 import (
 	"context"
@@ -10,8 +10,12 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"qterm/internal/agentcli"
+	"qterm/internal/agentcli/core"
 )
 
+// ControlAPI is implemented by the app for MCP/HTTP tool calls.
 type ControlAPI interface {
 	CreateTerminal(projectID, name, cwd string) (map[string]any, error)
 	RenameTerminal(id, name string) error
@@ -25,11 +29,12 @@ type ControlAPI interface {
 	FocusSession(id string) error
 }
 
+// Server is the local HTTP hook + tools bridge.
 type Server struct {
 	dataDir  string
 	token    string
 	port     int
-	onIntent func(Intent)
+	onIntent func(core.Intent)
 	api      ControlAPI
 
 	mu   sync.Mutex
@@ -37,19 +42,18 @@ type Server struct {
 	seq  atomic.Uint64
 }
 
-func NewServer(dataDir string, onIntent func(Intent), api ControlAPI) (*Server, error) {
-	token, err := LoadOrCreateToken(dataDir)
+func NewServer(dataDir string, onIntent func(core.Intent), api ControlAPI) (*Server, error) {
+	token, err := core.LoadOrCreateToken(dataDir)
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{
+	return &Server{
 		dataDir:  dataDir,
 		token:    token,
-		port:     DefaultPort,
+		port:     core.DefaultPort,
 		onIntent: onIntent,
 		api:      api,
-	}
-	return s, nil
+	}, nil
 }
 
 func (s *Server) Start() error {
@@ -66,7 +70,7 @@ func (s *Server) Start() error {
 		}
 		s.port = ln.Addr().(*net.TCPAddr).Port
 	}
-	if err := WriteEndpoint(s.dataDir, s.port, s.token); err != nil {
+	if err := core.WriteEndpoint(s.dataDir, s.port, s.token); err != nil {
 		_ = ln.Close()
 		return err
 	}
@@ -130,12 +134,10 @@ func (s *Server) handleSourceHook(w http.ResponseWriter, r *http.Request) {
 	if raw == nil {
 		raw = map[string]any{}
 	}
-	// Authoritative identity from PTY env (relay forwards QTERM_SESSION_ID).
-	// Without it, ignore the hook — defense in depth if an old relay still POSTs
-	// from an agent started outside Qterm (cmux CMUX_SURFACE_ID pattern).
+
 	qtermID := strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id"))
 	if qtermID == "" {
-		qtermID = firstString(raw, "qterm_terminal_id", "QTERM_SESSION_ID")
+		qtermID = core.FirstString(raw, "qterm_terminal_id", "QTERM_SESSION_ID")
 	}
 	if qtermID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -144,17 +146,16 @@ func (s *Server) handleSourceHook(w http.ResponseWriter, r *http.Request) {
 	}
 	projectHint := strings.TrimSpace(r.Header.Get("X-Qterm-Project-Id"))
 
-	p, ok := FindBySource(source)
-	var intents []Intent
-	if ok {
-		intents = p.MapHook(raw)
+	var intents []core.Intent
+	if a, ok := agentcli.FindBySource(source); ok {
+		intents = a.MapHook(raw)
 	} else {
-		intents = ParseHook(ParseInput{
+		intents = core.ParseHook(core.ParseInput{
 			Source:    source,
 			Title:     source,
-			Event:     firstString(raw, "hook_event_name", "hookEventName", "event", "name"),
-			SessionID: firstString(raw, "session_id", "sessionId"),
-			Cwd:       firstString(raw, "cwd", "Cwd"),
+			Event:     core.FirstString(raw, "hook_event_name", "hookEventName", "event", "name"),
+			SessionID: core.FirstString(raw, "session_id", "sessionId"),
+			Cwd:       core.FirstString(raw, "cwd", "Cwd"),
 			Raw:       raw,
 		})
 	}

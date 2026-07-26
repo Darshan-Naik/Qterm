@@ -24,15 +24,38 @@ import { closeFocused, cycleFocus, cycleTerminal, splitFocused } from "@/app/spl
 
 const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   commandPalette: () => {
-    uiStore.set({ paletteOpen: true, quickOpen: false, terminalFindOpen: false });
+    uiStore.set({
+      paletteOpen: true,
+      quickOpen: false,
+      agentSessionsOpen: false,
+      terminalFindOpen: false,
+    });
   },
   quickOpen: () => {
-    uiStore.set({ quickOpen: true, paletteOpen: false, terminalFindOpen: false });
+    uiStore.set({
+      quickOpen: true,
+      paletteOpen: false,
+      agentSessionsOpen: false,
+      terminalFindOpen: false,
+    });
+  },
+  agentSessions: () => {
+    uiStore.set({
+      agentSessionsOpen: true,
+      paletteOpen: false,
+      quickOpen: false,
+      terminalFindOpen: false,
+    });
   },
   findInTerminal: () => {
     const { focusedSessionId, appMode } = uiStore.get();
     if (appMode !== "workspace" || !focusedSessionId) return;
-    uiStore.set({ terminalFindOpen: true, paletteOpen: false, quickOpen: false });
+    uiStore.set({
+      terminalFindOpen: true,
+      paletteOpen: false,
+      quickOpen: false,
+      agentSessionsOpen: false,
+    });
   },
   openSettings: () => openSettings(),
   toggleTheme: () => {

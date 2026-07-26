@@ -38,6 +38,10 @@ export function ListAgentCLIs() {
   return window['go']['main']['App']['ListAgentCLIs']();
 }
 
+export function ListAgentSessions(arg1, arg2) {
+  return window['go']['main']['App']['ListAgentSessions'](arg1, arg2);
+}
+
 export function ListProjects() {
   return window['go']['main']['App']['ListProjects']();
 }
@@ -76,6 +80,10 @@ export function ResizeSession(arg1, arg2, arg3) {
 
 export function ResolveHookIntent(arg1, arg2) {
   return window['go']['main']['App']['ResolveHookIntent'](arg1, arg2);
+}
+
+export function ResumeAgentSession(arg1, arg2) {
+  return window['go']['main']['App']['ResumeAgentSession'](arg1, arg2);
 }
 
 export function SaveActiveScope(arg1) {

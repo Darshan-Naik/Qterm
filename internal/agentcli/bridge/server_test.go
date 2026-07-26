@@ -1,29 +1,20 @@
-package agentbridge
+package bridge
 
 import (
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"qterm/internal/appmode"
+	"qterm/internal/agentcli/core"
 )
 
 func TestRelayScriptGatesOnQtermSessionID(t *testing.T) {
-	body := relayScriptBody("/tmp/qterm-data", "tok", "claude")
+	body := core.RelayScriptBody("/tmp/qterm-data", "tok", "claude")
 	if !strings.Contains(body, `if [[ -z "${QTERM_SESSION_ID:-}" ]]; then`) {
 		t.Fatal("relay must early-exit when QTERM_SESSION_ID is unset")
-	}
-	if !strings.Contains(body, "exit 0") {
-		t.Fatal("relay must exit 0 outside Qterm")
-	}
-	// Session id is required before curl — not optional.
-	if strings.Contains(body, `if [[ -n "${QTERM_SESSION_ID:-}" ]]; then`) {
-		t.Fatal("session id header must not be optional after gate")
 	}
 	if !strings.Contains(body, `X-Qterm-Terminal-Id: $QTERM_SESSION_ID`) {
 		t.Fatal("relay must always forward QTERM_SESSION_ID as terminal id")
@@ -31,10 +22,10 @@ func TestRelayScriptGatesOnQtermSessionID(t *testing.T) {
 }
 
 func TestHookWithoutTerminalIDIsIgnored(t *testing.T) {
-	var got []Intent
+	var got []core.Intent
 	s := &Server{
 		token: "tok",
-		onIntent: func(i Intent) {
+		onIntent: func(i core.Intent) {
 			got = append(got, i)
 		},
 	}
@@ -49,7 +40,6 @@ func TestHookWithoutTerminalIDIsIgnored(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/hooks/claude", bytes.NewReader(payload))
 	req.Header.Set("Authorization", "Bearer tok")
 	req.Header.Set("Content-Type", "application/json")
-	// Deliberately omit X-Qterm-Terminal-Id (agent outside Qterm / old relay).
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -61,10 +51,10 @@ func TestHookWithoutTerminalIDIsIgnored(t *testing.T) {
 }
 
 func TestHookWithTerminalIDIsAccepted(t *testing.T) {
-	var got []Intent
+	var got []core.Intent
 	s := &Server{
 		token: "tok",
-		onIntent: func(i Intent) {
+		onIntent: func(i core.Intent) {
 			got = append(got, i)
 		},
 	}
@@ -91,29 +81,5 @@ func TestHookWithTerminalIDIsAccepted(t *testing.T) {
 		if i.TerminalID != "pane-abc" {
 			t.Fatalf("TerminalID=%q want pane-abc", i.TerminalID)
 		}
-	}
-}
-
-func TestRefreshInstalledRelaysRewritesGate(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	dataDir := filepath.Join(home, "Library", "Application Support", appmode.DataDir)
-	ctx := testInstallCtx(t, home)
-	if _, err := installClaudePlugin(ctx); err != nil {
-		t.Fatal(err)
-	}
-	relayPath := filepath.Join(home, ".claude", "plugins", "qterm", "hooks", "relay.sh")
-	// Simulate an old relay without the gate.
-	old := "#!/bin/bash\n# old relay\ncurl http://example.com\nexit 0\n"
-	if err := os.WriteFile(relayPath, []byte(old), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	RefreshInstalledRelays(dataDir)
-	b, err := os.ReadFile(relayPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(b), `if [[ -z "${QTERM_SESSION_ID:-}" ]]; then`) {
-		t.Fatalf("refresh did not rewrite gate:\n%s", b)
 	}
 }

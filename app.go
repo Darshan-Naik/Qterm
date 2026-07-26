@@ -3,13 +3,17 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+	"time"
 
-	"qterm/internal/agentbridge"
+	"qterm/internal/agentcli"
+	"qterm/internal/agentcli/bridge"
 	"qterm/internal/appmode"
 	"qterm/internal/config"
 	"qterm/internal/git"
@@ -32,7 +36,7 @@ type App struct {
 	hooks            *hooks.Host
 	scrollback       *scrollback.Store
 	ptyOut           *ptyemit.Coalescer
-	bridge           *agentbridge.Server
+	bridge           *bridge.Server
 	shuttingDown     bool
 	focusedSessionID string
 	agentMu          sync.Mutex
@@ -372,6 +376,68 @@ func (a *App) SearchScrollback(query string, sessionIDs []string) []map[string]a
 		}
 	}
 	return out
+}
+
+// ListAgentSessions returns on-disk agent history (no plugin/PATH required).
+// Matches title first, then prompt/body text.
+func (a *App) ListAgentSessions(query, cliID string) []agentcli.AgentSession {
+	return agentcli.ListSessions(a.store.DataDir(), agentcli.SessionQuery{
+		Query: query,
+		CLI:   cliID,
+		Limit: 80,
+	})
+}
+
+// ResumeAgentSession asks the CLI adapter for the resume command, opens a
+// terminal in that cwd, and types the command to continue the session.
+func (a *App) ResumeAgentSession(cli, sessionID string) (SessionDTO, error) {
+	if cli == "" || sessionID == "" {
+		return SessionDTO{}, fmt.Errorf("missing agent session")
+	}
+	spec, err := agentcli.Resume(cli, sessionID)
+	if err != nil {
+		return SessionDTO{}, err
+	}
+	if strings.TrimSpace(spec.Command) == "" {
+		return SessionDTO{}, fmt.Errorf("adapter returned empty resume command")
+	}
+
+	projectID := ""
+	if spec.Cwd != "" {
+		for _, proj := range a.projects.List() {
+			if proj.Path == spec.Cwd {
+				projectID = proj.ID
+				break
+			}
+		}
+	}
+	name := strings.TrimSpace(spec.Title)
+	if name == "" {
+		if p, ok := agentcli.Find(cli); ok {
+			name = p.Name()
+		} else {
+			name = cli
+		}
+	}
+	if len(name) > 48 {
+		name = name[:45] + "…"
+	}
+
+	dto, err := a.CreateSession(projectID, name, spec.Cwd)
+	if err != nil {
+		return SessionDTO{}, err
+	}
+
+	cmd := spec.Command
+	if !strings.HasSuffix(cmd, "\n") {
+		cmd += "\n"
+	}
+	go func(id, payload string) {
+		time.Sleep(350 * time.Millisecond)
+		_ = a.WriteSession(id, payload)
+	}(dto.ID, cmd)
+
+	return dto, nil
 }
 
 // --- Projects ---

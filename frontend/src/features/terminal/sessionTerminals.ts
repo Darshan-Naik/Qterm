@@ -82,29 +82,40 @@ function isMouseReport(data: string): boolean {
 const PROTOCOL_NOISE_TOKEN =
   // Focus in/out (DECSET 1004)
   String.raw`\x1b\[[IO]|` +
-  // CSI ? … c  (Primary/Secondary Device Attributes)
-  String.raw`\x1b\[\?[\d;]*c|` +
+  // CSI ? … c / CSI > … c / CSI … c  (Primary/Secondary Device Attributes)
+  String.raw`\x1b\[[?>]?[\d;]*c|` +
   // CSI ? Pn ; Pn $ y  (DECRQM / mode status)
   String.raw`\x1b\[\?\d+[;:]\d+\$y|` +
-  // Cursor Position Report — reply to CSI 6 n (shows up as ;1R;1R… at the prompt)
+  // Cursor Position Report — reply to CSI 6 n
   String.raw`\x1b\[\d+;\d+R`;
 
-const PROTOCOL_NOISE_ONE = new RegExp(`^(?:${PROTOCOL_NOISE_TOKEN})$`);
-const PROTOCOL_NOISE_BURST = new RegExp(`^(?:${PROTOCOL_NOISE_TOKEN})+$`);
 const PROTOCOL_NOISE_STRIP = new RegExp(`(?:${PROTOCOL_NOISE_TOKEN})+`, "g");
+
+/**
+ * When ESC was already consumed (or a prior filter ate it), DA/CPR crumbs still
+ * land as printable junk: `1;2c`, `?1;2c`, `;1R`.
+ */
+const ORPHAN_PROTOCOL_NOISE =
+  /(?:\?\d+(?:;\d+)*c|>\d+(?:;\d+)*c|\d+(?:;\d+)+c|\d+;\d+R|;\d+R)+/g;
 
 /**
  * Auto replies xterm.js sends to the PTY (focus, DA, DECRQM, CPR). When a TUI
  * exits without consuming them, they land in the shell as garbage like
- * `^[[I^[[?1;2c^[[1;1R` or echoed crumbs `;1R;1R`.
+ * `^[[I^[[?1;2c` or echoed crumbs `1;2c` / `;1R`.
+ *
+ * Returns null when the whole payload should be dropped; otherwise the (possibly
+ * cleaned) bytes to forward.
  */
-function isTerminalProtocolNoise(data: string): boolean {
-  if (!data) return false;
-  if (PROTOCOL_NOISE_ONE.test(data) || PROTOCOL_NOISE_BURST.test(data)) return true;
-  // Burst with stray printable crumbs left from partial parses (* bm etc.)
-  const stripped = data.replace(PROTOCOL_NOISE_STRIP, "");
-  if (stripped !== data && /^[\x00-\x1f\s*]*$/.test(stripped)) return true;
-  return false;
+function filterTerminalProtocolNoise(data: string): string | null {
+  if (!data) return null;
+  if (isMouseReport(data)) return null;
+
+  const cleaned = data.replace(PROTOCOL_NOISE_STRIP, "").replace(ORPHAN_PROTOCOL_NOISE, "");
+  // Untouched → real keystrokes / paste (keep as-is, including Tab/Enter).
+  if (cleaned === data) return data;
+  // Removed protocol noise; drop if nothing meaningful remains.
+  if (!cleaned.replace(/[\x00-\x1f\s*]+/g, "")) return null;
+  return cleaned;
 }
 
 /** Turn off DEC mouse modes in the emulator only (does not write to the PTY). */
@@ -205,13 +216,19 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     // Shell (normal buffer) only: drop auto protocol replies / mouse reports that
     // TUIs leave pending so they don't type into the prompt. Keep them on the
     // alternate screen (vim, Claude, Antigravity, etc.).
+    let payload = data;
     if (term.buffer.active.type === "normal") {
-      if (isMouseReport(data) || isTerminalProtocolNoise(data)) {
+      const filtered = filterTerminalProtocolNoise(data);
+      if (filtered === null) {
         disableShellLeakingModes(term);
         return;
       }
+      if (filtered !== data) {
+        disableShellLeakingModes(term);
+        payload = filtered;
+      }
     }
-    const bytes = new TextEncoder().encode(data);
+    const bytes = new TextEncoder().encode(payload);
     void WriteSessionBytes(sessionId, b64encode(bytes));
   });
   entry = {
@@ -267,6 +284,8 @@ export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fon
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
+  // Keep focus/mouse reports off on the shell so window focus doesn't inject ^[[I / DA.
+  if (term.buffer.active.type === "normal") disableShellLeakingModes(term);
   requestAnimationFrame(() => {
     fit.fit();
     void ResizeSession(sessionId, term.cols, term.rows);
