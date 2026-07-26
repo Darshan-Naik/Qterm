@@ -29,14 +29,40 @@ function cssColor(name: string, fallback: string) {
 
 /** Terminal theme pulled from app CSS tokens so the pane blends with the chrome. */
 export function terminalThemeFromCss(): ITheme {
+  const fg = cssColor("--muted-foreground", "#a1a1a1");
+  const bg = cssColor("--background", "#252525");
   return {
-    background: cssColor("--background", "#252525"),
+    background: bg,
     foreground: cssColor("--foreground", "#fafafa"),
     cursor: cssColor("--primary", "#7c6cf0"),
     cursorAccent: cssColor("--primary-foreground", "#fafafa"),
     selectionBackground: cssColor("--accent", "#3a3480"),
     selectionForeground: cssColor("--accent-foreground", "#fafafa"),
+    // Hairline scrollbar (xterm custom slider — not native CSS scrollbar).
+    scrollbarSliderBackground: colorWithAlpha(fg, 0.28),
+    scrollbarSliderHoverBackground: colorWithAlpha(fg, 0.45),
+    scrollbarSliderActiveBackground: colorWithAlpha(fg, 0.6),
+    overviewRulerBorder: bg,
   };
+}
+
+function colorWithAlpha(color: string, alpha: number): string {
+  const c = color.trim();
+  if (c.startsWith("oklch(") || c.startsWith("rgb(") || c.startsWith("hsl(")) {
+    // Wrap via color-mix so we don't have to parse every CSS color space.
+    return `color-mix(in oklab, ${c} ${Math.round(alpha * 100)}%, transparent)`;
+  }
+  if (c.startsWith("#") && (c.length === 7 || c.length === 4)) {
+    const hex =
+      c.length === 4
+        ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}`
+        : c;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return c;
 }
 
 /** SGR / X10 / urxvt mouse reports that xterm emits when mouse tracking is on. */
@@ -51,26 +77,31 @@ function isMouseReport(data: string): boolean {
   );
 }
 
+/** CSI tokens xterm may auto-reply; TUIs often leave these pending on exit. */
+const PROTOCOL_NOISE_TOKEN =
+  // Focus in/out (DECSET 1004)
+  String.raw`\x1b\[[IO]|` +
+  // CSI ? … c  (Primary/Secondary Device Attributes)
+  String.raw`\x1b\[\?[\d;]*c|` +
+  // CSI ? Pn ; Pn $ y  (DECRQM / mode status)
+  String.raw`\x1b\[\?\d+[;:]\d+\$y|` +
+  // Cursor Position Report — reply to CSI 6 n (shows up as ;1R;1R… at the prompt)
+  String.raw`\x1b\[\d+;\d+R`;
+
+const PROTOCOL_NOISE_ONE = new RegExp(`^(?:${PROTOCOL_NOISE_TOKEN})$`);
+const PROTOCOL_NOISE_BURST = new RegExp(`^(?:${PROTOCOL_NOISE_TOKEN})+$`);
+const PROTOCOL_NOISE_STRIP = new RegExp(`(?:${PROTOCOL_NOISE_TOKEN})+`, "g");
+
 /**
- * Auto replies xterm.js sends to the PTY (focus, DA, DECRQM). When a TUI exits
- * without consuming them, they land in the shell as garbage like
- * `^[[I^[[?1;2c^[[?2026;2$y`.
+ * Auto replies xterm.js sends to the PTY (focus, DA, DECRQM, CPR). When a TUI
+ * exits without consuming them, they land in the shell as garbage like
+ * `^[[I^[[?1;2c^[[1;1R` or echoed crumbs `;1R;1R`.
  */
 function isTerminalProtocolNoise(data: string): boolean {
   if (!data) return false;
-  // Focus in/out (DECSET 1004)
-  if (data === "\x1b[I" || data === "\x1b[O") return true;
-  // CSI ? … c  (Primary/Secondary Device Attributes)
-  if (/^\x1b\[\?[\d;]*c$/.test(data)) return true;
-  // CSI ? Pn ; Pn $ y  or colon form (DECRQM / mode status)
-  if (/^\x1b\[\?\d+[;:]\d+\$y$/.test(data)) return true;
-  // Burst of the above (common right after an agent TUI exits)
-  if (/^(?:\x1b\[[IO]|\x1b\[\?[\d;]*c|\x1b\[\?\d+[;:]\d+\$y)+$/.test(data)) return true;
-  // Same burst with stray printable crumbs left from partial parses (* bm etc.)
-  const stripped = data.replace(
-    /(?:\x1b\[[IO]|\x1b\[\?[\d;]*c|\x1b\[\?\d+[;:]\d+\$y)+/g,
-    ""
-  );
+  if (PROTOCOL_NOISE_ONE.test(data) || PROTOCOL_NOISE_BURST.test(data)) return true;
+  // Burst with stray printable crumbs left from partial parses (* bm etc.)
+  const stripped = data.replace(PROTOCOL_NOISE_STRIP, "");
   if (stripped !== data && /^[\x00-\x1f\s*]*$/.test(stripped)) return true;
   return false;
 }
@@ -141,6 +172,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     theme: terminalThemeFromCss(),
     allowProposedApi: true,
     scrollback: 5000,
+    // Drives custom scrollbar width (defaults to 14px — looks bulky).
+    overviewRuler: { width: 4 },
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -149,6 +182,11 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   term.attachCustomKeyEventHandler((ev) => {
     if (ev.type !== "keydown") return true;
     return !isAppShortcut(ev);
+  });
+  // When a TUI leaves the alternate screen, clear focus/mouse modes it may
+  // have left on so later focus/CPR replies don't type into the shell.
+  term.buffer.onBufferChange((buf) => {
+    if (buf.type === "normal") disableShellLeakingModes(term);
   });
   const dataDisposable = term.onData((data) => {
     // Shell (normal buffer) only: drop auto protocol replies / mouse reports that
@@ -214,6 +252,7 @@ export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fon
   }
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
+  term.options.overviewRuler = { width: 4 };
   requestAnimationFrame(() => {
     fit.fit();
     void ResizeSession(sessionId, term.cols, term.rows);
@@ -245,5 +284,6 @@ export function refreshAllTerminalThemes() {
   const theme = terminalThemeFromCss();
   for (const entry of entries.values()) {
     entry.term.options.theme = theme;
+    entry.term.options.overviewRuler = { width: 4 };
   }
 }

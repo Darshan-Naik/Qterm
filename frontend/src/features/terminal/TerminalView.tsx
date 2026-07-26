@@ -64,7 +64,8 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   return (
     <div
       className={cn(
-        "relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-background px-2.5 pb-2.5 pt-0",
+        // Breathing room on all sides; right is tighter so the scrollbar sits near the edge without kissing the corner.
+        "relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-background pb-2.5 pl-2.5 pr-1 pt-0",
         paneAnim !== "none" && `pane-${paneAnim}`
       )}
       onMouseDown={() => {
@@ -72,7 +73,7 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
         void SetFocusedSession(sessionId);
       }}
     >
-      <div ref={hostRef} className="absolute inset-x-2.5 bottom-2.5 top-0 bg-background" />
+      <div ref={hostRef} className="absolute bottom-2.5 left-2.5 right-1 top-0 bg-background" />
     </div>
   );
 }

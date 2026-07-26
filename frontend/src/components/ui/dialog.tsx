@@ -10,13 +10,30 @@ export function DialogOverlay({ className, ...props }: React.ComponentProps<type
   return <DialogPrimitive.Overlay className={cn("fixed inset-0 z-50 bg-black/40", className)} {...props} />
 }
 
-export function DialogContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+export function DialogContent({
+  className,
+  children,
+  position = "center",
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /** `top` = Spotlight-style (command / quick open). */
+  position?: "center" | "top";
+}) {
   return (
     <DialogPrimitive.Portal>
-      <DialogOverlay />
+      <DialogOverlay
+        className={
+          position === "top"
+            ? "bg-background/40 backdrop-blur-md supports-[backdrop-filter]:bg-background/25"
+            : undefined
+        }
+      />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg bg-popover p-5 text-popover-foreground shadow-xl outline-none",
+          "fixed left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 gap-4 rounded-lg bg-popover p-5 text-popover-foreground shadow-xl outline-none",
+          position === "center" && "top-1/2 grid -translate-y-1/2",
+          position === "top" &&
+            "top-[max(5.5rem,20vh)] flex max-h-[calc(100vh-max(5.5rem,20vh)-20vh)] translate-y-0 flex-col overflow-hidden",
           className
         )}
         {...props}
