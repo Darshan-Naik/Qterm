@@ -100,6 +100,14 @@ export function CommandPalette() {
         run: async () => openSettings("appearance"),
       },
       {
+        id: "reload-window",
+        label: "Reload Window",
+        run: async () => {
+          const { WindowReloadApp } = await import("../../../wailsjs/runtime/runtime");
+          WindowReloadApp();
+        },
+      },
+      {
         id: "theme-dark",
         label: "Theme: Dark",
         run: async () => {
