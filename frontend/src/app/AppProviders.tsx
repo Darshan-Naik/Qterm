@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CommandPalette, QuickOpen, AgentSessions } from "@/features/palette";
-import { HookIntentListener } from "@/features/hooks";
+import { ConnectNudgeListener, HookIntentListener } from "@/features/hooks";
+import { ThemedToaster } from "./ThemedToaster";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -12,7 +12,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <QuickOpen />
       <AgentSessions />
       <HookIntentListener />
-      <Toaster richColors position="bottom-right" />
+      <ConnectNudgeListener />
+      <ThemedToaster />
     </TooltipProvider>
   );
 }

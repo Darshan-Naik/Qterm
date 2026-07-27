@@ -2,6 +2,7 @@ package project
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
 	"qterm/internal/config"
@@ -32,9 +33,10 @@ func (s *Service) Add(path, name string) (config.ProjectMeta, error) {
 		name = filepath.Base(abs)
 	}
 	p := config.ProjectMeta{
-		ID:   uuid.NewString(),
-		Name: name,
-		Path: abs,
+		ID:      uuid.NewString(),
+		Name:    name,
+		Path:    abs,
+		AddedAt: time.Now(),
 	}
 	err = s.store.Update(func(cfg *config.AppConfig) {
 		cfg.Projects = append(cfg.Projects, p)

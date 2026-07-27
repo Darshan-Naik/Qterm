@@ -57,19 +57,21 @@ type SplitNode struct {
 }
 
 type SessionMeta struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	ProjectID  string `json:"projectId"` // "" or "home" = unbound
-	Cwd        string `json:"cwd"`
-	Pinned     bool   `json:"pinned"`
-	NameLocked bool   `json:"nameLocked,omitempty"` // user renamed — skip auto title sync
-	AutoTitled bool   `json:"autoTitled,omitempty"` // first-prompt / agent title already applied
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	ProjectID  string    `json:"projectId"` // "" or "home" = unbound
+	Cwd        string    `json:"cwd"`
+	Pinned     bool      `json:"pinned"`
+	CreatedAt  time.Time `json:"createdAt,omitempty"` // when the terminal was started
+	NameLocked bool      `json:"nameLocked,omitempty"` // user renamed — skip auto title sync
+	AutoTitled bool      `json:"autoTitled,omitempty"` // first-prompt / agent title already applied
 }
 
 type ProjectMeta struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
+	ID      string    `json:"id"`
+	Name    string    `json:"name"`
+	Path    string    `json:"path"`
+	AddedAt time.Time `json:"addedAt,omitempty"` // when the project was added
 }
 
 type LayoutStore map[string]SplitNode // keyed by project id or "home"

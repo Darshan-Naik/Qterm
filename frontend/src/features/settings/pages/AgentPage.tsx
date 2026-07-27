@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { InstallAgentCLI, ListAgentCLIs, UninstallAgentCLI } from "../../../../wailsjs/go/main/App";
+import { connectSuccessToast } from "@/lib/agentConnect";
 import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
 import { SettingCard } from "../ui/SettingCard";
@@ -98,6 +99,9 @@ export function AgentPage() {
     try {
       await InstallAgentCLI(id);
       await refresh();
+      const name = clis.find((c) => c.id === id)?.name || id;
+      const msg = connectSuccessToast(name);
+      toast.success(msg.title, { description: msg.description, duration: 10000 });
     } catch (e: any) {
       toast.error(String(e?.message || e || "Connect failed"));
     } finally {

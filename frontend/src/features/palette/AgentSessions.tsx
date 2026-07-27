@@ -16,6 +16,7 @@ import {
   SetFocusedSession,
 } from "../../../wailsjs/go/main/App";
 import { focusSession, scopeKey } from "@/lib/sessions";
+import { sortProjectsByAdded } from "@/lib/sessionTitles";
 
 type AgentHit = {
   id: string;
@@ -196,7 +197,9 @@ export function AgentSessions() {
     if (!pending?.cwd) return;
     try {
       const p = await AddProject(pending.cwd, "");
-      uiStore.set({ projects: [...uiStore.get().projects, p] });
+      uiStore.set({
+        projects: sortProjectsByAdded([...uiStore.get().projects, p]),
+      });
       await openResumed(pending, p.id);
     } catch (e) {
       console.error(e);

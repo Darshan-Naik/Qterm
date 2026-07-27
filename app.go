@@ -42,6 +42,9 @@ type App struct {
 	agentMu          sync.Mutex
 	agentBind        map[string]string // CLI session id → Qterm session id (sticky)
 	agentLastQterm   string            // last Qterm pane that received agent activity
+	nudgeMu          sync.Mutex
+	nudgeSeen        map[string]struct{}   // sessionID\0cli — already nudged this run
+	nudgeTimers      map[string][]*time.Timer // sessionID → 10s/20s/50s checks
 }
 
 func NewApp() *App {
@@ -144,7 +147,7 @@ func (a *App) shutdown(ctx context.Context) {
 
 func (a *App) restoreSessions() {
 	cfg := a.store.Get()
-	for _, meta := range cfg.Sessions {
+	for i, meta := range cfg.Sessions {
 		if a.scrollback != nil {
 			a.scrollback.Load(meta.ID)
 		}
@@ -154,16 +157,26 @@ func (a *App) restoreSessions() {
 				cwd = p.Path
 			}
 		}
+		created := meta.CreatedAt
+		if created.IsZero() {
+			// Older configs: preserve prior config order as start time.
+			created = time.Unix(0, int64(i+1)*int64(time.Millisecond))
+		}
 		_, err := a.pty.Create(ptymgr.CreateOpts{
 			ID:        meta.ID,
 			Name:      meta.Name,
 			ProjectID: meta.ProjectID,
 			Cwd:       cwd,
 			Pinned:    meta.Pinned,
+			CreatedAt: created,
 		})
 		if err != nil {
 			println("restore session failed:", meta.ID, err.Error())
 		}
+	}
+	// Tell the UI restore finished — bootstrap may have raced ListSessions.
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "sessions:changed", nil)
 	}
 }
 
@@ -191,6 +204,7 @@ func (a *App) emitPtyData(sessionID string, data []byte) {
 }
 
 func (a *App) onPtyExit(sessionID string, code int) {
+	a.cancelConnectNudgeChecks(sessionID)
 	runtime.EventsEmit(a.ctx, "pty:exit", map[string]any{
 		"sessionId": sessionID,
 		"code":      code,
@@ -477,7 +491,19 @@ func (a *App) ActiveAgentBinds() map[string]string {
 // --- Projects ---
 
 func (a *App) ListProjects() []config.ProjectMeta {
-	return a.projects.List()
+	list := a.projects.List()
+	out := make([]config.ProjectMeta, len(list))
+	copy(out, list)
+	for i := range out {
+		if out[i].AddedAt.IsZero() {
+			// Older configs: preserve prior config order as added time.
+			out[i].AddedAt = time.Unix(0, int64(i+1)*int64(time.Millisecond))
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].AddedAt.Before(out[j].AddedAt)
+	})
+	return out
 }
 
 func (a *App) AddProject(path, name string) (config.ProjectMeta, error) {
@@ -505,47 +531,29 @@ func (a *App) GetGitStatus(path string) git.Status {
 // --- Sessions / PTY ---
 
 type SessionDTO struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	ProjectID string `json:"projectId"`
-	Cwd       string `json:"cwd"`
-	Pinned    bool   `json:"pinned"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	ProjectID string    `json:"projectId"`
+	Cwd       string    `json:"cwd"`
+	Pinned    bool      `json:"pinned"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func sessionDTO(s *ptymgr.Session) SessionDTO {
+	return SessionDTO{
+		ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned, CreatedAt: s.CreatedAt,
+	}
 }
 
 func (a *App) ListSessions() []SessionDTO {
 	live := a.pty.List()
-	byID := make(map[string]*ptymgr.Session, len(live))
-	for _, s := range live {
-		byID[s.ID] = s
-	}
 	out := make([]SessionDTO, 0, len(live))
-	seen := make(map[string]bool, len(live))
-	// Preserve config order (creation order) — never sort by name.
-	for _, meta := range a.store.Get().Sessions {
-		s, ok := byID[meta.ID]
-		if !ok {
-			continue
-		}
-		out = append(out, SessionDTO{
-			ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned,
-		})
-		seen[s.ID] = true
-	}
-	// Live sessions missing from config (rare) append in creation order.
-	extras := make([]*ptymgr.Session, 0)
 	for _, s := range live {
-		if !seen[s.ID] {
-			extras = append(extras, s)
-		}
+		out = append(out, sessionDTO(s))
 	}
-	sort.Slice(extras, func(i, j int) bool {
-		return extras[i].CreatedAt.Before(extras[j].CreatedAt)
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
 	})
-	for _, s := range extras {
-		out = append(out, SessionDTO{
-			ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned,
-		})
-	}
 	return out
 }
 
@@ -561,25 +569,22 @@ func (a *App) CreateSession(projectID, name, cwd string) (SessionDTO, error) {
 	if err != nil {
 		return SessionDTO{}, err
 	}
-	dto := SessionDTO{ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned}
+	dto := sessionDTO(sess)
 	_ = a.store.Update(func(cfg *config.AppConfig) {
-		upsert := true
+		meta := config.SessionMeta{
+			ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned, CreatedAt: sess.CreatedAt,
+		}
 		for i := range cfg.Sessions {
 			if cfg.Sessions[i].ID == sess.ID {
-				cfg.Sessions[i] = config.SessionMeta{
-					ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned,
-				}
-				upsert = false
-				break
+				cfg.Sessions[i] = meta
+				return
 			}
 		}
-		if upsert {
-			cfg.Sessions = append(cfg.Sessions, config.SessionMeta{
-				ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned,
-			})
-		}
+		cfg.Sessions = append(cfg.Sessions, meta)
 	})
 	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
+	// New terminal → queue 10s / 20s / 50s agent-CLI checks.
+	a.enqueueConnectNudgeChecks(sess.ID)
 	return dto, nil
 }
 
@@ -602,6 +607,7 @@ func (a *App) ResizeSession(id string, cols, rows int) error {
 func (a *App) KillSession(id string) error {
 	// Persist removal before kill so onPtyExit doesn't race incorrectly.
 	a.removeSessionMeta(id)
+	a.cancelConnectNudgeChecks(id)
 	err := a.pty.Kill(id)
 	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
 	return err

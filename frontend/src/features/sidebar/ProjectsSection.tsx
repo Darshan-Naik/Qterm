@@ -6,6 +6,7 @@ import { uiStore, useUI } from "@/store/ui";
 import { AddProject, PickFolder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { createTerminal, isUnbound } from "@/lib/sessions";
+import { sortProjectsByAdded } from "@/lib/sessionTitles";
 import { ProjectRow } from "./ProjectRow";
 
 export function ProjectsSection() {
@@ -31,7 +32,9 @@ export function ProjectsSection() {
               const path = await PickFolder();
               if (!path) return;
               const p = await AddProject(path, "");
-              uiStore.set({ projects: [...uiStore.get().projects, p] });
+              uiStore.set({
+                projects: sortProjectsByAdded([...uiStore.get().projects, p]),
+              });
               await createTerminal(p.id);
             }}
           >
