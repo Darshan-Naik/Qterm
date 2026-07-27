@@ -66,6 +66,8 @@ func (a *App) startup(ctx context.Context) {
 
 	a.ptyOut = ptyemit.New(a.emitPtyData)
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
+	// Finder-launched apps miss Homebrew/nvm PATH — enrich before CLI detection.
+	agentcli.EnsureUserPath()
 	a.projects = project.NewService(store)
 	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
 	a.startAgentBridge()

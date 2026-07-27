@@ -35,6 +35,9 @@ const (
 
 func PluginVersion() string { return core.PluginVersion() }
 
+// EnsureUserPath merges login-shell / Homebrew paths into PATH for GUI launches.
+func EnsureUserPath() { core.EnsureUserPath() }
+
 // All returns every registered CLI adapter.
 func All() []core.Adapter {
 	return []core.Adapter{

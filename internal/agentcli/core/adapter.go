@@ -90,7 +90,9 @@ func (info *CLIInfo) ApplyConnectionVersion(recorded string) {
 }
 
 // LookPath finds the first binary on PATH from the given names.
+// Ensures the GUI process PATH has been enriched before searching.
 func LookPath(binaries []string) (path string, ok bool) {
+	EnsureUserPath()
 	for _, bin := range binaries {
 		if path, err := exec.LookPath(bin); err == nil {
 			return path, true
