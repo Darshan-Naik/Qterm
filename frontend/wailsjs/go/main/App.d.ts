@@ -37,6 +37,8 @@ export function PickFolder():Promise<string>;
 
 export function PromoteSession(arg1:string,arg2:string):Promise<void>;
 
+export function Ready():Promise<boolean>;
+
 export function RemoveProject(arg1:string):Promise<void>;
 
 export function RenameProject(arg1:string,arg2:string):Promise<void>;
