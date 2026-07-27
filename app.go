@@ -43,7 +43,7 @@ type App struct {
 	agentBind        map[string]string // CLI session id → Qterm session id (sticky)
 	agentLastQterm   string            // last Qterm pane that received agent activity
 	nudgeMu          sync.Mutex
-	nudgeSeen        map[string]struct{}   // sessionID\0cli — already nudged this run
+	nudgeSeen        map[string]struct{}      // sessionID\0cli — already nudged
 	nudgeTimers      map[string][]*time.Timer // sessionID → 10s/20s/50s checks
 }
 
@@ -583,7 +583,7 @@ func (a *App) CreateSession(projectID, name, cwd string) (SessionDTO, error) {
 		cfg.Sessions = append(cfg.Sessions, meta)
 	})
 	runtime.EventsEmit(a.ctx, "sessions:changed", nil)
-	// New terminal → queue 10s / 20s / 50s agent-CLI checks.
+	// New terminal → queue 10s / 20s / 50s connect-nudge checks.
 	a.enqueueConnectNudgeChecks(sess.ID)
 	return dto, nil
 }

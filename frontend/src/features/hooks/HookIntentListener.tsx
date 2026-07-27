@@ -61,18 +61,20 @@ export function HookIntentListener() {
         const state = (intent.payload?.state as AnimateState) || "none";
         if (!sessionId) return;
 
-        if (agent) {
+        if (agent && state !== "none") {
           const agents = { ...uiStore.get().sessionAgents };
-          // Keep the CLI brand sticky for the session; only overwrite when a
-          // real agent id arrives (don't clear on animate "none").
-          if (state !== "none") {
-            agents[sessionId] = agent;
-            uiStore.set({ sessionAgents: agents });
-          }
+          agents[sessionId] = agent;
+          uiStore.set({ sessionAgents: agents });
         }
 
         if (state === "none") {
           clearAnim(sessionId);
+          // SessionEnd hook → back to terminal icon.
+          const agents = { ...uiStore.get().sessionAgents };
+          if (agents[sessionId]) {
+            delete agents[sessionId];
+            uiStore.set({ sessionAgents: agents });
+          }
           return;
         }
         // Don't downgrade action_required with a fleeting thinking pulse.
