@@ -3,6 +3,7 @@ import { applyTheme, useUI } from "@/store/ui";
 import { hydrateWorkspace } from "./hydrateWorkspace";
 import { splitFocused } from "./splitActions";
 import { subscribeAppEvents } from "./subscribeAppEvents";
+import { subscribeFileDrop } from "./subscribeFileDrop";
 
 /** App shell bootstrap: hydrate store, subscribe to backend events, keep theme in sync. */
 export function useAppBootstrap() {
@@ -19,7 +20,12 @@ export function useAppBootstrap() {
 
   useEffect(() => {
     void hydrateWorkspace();
-    return subscribeAppEvents();
+    const offEvents = subscribeAppEvents();
+    const offDrop = subscribeFileDrop();
+    return () => {
+      offEvents();
+      offDrop();
+    };
   }, []);
 
   useEffect(() => {

@@ -39,6 +39,10 @@ func main() {
 		BackgroundColour: &options.RGBA{R: 37, G: 37, B: 37, A: 1},
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
+		DragAndDrop: &options.DragAndDrop{
+			EnableFileDrop:     true,
+			DisableWebViewDrop: true, // don't let WKWebView navigate to file://
+		},
 		Bind: []interface{}{
 			app,
 		},

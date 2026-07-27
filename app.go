@@ -102,7 +102,6 @@ func (a *App) setupMenu() {
 
 	items := []*menu.MenuItem{
 		menu.SubMenu(appmode.AppTitle, app),
-		menu.EditMenu(),
 		menu.WindowMenu(),
 	}
 	// Developer tools only when the inspector is compiled in (wails dev / debug / --devtools).
