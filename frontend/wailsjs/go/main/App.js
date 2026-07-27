@@ -66,6 +66,10 @@ export function PromoteSession(arg1, arg2) {
   return window['go']['main']['App']['PromoteSession'](arg1, arg2);
 }
 
+export function Ready() {
+  return window['go']['main']['App']['Ready']();
+}
+
 export function RemoveProject(arg1) {
   return window['go']['main']['App']['RemoveProject'](arg1);
 }

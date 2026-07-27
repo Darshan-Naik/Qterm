@@ -45,6 +45,7 @@ type App struct {
 	nudgeMu          sync.Mutex
 	nudgeSeen        map[string]struct{}      // sessionID\0cli — already nudged
 	nudgeTimers      map[string][]*time.Timer // sessionID → 10s/20s/50s checks
+	ready            bool
 }
 
 func NewApp() *App {
@@ -53,12 +54,14 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.ready = false
 	setDockIcon(appIcon)
 	store, err := config.NewStore()
 	if err != nil {
 		panic(err)
 	}
 	a.store = store
+	a.projects = project.NewService(store)
 	cfg := store.Get()
 
 	sb, err := scrollback.NewStore(filepath.Join(store.DataDir(), "scrollback"))
@@ -71,13 +74,30 @@ func (a *App) startup(ctx context.Context) {
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
 	// Finder-launched apps miss Homebrew/nvm PATH — enrich before CLI detection.
 	agentcli.EnsureUserPath()
-	a.projects = project.NewService(store)
 	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
 	a.startAgentBridge()
 
 	// Recreate terminals from last session
 	a.restoreSessions()
 	a.setupMenu()
+	a.ready = true
+	// Best-effort notify; DomReady also emits (EventsEmit is reliable there).
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "app:ready", nil)
+	}
+}
+
+// domReady runs after index.html loads — reliable place to emit runtime events.
+func (a *App) domReady(ctx context.Context) {
+	a.ctx = ctx
+	if a.ready {
+		runtime.EventsEmit(ctx, "app:ready", nil)
+	}
+}
+
+// Ready reports whether Go startup finished (store / projects / pty).
+func (a *App) Ready() bool {
+	return a != nil && a.ready
 }
 
 func (a *App) setupMenu() {
@@ -278,6 +298,9 @@ func (a *App) onHookIntent(intent hooks.Intent) {
 // --- Config ---
 
 func (a *App) GetConfig() config.AppConfig {
+	if a.store == nil {
+		return config.DefaultConfig()
+	}
 	return a.store.Get()
 }
 
@@ -330,6 +353,9 @@ func (a *App) SaveLayout(key string, layout config.SplitNode) error {
 }
 
 func (a *App) GetLayout(key string) config.SplitNode {
+	if a.store == nil {
+		return config.SplitNode{}
+	}
 	layouts := a.store.Get().Layouts
 	if layouts == nil {
 		return config.SplitNode{}
@@ -490,6 +516,9 @@ func (a *App) ActiveAgentBinds() map[string]string {
 // --- Projects ---
 
 func (a *App) ListProjects() []config.ProjectMeta {
+	if a.projects == nil {
+		return []config.ProjectMeta{}
+	}
 	list := a.projects.List()
 	out := make([]config.ProjectMeta, len(list))
 	copy(out, list)
@@ -545,6 +574,9 @@ func sessionDTO(s *ptymgr.Session) SessionDTO {
 }
 
 func (a *App) ListSessions() []SessionDTO {
+	if a.pty == nil {
+		return []SessionDTO{}
+	}
 	live := a.pty.List()
 	out := make([]SessionDTO, 0, len(live))
 	for _, s := range live {

@@ -11,6 +11,7 @@ import {
   type ThemeMode,
 } from "@/store/ui";
 import { GetConfig, ListProjects, ListSessions } from "../../wailsjs/go/main/App";
+import { whenAppReady } from "./whenAppReady";
 
 function toSessionInfo(s: {
   id: string;
@@ -32,14 +33,17 @@ function toSessionInfo(s: {
 
 /** Load config → seed UI → sync live PTYs → restore focus (or create first terminal). */
 export async function hydrateWorkspace() {
+  await whenAppReady();
+
   const cfg = await GetConfig();
   const themeMode = ((cfg.theme as ThemeMode) || "system") as ThemeMode;
   applyTheme(themeMode);
   applyConfigChrome(cfg);
 
-  const cfgSessions = sortSessionsByStart((cfg.sessions || []).map(toSessionInfo));
-  const cfgProjects = sortProjectsByAdded(cfg.projects || []);
-  // Seed from config first so the sidebar isn't empty if ListSessions races restore.
+  const rawProjects = Array.isArray(cfg.projects) ? cfg.projects : [];
+  const rawSessions = Array.isArray(cfg.sessions) ? cfg.sessions : [];
+  const cfgSessions = sortSessionsByStart(rawSessions.map(toSessionInfo));
+  const cfgProjects = sortProjectsByAdded(rawProjects);
   uiStore.set({
     theme: themeMode,
     fontSize: clampFontSize(cfg.fontSize),
@@ -49,17 +53,14 @@ export async function hydrateWorkspace() {
     sessions: cfgSessions,
     keybindings: sanitizeKeybindings(cfg.keybindings),
   });
+  // Persist chrome after seed — never before, and never block listing.
   void persistUIPrefs();
 
-  let [projects, sessions] = await Promise.all([ListProjects(), ListSessions()]);
-  if (!(sessions || []).length && cfgSessions.length) {
-    await new Promise((r) => setTimeout(r, 150));
-    sessions = await ListSessions();
-  }
-
-  const live = mapLiveSessions(sessions || [], uiStore.get().sessions);
+  const [projects, sessions] = await Promise.all([ListProjects(), ListSessions()]);
+  const live = mapLiveSessions(Array.isArray(sessions) ? sessions : [], uiStore.get().sessions);
+  const nextProjects = Array.isArray(projects) && projects.length ? sortProjectsByAdded(projects) : cfgProjects;
   uiStore.set({
-    projects: sortProjectsByAdded(projects || []),
+    projects: nextProjects,
     sessions: live.length ? live : cfgSessions,
   });
 
