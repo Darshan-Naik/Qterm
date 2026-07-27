@@ -221,24 +221,6 @@ input[type="number"]::-webkit-outer-spin-button {
   position: absolute !important;
 }
 
-@keyframes pulse-action {
-  0%,
-  100% {
-    outline: 1px solid transparent;
-  }
-  50% {
-    outline: 1px solid color-mix(in oklab, var(--primary) 55%, transparent);
-  }
-}
-@keyframes pulse-complete {
-  0%,
-  100% {
-    outline: 1px solid transparent;
-  }
-  50% {
-    outline: 1px solid color-mix(in oklab, #3dbf7a 60%, transparent);
-  }
-}
 @keyframes session-row-breathe {
   0%,
   100% {
@@ -257,13 +239,6 @@ input[type="number"]::-webkit-outer-spin-button {
     background-color: color-mix(in oklab, rgb(251 191 36) 16%, transparent);
   }
 }
-.pane-action_required {
-  animation: pulse-action 1.2s ease-in-out 4;
-}
-.pane-task_complete {
-  animation: pulse-complete 1s ease-in-out 3;
-}
-/* thinking stays in the sidebar row only — never opacity-pulse the terminal pane */
 .session-thinking {
   animation: session-row-breathe 1.6s ease-in-out infinite;
 }

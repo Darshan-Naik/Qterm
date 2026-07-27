@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ResizeSession, SetFocusedSession } from "../../../wailsjs/go/main/App";
 import { uiStore, useUI } from "@/store/ui";
-import { cn } from "@/lib/utils";
 import {
   attachTerminal,
   detachTerminal,
@@ -16,7 +15,6 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
   const fontSize = useUI((s) => s.fontSize);
   const uiZoom = useUI((s) => s.uiZoom);
   const focusedPaneId = useUI((s) => s.focusedPaneId);
-  const anim = useUI((s) => s.paneAnimations[sessionId] || "none");
   const findOpen = useUI((s) => s.terminalFindOpen && s.focusedSessionId === sessionId);
 
   useEffect(() => {
@@ -59,17 +57,10 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
     if (focusedPaneId === paneId && !findOpen) focusTerminal(sessionId);
   }, [focusedPaneId, paneId, sessionId, findOpen]);
 
-  // Pane chrome only for finite attention cues. "thinking" is sidebar-only —
-  // opacity-pulsing the whole terminal on first prompt is distracting.
-  const paneAnim = anim === "action_required" || anim === "task_complete" ? anim : "none";
-
   return (
     <div
-      className={cn(
-        // Breathing room on all sides; right is tighter so the scrollbar sits near the edge without kissing the corner.
-        "relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-background pb-2.5 pl-2.5 pr-1 pt-0",
-        paneAnim !== "none" && `pane-${paneAnim}`
-      )}
+      data-session-id={sessionId}
+      className="relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-background pb-2.5 pl-2.5 pr-1 pt-0"
       onMouseDown={() => {
         uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId });
         void SetFocusedSession(sessionId);
