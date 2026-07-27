@@ -120,9 +120,21 @@ func (a *App) setupMenu() {
 		runtime.Quit(a.ctx)
 	})
 
+	win := menu.NewMenu()
+	win.AddText("Minimize", keys.CmdOrCtrl("m"), func(_ *menu.CallbackData) {
+		runtime.WindowMinimise(a.ctx)
+	})
+	win.AddText("Zoom", nil, func(_ *menu.CallbackData) {
+		runtime.WindowToggleMaximise(a.ctx)
+	})
+	win.AddSeparator()
+	win.AddText("Reload Window", nil, func(_ *menu.CallbackData) {
+		runtime.WindowReloadApp(a.ctx)
+	})
+
 	items := []*menu.MenuItem{
 		menu.SubMenu(appmode.AppTitle, app),
-		menu.WindowMenu(),
+		menu.SubMenu("Window", win),
 	}
 	// Developer tools only when the inspector is compiled in (wails dev / debug / --devtools).
 	if appmode.IsDev {

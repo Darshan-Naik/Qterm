@@ -1,18 +1,42 @@
 import { Ready } from "../../wailsjs/go/main/App";
+import { EventsOn } from "../../wailsjs/runtime/runtime";
+
+const POLL_MS = 16;
+
+async function isAppReady(): Promise<boolean> {
+  try {
+    return Boolean(await Ready());
+  } catch {
+    return false;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function waitForReadyEvent(): Promise<void> {
+  return new Promise((resolve) => {
+    const off = (EventsOn as any)("app:ready", () => {
+      if (typeof off === "function") off();
+      resolve();
+    }) as (() => void) | undefined;
+  });
+}
+
+async function pollUntilReady(): Promise<void> {
+  while (!(await isAppReady())) {
+    await sleep(POLL_MS);
+  }
+}
 
 /**
- * Wait until Go OnStartup finished (a.ready).
- *
- * Don't rely only on EventsEmit("app:ready"): in wails dev, DomReady can fire
- * once and HMR remounts later — the event is already gone. Poll Ready() instead.
+ * Wait until Go OnStartup finished (`Ready()`).
+ * Prefers `app:ready` from OnDomReady; polls as fallback for wails-dev HMR
+ * (event can fire before the listener is registered).
  */
 export async function whenAppReady(): Promise<void> {
-  for (;;) {
-    try {
-      if (await Ready()) return;
-    } catch {
-      /* bindings not up yet */
-    }
-    await new Promise((r) => setTimeout(r, 16));
-  }
+  if (await isAppReady()) return;
+
+  await Promise.race([waitForReadyEvent(), pollUntilReady()]);
 }
