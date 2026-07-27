@@ -76,7 +76,9 @@ export async function createTerminal(projectId: string, name?: string) {
     projectId: sess.projectId || "",
     cwd: sess.cwd,
     pinned: sess.pinned,
+    createdAt: sess.createdAt,
   };
+  // Backend sorts by start time; append until sessions:changed refreshes.
   const sessions = [...uiStore.get().sessions.filter((s) => s.id !== info.id), info];
   const n = leaf(info.id);
   uiStore.set({

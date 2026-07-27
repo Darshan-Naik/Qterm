@@ -26,6 +26,14 @@ type Session struct {
 	closed bool
 }
 
+// ShellPID is the login shell process for this session (0 if unknown).
+func (s *Session) ShellPID() int {
+	if s == nil || s.cmd == nil || s.cmd.Process == nil {
+		return 0
+	}
+	return s.cmd.Process.Pid
+}
+
 type DataHandler func(sessionID string, data []byte)
 type ExitHandler func(sessionID string, code int)
 
@@ -73,6 +81,7 @@ type CreateOpts struct {
 	ProjectID string
 	Cwd       string
 	Pinned    bool
+	CreatedAt time.Time // zero → now
 }
 
 func (m *Manager) Create(opts CreateOpts) (*Session, error) {
@@ -90,6 +99,10 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 		if err == nil {
 			cwd = home
 		}
+	}
+	created := opts.CreatedAt
+	if created.IsZero() {
+		created = time.Now()
 	}
 
 	m.mu.RLock()
@@ -122,7 +135,7 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 		ProjectID: opts.ProjectID,
 		Cwd:       cwd,
 		Pinned:    opts.Pinned,
-		CreatedAt: time.Now(),
+		CreatedAt: created,
 		cmd:       cmd,
 		ptmx:      ptmx,
 	}
@@ -232,6 +245,31 @@ func (m *Manager) List() []*Session {
 	out := make([]*Session, 0, len(m.sessions))
 	for _, s := range m.sessions {
 		out = append(out, s)
+	}
+	return out
+}
+
+// ShellPID returns the shell PID for a live session, or 0 if missing.
+func (m *Manager) ShellPID(id string) (int, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	s, ok := m.sessions[id]
+	if !ok {
+		return 0, false
+	}
+	pid := s.ShellPID()
+	return pid, pid > 0
+}
+
+// ShellPIDs returns sessionID → shell PID for live sessions.
+func (m *Manager) ShellPIDs() map[string]int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make(map[string]int, len(m.sessions))
+	for id, s := range m.sessions {
+		if pid := s.ShellPID(); pid > 0 {
+			out[id] = pid
+		}
 	}
 	return out
 }

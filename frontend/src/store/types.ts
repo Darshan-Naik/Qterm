@@ -25,12 +25,16 @@ export type SessionInfo = {
   projectId: string;
   cwd: string;
   pinned?: boolean;
+  /** ISO start time — sidebar sorts oldest → newest. */
+  createdAt?: string;
 };
 
 export type ProjectInfo = {
   id: string;
   name: string;
   path: string;
+  /** ISO — sidebar sorts oldest → newest by when added. */
+  addedAt?: string;
 };
 
 export type HookIntent = {
