@@ -26,14 +26,6 @@ type Session struct {
 	closed bool
 }
 
-// ShellPID is the login shell process for this session (0 if unknown).
-func (s *Session) ShellPID() int {
-	if s == nil || s.cmd == nil || s.cmd.Process == nil {
-		return 0
-	}
-	return s.cmd.Process.Pid
-}
-
 type DataHandler func(sessionID string, data []byte)
 type ExitHandler func(sessionID string, code int)
 
@@ -257,21 +249,11 @@ func (m *Manager) ShellPID(id string) (int, bool) {
 	if !ok {
 		return 0, false
 	}
-	pid := s.ShellPID()
-	return pid, pid > 0
-}
-
-// ShellPIDs returns sessionID → shell PID for live sessions.
-func (m *Manager) ShellPIDs() map[string]int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	out := make(map[string]int, len(m.sessions))
-	for id, s := range m.sessions {
-		if pid := s.ShellPID(); pid > 0 {
-			out[id] = pid
-		}
+	if s.cmd == nil || s.cmd.Process == nil {
+		return 0, false
 	}
-	return out
+	pid := s.cmd.Process.Pid
+	return pid, pid > 0
 }
 
 func (m *Manager) CloseAll() {

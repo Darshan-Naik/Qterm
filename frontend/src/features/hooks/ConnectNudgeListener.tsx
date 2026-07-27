@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { InstallAgentCLI } from "../../../wailsjs/go/main/App";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
-import { uiStore } from "@/store/ui";
 import { agentLabel } from "@/features/sidebar/AgentIcon";
 import { connectSuccessToast, isCliNudgeSnoozed, snoozeCliNudge } from "@/lib/agentConnect";
 
@@ -13,8 +12,8 @@ type Nudge = {
 };
 
 /**
- * When a new terminal's process tree looks agentic and the CLI isn't connected,
- * nudge once with a toast (Connect / Not now). Scans are queued in Go at 10/20/50s.
+ * Unconnected agent CLI running in a new terminal → Connect toast.
+ * Icons stay hook-only; this listener does not touch sessionAgents.
  */
 export function ConnectNudgeListener() {
   useEffect(() => {
@@ -24,14 +23,6 @@ export function ConnectNudgeListener() {
       if (isCliNudgeSnoozed(cli)) return;
 
       const name = (raw.cliName || "").trim() || agentLabel(cli);
-      const sessionId = String(raw.sessionId || "");
-      if (sessionId) {
-        const agents = { ...uiStore.get().sessionAgents };
-        if (!agents[sessionId]) {
-          agents[sessionId] = cli;
-          uiStore.set({ sessionAgents: agents });
-        }
-      }
 
       toast.message(`${name} is running`, {
         id: `connect-nudge-${cli}`,
