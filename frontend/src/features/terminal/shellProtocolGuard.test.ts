@@ -267,13 +267,16 @@ describe("shell protocol guard (xterm)", () => {
     term.dispose();
   });
 
-  it("drops real xterm mouse reports on normal with session onData wiring", async () => {
+  it("never generates mouse reports on normal — even if force-armed", async () => {
     const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
     installShellProtocolGuard(term);
 
     const forwarded: string[] = [];
+    const rawData: string[] = [];
+    const rawBinary: string[] = [];
     // Same pattern as sessionTerminals.ts
     term.onData((data) => {
+      rawData.push(data);
       if (!shouldForwardToPty(term, data)) return;
       forwarded.push(data);
     });
@@ -281,41 +284,83 @@ describe("shell protocol guard (xterm)", () => {
       term as unknown as { onBinary: (cb: (d: string) => void) => { dispose(): void } }
     ).onBinary;
     onBinary((data) => {
+      rawBinary.push(data);
       if (!shouldForwardToPty(term, data)) return;
       forwarded.push(data);
     });
 
-    // Attempt to arm mouse on normal — must stay disarmed.
+    // Attempt to arm mouse via DECSET on normal — must stay disarmed.
     await write(term, "\x1b[?1003h\x1b[?1006h");
     assert.equal(term.modes.mouseTrackingMode, "none");
-    assert.equal(triggerMotion(term), false, "disarmed terminal must not emit mouse reports");
+    assert.equal(triggerMotion(term), false);
+    assert.deepEqual(rawData, []);
+    assert.deepEqual(rawBinary, []);
+    assert.deepEqual(forwarded, []);
 
-    // Even if something force-arms tracking, core intercept must swallow reports
-    // before onData/onBinary listeners (so WriteSessionBytes never sees them).
+    // Force-arm tracking the way a buggy path might (bypass DECSET).
+    // Generation must still stop: triggerMouseEvent returns false, emits nothing.
     const mouse = coreMouse(term);
-    const raw: string[] = [];
-    const rawSub = term.onData((d) => raw.push(d));
     mouse.activeProtocol = "ANY";
     mouse.activeEncoding = "SGR";
-    assert.equal(triggerMotion(term, 14, 13), true, "force-armed path still encodes a report");
-    rawSub.dispose();
-
-    assert.deepEqual(
-      raw,
-      [],
-      `expected no onData mouse payload, got ${JSON.stringify(raw)}`
-    );
+    assert.equal(triggerMotion(term, 14, 13), false, "normal buffer must not encode mouse");
+    assert.deepEqual(rawData, [], `expected zero onData, got ${JSON.stringify(rawData)}`);
+    assert.deepEqual(rawBinary, [], `expected zero onBinary, got ${JSON.stringify(rawBinary)}`);
     assert.deepEqual(forwarded, []);
     assert.equal(term.modes.mouseTrackingMode, "none");
+    assert.equal(mouse.activeProtocol, "NONE");
+
+    term.dispose();
+  });
+
+  it("allows mouse on alternate, then blocks after return to normal", async () => {
+    const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    installShellProtocolGuard(term);
+
+    const got: string[] = [];
+    term.onData((d) => got.push(d));
 
     // Alt screen: mouse reports must still flow (TUI).
     await write(term, "\x1b[?1049h\x1b[?1003h\x1b[?1006h");
     assert.equal(term.buffer.active.type, "alternate");
+    assert.notEqual(term.modes.mouseTrackingMode, "none");
     assert.equal(triggerMotion(term, 2, 3), true);
     assert.ok(
-      forwarded.some((d) => d.startsWith("\x1b[<") && d.endsWith("M")),
-      `expected SGR mouse on alt, got ${JSON.stringify(forwarded)}`
+      got.some((d) => d.startsWith("\x1b[<") && d.endsWith("M")),
+      `expected SGR mouse on alt, got ${JSON.stringify(got)}`
     );
+
+    // Leave alt → shell: modes cleared, motion must emit nothing.
+    got.length = 0;
+    await write(term, "\x1b[?1049l");
+    assert.equal(term.buffer.active.type, "normal");
+    assert.equal(term.modes.mouseTrackingMode, "none");
+
+    // Even force-arm after leave-alt must not emit.
+    const mouse = coreMouse(term);
+    mouse.activeProtocol = "ANY";
+    mouse.activeEncoding = "SGR";
+    assert.equal(triggerMotion(term, 45, 27), false);
+    assert.deepEqual(got, [], `motion on normal must not emit, got ${JSON.stringify(got)}`);
+    assert.equal(term.modes.mouseTrackingMode, "none");
+    assert.equal(mouse.activeProtocol, "NONE");
+
+    term.dispose();
+  });
+
+  it("restores original triggerMouseEvent on dispose", async () => {
+    const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    const before = coreMouse(term).triggerMouseEvent;
+    const guard = installShellProtocolGuard(term);
+    assert.notEqual(coreMouse(term).triggerMouseEvent, before);
+    guard.dispose();
+    // After dispose, force-arm + motion can emit again (no guard).
+    const mouse = coreMouse(term);
+    mouse.activeProtocol = "ANY";
+    mouse.activeEncoding = "SGR";
+    const got: string[] = [];
+    term.onData((d) => got.push(d));
+    assert.equal(triggerMotion(term, 1, 1), true);
+    assert.ok(got.some((d) => d.startsWith("\x1b[<")));
     term.dispose();
   });
 });
