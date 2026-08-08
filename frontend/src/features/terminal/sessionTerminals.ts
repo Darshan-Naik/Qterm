@@ -6,6 +6,11 @@ import { SearchAddon, type ISearchOptions } from "@xterm/addon-search";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
 import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsjs/go/main/App";
 import { isAppShortcut } from "@/app/appShortcuts";
+import {
+  clearLeakingDecModes,
+  installShellProtocolGuard,
+  shouldForwardToPty,
+} from "@/features/terminal/shellProtocolGuard";
 
 function b64encode(u8: Uint8Array) {
   const CHUNK = 0x8000;
@@ -66,72 +71,6 @@ function colorWithAlpha(color: string, alpha: number): string {
   return c;
 }
 
-/** SGR / X10 / urxvt mouse reports that xterm emits when mouse tracking is on. */
-function isMouseReport(data: string): boolean {
-  // ESC [ < btn ; col ; row M/m   (SGR 1006)
-  // ESC [ btn ; col ; row M/m     (urxvt 1015)
-  // ESC M btn col row             (X10 1000)
-  return (
-    /^\x1b\[<\d+;\d+;\d+[Mm]/.test(data) ||
-    /^\x1b\[\d+;\d+;\d+[Mm]/.test(data) ||
-    /^\x1b\[M[\s\S]{3}/.test(data)
-  );
-}
-
-/** CSI tokens xterm may auto-reply; TUIs often leave these pending on exit. */
-const PROTOCOL_NOISE_TOKEN =
-  // Focus in/out (DECSET 1004)
-  String.raw`\x1b\[[IO]|` +
-  // CSI ? … c / CSI > … c / CSI … c  (Primary/Secondary Device Attributes)
-  String.raw`\x1b\[[?>]?[\d;]*c|` +
-  // CSI ? Pn ; Pn $ y  (DECRQM / mode status)
-  String.raw`\x1b\[\?\d+[;:]\d+\$y|` +
-  // Cursor Position Report — reply to CSI 6 n
-  String.raw`\x1b\[\d+;\d+R`;
-
-const PROTOCOL_NOISE_STRIP = new RegExp(`(?:${PROTOCOL_NOISE_TOKEN})+`, "g");
-
-/**
- * When ESC was already consumed (or a prior filter ate it), DA/CPR crumbs still
- * land as printable junk: `1;2c`, `?1;2c`, `;1R`.
- */
-const ORPHAN_PROTOCOL_NOISE =
-  /(?:\?\d+(?:;\d+)*c|>\d+(?:;\d+)*c|\d+(?:;\d+)+c|\d+;\d+R|;\d+R)+/g;
-
-/**
- * Auto replies xterm.js sends to the PTY (focus, DA, DECRQM, CPR). When a TUI
- * exits without consuming them, they land in the shell as garbage like
- * `^[[I^[[?1;2c` or echoed crumbs `1;2c` / `;1R`.
- *
- * Returns null when the whole payload should be dropped; otherwise the (possibly
- * cleaned) bytes to forward.
- */
-function filterTerminalProtocolNoise(data: string): string | null {
-  if (!data) return null;
-  if (isMouseReport(data)) return null;
-
-  const cleaned = data.replace(PROTOCOL_NOISE_STRIP, "").replace(ORPHAN_PROTOCOL_NOISE, "");
-  // Untouched → real keystrokes / paste (keep as-is, including Tab/Enter).
-  if (cleaned === data) return data;
-  // Removed protocol noise; drop if nothing meaningful remains.
-  if (!cleaned.replace(/[\x00-\x1f\s*]+/g, "")) return null;
-  return cleaned;
-}
-
-/** Turn off DEC mouse modes in the emulator only (does not write to the PTY). */
-function disableMouseTracking(term: Terminal) {
-  // Apps sometimes leave ?1000h/?1003h/?1006h on after exit; clear them locally.
-  term.write(
-    "\x1b[?1000l\x1b[?1001l\x1b[?1002l\x1b[?1003l\x1b[?1005l\x1b[?1006l\x1b[?1015l"
-  );
-}
-
-/** Clear focus-report / mouse modes TUIs often leave enabled on the shell. */
-function disableShellLeakingModes(term: Terminal) {
-  disableMouseTracking(term);
-  term.write("\x1b[?1004l"); // focus in/out reports
-}
-
 type Pending = { data: string; seq: number };
 
 type Entry = {
@@ -142,6 +81,7 @@ type Entry = {
   seeding: boolean;
   pending: Pending[];
   dataDisposable: { dispose: () => void };
+  protocolGuard: { dispose: () => void };
 };
 
 const entries = new Map<string, Entry>();
@@ -207,28 +147,12 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     if (ev.type !== "keydown") return true;
     return !isAppShortcut(ev);
   });
-  // When a TUI leaves the alternate screen, clear focus/mouse modes it may
-  // have left on so later focus/CPR replies don't type into the shell.
-  term.buffer.onBufferChange((buf) => {
-    if (buf.type === "normal") disableShellLeakingModes(term);
-  });
+  // Stop focus/DA/CPR/mouse replies from being generated (and forwarded) on
+  // the shell buffer; alternate-screen TUIs keep normal xterm behavior.
+  const protocolGuard = installShellProtocolGuard(term);
   const dataDisposable = term.onData((data) => {
-    // Shell (normal buffer) only: drop auto protocol replies / mouse reports that
-    // TUIs leave pending so they don't type into the prompt. Keep them on the
-    // alternate screen (vim, Claude, Antigravity, etc.).
-    let payload = data;
-    if (term.buffer.active.type === "normal") {
-      const filtered = filterTerminalProtocolNoise(data);
-      if (filtered === null) {
-        disableShellLeakingModes(term);
-        return;
-      }
-      if (filtered !== data) {
-        disableShellLeakingModes(term);
-        payload = filtered;
-      }
-    }
-    const bytes = new TextEncoder().encode(payload);
+    if (!shouldForwardToPty(term, data)) return;
+    const bytes = new TextEncoder().encode(data);
     void WriteSessionBytes(sessionId, b64encode(bytes));
   });
   entry = {
@@ -239,6 +163,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     seeding: true,
     pending: [],
     dataDisposable,
+    protocolGuard,
   };
   entries.set(sessionId, entry);
 
@@ -251,18 +176,27 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
       // Reset parser state so a cut mid-sequence from a prior session
       // doesn't paint the next restore as literal garbage.
       cur.term.reset();
+      const finishSeed = () => {
+        // Scrollback may replay DECSET focus/mouse; keep shell modes clean.
+        if (cur.term.buffer.active.type === "normal") clearLeakingDecModes(cur.term);
+        cur.appliedSeq = Math.max(cur.appliedSeq, seq);
+        cur.seeding = false;
+        const pending = cur.pending;
+        cur.pending = [];
+        for (const p of pending) applyChunk(cur, p.data, p.seq);
+      };
       if (snap?.data) {
         const bytes = b64decode(snap.data);
-        if (bytes.length) cur.term.write(bytes);
+        if (bytes.length) {
+          cur.term.write(bytes, finishSeed);
+          return;
+        }
       }
-      cur.appliedSeq = Math.max(cur.appliedSeq, seq);
-      cur.seeding = false;
-      const pending = cur.pending;
-      cur.pending = [];
-      for (const p of pending) applyChunk(cur, p.data, p.seq);
+      finishSeed();
     } catch {
       const cur = entries.get(sessionId);
       if (!cur) return;
+      if (cur.term.buffer.active.type === "normal") clearLeakingDecModes(cur.term);
       cur.seeding = false;
       const pending = cur.pending;
       cur.pending = [];
@@ -284,8 +218,7 @@ export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fon
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
-  // Keep focus/mouse reports off on the shell so window focus doesn't inject ^[[I / DA.
-  if (term.buffer.active.type === "normal") disableShellLeakingModes(term);
+  if (term.buffer.active.type === "normal") clearLeakingDecModes(term);
   requestAnimationFrame(() => {
     fit.fit();
     void ResizeSession(sessionId, term.cols, term.rows);
@@ -305,6 +238,7 @@ export function disposeSession(sessionId: string) {
   const entry = entries.get(sessionId);
   if (!entry) return;
   entry.dataDisposable.dispose();
+  entry.protocolGuard.dispose();
   entry.search.dispose();
   entry.term.dispose();
   entries.delete(sessionId);
