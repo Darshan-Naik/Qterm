@@ -22,6 +22,7 @@ import (
 	ptymgr "qterm/internal/pty"
 	"qterm/internal/ptyemit"
 	"qterm/internal/scrollback"
+	"qterm/internal/termquery"
 
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/menu/keys"
@@ -213,11 +214,25 @@ func (a *App) restoreSessions() {
 }
 
 func (a *App) onPtyData(sessionID string, data []byte) {
-	if a.ptyOut != nil {
-		a.ptyOut.Push(sessionID, data)
+	// Answer DA / OSC color queries in-process (like native terminals) so
+	// zsh/p10k do not time out waiting on the webview round-trip. Strip those
+	// queries from the forward path to avoid double replies from xterm.
+	forward, replies, urgent := termquery.Process(data, termquery.DefaultColors)
+	if len(replies) > 0 && a.pty != nil {
+		_ = a.pty.Write(sessionID, replies)
+	}
+	if len(forward) == 0 {
 		return
 	}
-	a.emitPtyData(sessionID, data)
+	if a.ptyOut != nil {
+		if urgent {
+			a.ptyOut.PushImmediate(sessionID, forward)
+		} else {
+			a.ptyOut.Push(sessionID, forward)
+		}
+		return
+	}
+	a.emitPtyData(sessionID, forward)
 }
 
 func (a *App) emitPtyData(sessionID string, data []byte) {
