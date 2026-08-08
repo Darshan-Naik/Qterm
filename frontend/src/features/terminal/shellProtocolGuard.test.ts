@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { Terminal as TerminalType } from "@xterm/xterm";
 import {
   clearLeakingDecModes,
+  forcePrimaryScreen,
   installShellProtocolGuard,
   isMouseOrFocusReport,
   isXtermAutoReply,
@@ -347,20 +348,112 @@ describe("shell protocol guard (xterm)", () => {
     term.dispose();
   });
 
-  it("restores original triggerMouseEvent on dispose", async () => {
+  it("prototype mouse guard survives dispose and strips instance shadows", async () => {
     const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
-    const before = coreMouse(term).triggerMouseEvent;
+    const mouse = coreMouse(term);
+    // Simulate the old instance-wrap dispose residue that shadowed the live method.
+    const real = mouse.triggerMouseEvent.bind(mouse);
+    mouse.triggerMouseEvent = real;
+
     const guard = installShellProtocolGuard(term);
-    assert.notEqual(coreMouse(term).triggerMouseEvent, before);
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(mouse, "triggerMouseEvent"),
+      false,
+      "guard must not leave an own-property wrap"
+    );
     guard.dispose();
-    // After dispose, force-arm + motion can emit again (no guard).
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(mouse, "triggerMouseEvent"),
+      false
+    );
+
+    // Prototype patch stays process-wide — dispose must not re-open the leak.
+    mouse.activeProtocol = "ANY";
+    mouse.activeEncoding = "SGR";
+    const got: string[] = [];
+    term.onData((d) => got.push(d));
+    assert.equal(triggerMotion(term, 1, 1), false);
+    assert.deepEqual(got, []);
+    term.dispose();
+  });
+
+  it("survives reset + dispose/reinstall (no dispose gap shadow leak)", async () => {
+    const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    let guard = installShellProtocolGuard(term);
+
+    term.reset();
+    guard.dispose();
+    guard = installShellProtocolGuard(term);
+
     const mouse = coreMouse(term);
     mouse.activeProtocol = "ANY";
     mouse.activeEncoding = "SGR";
     const got: string[] = [];
     term.onData((d) => got.push(d));
-    assert.equal(triggerMotion(term, 1, 1), true);
-    assert.ok(got.some((d) => d.startsWith("\x1b[<")));
+    assert.equal(triggerMotion(term, 14, 13), false);
+    assert.deepEqual(got, []);
+    assert.equal(mouse.activeProtocol, "NONE");
+    term.dispose();
+  });
+
+  it("1049l without mouse DECRST disarms on normal (xterm alone does not)", async () => {
+    const bare = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    await write(bare, "\x1b[?1049h\x1b[?1003h\x1b[?1006h\x1b[?1049l");
+    assert.equal(bare.buffer.active.type, "normal");
+    assert.notEqual(bare.modes.mouseTrackingMode, "none", "xterm keeps mouse after 1049l");
+    bare.dispose();
+
+    const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    installShellProtocolGuard(term);
+    await write(term, "\x1b[?1049h\x1b[?1003h\x1b[?1006h\x1b[?1049l");
+    assert.equal(term.buffer.active.type, "normal");
+    assert.equal(term.modes.mouseTrackingMode, "none");
+    assert.equal(coreMouse(term).activeProtocol, "NONE");
+
+    const got: string[] = [];
+    term.onData((d) => got.push(d));
+    coreMouse(term).activeProtocol = "ANY";
+    coreMouse(term).activeEncoding = "SGR";
+    assert.equal(triggerMotion(term, 3, 4), false);
+    assert.deepEqual(got, []);
+    term.dispose();
+  });
+
+  it("seed finish: truncated 1049h+mouse → force primary, disarm, no motion", async () => {
+    const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    let muted = true;
+    installShellProtocolGuard(term, { isMuted: () => muted });
+
+    // Scrollback ends mid-alt with mouse armed (truncated leave-alt) — the live
+    // PTY is already a normal shell, so the emulator is desynced.
+    await write(term, "hello\r\n\x1b[?1049h\x1b[?1003h\x1b[?1006h");
+    assert.equal(term.buffer.active.type, "alternate");
+    assert.notEqual(term.modes.mouseTrackingMode, "none");
+
+    // Mirror sessionTerminals finishSeed order: force-primary → clear → unmute.
+    let flushed = false;
+    forcePrimaryScreen(term, () => {
+      clearLeakingDecModes(term);
+      muted = false;
+      flushed = true;
+    });
+    assert.equal(flushed, true, "sync primary restore must invoke whenReady");
+    assert.equal(term.buffer.active.type, "normal");
+    assert.equal(term.modes.mouseTrackingMode, "none");
+    assert.equal(coreMouse(term).activeProtocol, "NONE");
+
+    const got: string[] = [];
+    term.onData((d) => got.push(d));
+    assert.equal(triggerMotion(term, 8, 9), false);
+    assert.deepEqual(got, [], `motion after seed finish must not emit, got ${JSON.stringify(got)}`);
+
+    // Pending/live chunks may still re-enter alt for a real TUI.
+    await write(term, "\x1b[?1049h\x1b[?1003h\x1b[?1006h");
+    assert.equal(term.buffer.active.type, "alternate");
+    assert.notEqual(term.modes.mouseTrackingMode, "none");
+    assert.equal(triggerMotion(term, 2, 3), true);
+    assert.ok(got.some((d) => d.startsWith("\x1b[<") && d.endsWith("M")));
+
     term.dispose();
   });
 });
