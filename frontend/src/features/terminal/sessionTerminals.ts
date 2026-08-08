@@ -81,8 +81,48 @@ type Entry = {
   seeding: boolean;
   pending: Pending[];
   dataDisposable: { dispose: () => void };
+  binaryDisposable: { dispose: () => void };
   protocolGuard: { dispose: () => void };
 };
+
+/** Forward xterm→PTY bytes only when the shell-protocol gate allows it. */
+function bindPtyWriters(entry: Entry, sessionId: string) {
+  entry.dataDisposable.dispose();
+  entry.binaryDisposable.dispose();
+  entry.dataDisposable = entry.term.onData((data) => {
+    // Display-only writes (scrollback seed) must never feed the live PTY —
+    // replayed DA/OSC/CPR queries would regenerate late "keystrokes".
+    if (entry.seeding) return;
+    if (!shouldForwardToPty(entry.term, data)) return;
+    const bytes = new TextEncoder().encode(data);
+    void WriteSessionBytes(sessionId, b64encode(bytes));
+  });
+  // DEFAULT mouse encoding uses onBinary (not onData). Gate it the same way so
+  // normal-buffer storms cannot bypass onData-only filtering; alt-screen TUIs
+  // still receive reports via shouldForwardToPty → true.
+  entry.binaryDisposable = entry.term.onBinary((data) => {
+    if (entry.seeding) return;
+    if (!shouldForwardToPty(entry.term, data)) return;
+    const bytes = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i) & 0xff;
+    void WriteSessionBytes(sessionId, b64encode(bytes));
+  });
+}
+
+/**
+ * Reinstall protocol guard + PTY writers. Long-lived `entries` survive Vite HMR
+ * of other modules; without this, attach can keep a terminal that never got the
+ * gate (or whose CSI handlers were from an older guard).
+ * Also call after term.reset() — reset can clear parser/core patches.
+ */
+function ensureShellProtocolPipeline(entry: Entry, sessionId: string) {
+  entry.protocolGuard.dispose();
+  entry.protocolGuard = installShellProtocolGuard(entry.term, {
+    isMuted: () => entry.seeding,
+  });
+  bindPtyWriters(entry, sessionId);
+  if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
+}
 
 const entries = new Map<string, Entry>();
 let listening = false;
@@ -98,8 +138,8 @@ const FIND_DECORATIONS: NonNullable<ISearchOptions["decorations"]> = {
 
 function applyChunk(entry: Entry, data: string, seq: number) {
   if (seq && seq <= entry.appliedSeq) return;
-  // After parse, undo focus/mouse if we landed on the shell buffer — PTY
-  // chunks can DECSET tracking without an alt↔normal buffer change.
+  // DECSET guard blocks mouse/focus on normal during parse; still sync-clear
+  // after write in case modes were armed on alt and the chunk switches back.
   entry.term.write(b64decode(data), () => {
     if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
   });
@@ -151,14 +191,10 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     if (ev.type !== "keydown") return true;
     return !isAppShortcut(ev);
   });
-  // Stop focus/DA/CPR/mouse replies from being generated (and forwarded) on
-  // the shell buffer; alternate-screen TUIs keep normal xterm behavior.
-  const protocolGuard = installShellProtocolGuard(term);
-  const dataDisposable = term.onData((data) => {
-    if (!shouldForwardToPty(term, data)) return;
-    const bytes = new TextEncoder().encode(data);
-    void WriteSessionBytes(sessionId, b64encode(bytes));
-  });
+  // Block mouse/focus DECSET on normal; mute emulator→PTY while seeding so
+  // scrollback queries cannot write replies into the live shell. DA/CPR/OSC
+  // are answered on the Go side (or flushed urgently) for live prompts.
+  const noop = { dispose() {} };
   entry = {
     term,
     fit,
@@ -166,9 +202,11 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     appliedSeq: 0,
     seeding: true,
     pending: [],
-    dataDisposable,
-    protocolGuard,
+    dataDisposable: noop,
+    binaryDisposable: noop,
+    protocolGuard: noop,
   };
+  ensureShellProtocolPipeline(entry, sessionId);
   entries.set(sessionId, entry);
 
   void (async () => {
@@ -180,6 +218,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
       // Reset parser state so a cut mid-sequence from a prior session
       // doesn't paint the next restore as literal garbage.
       cur.term.reset();
+      // reset() may clear CSI handlers / core patches — reinstall while still muted.
+      ensureShellProtocolPipeline(cur, sessionId);
       const finishSeed = () => {
         // Scrollback may replay DECSET focus/mouse; keep shell modes clean.
         if (cur.term.buffer.active.type === "normal") clearLeakingDecModes(cur.term);
@@ -213,6 +253,9 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
 
 export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fontSize: number }) {
   const entry = getOrCreateTerminal(sessionId, opts);
+  // getOrCreate refreshes the pipeline for existing entries; attach does it
+  // again so remounts after HMR always rebind writers even if create was skipped.
+  ensureShellProtocolPipeline(entry, sessionId);
   const { term, fit } = entry;
   if (!term.element) {
     term.open(host);
@@ -242,6 +285,7 @@ export function disposeSession(sessionId: string) {
   const entry = entries.get(sessionId);
   if (!entry) return;
   entry.dataDisposable.dispose();
+  entry.binaryDisposable.dispose();
   entry.protocolGuard.dispose();
   entry.search.dispose();
   entry.term.dispose();

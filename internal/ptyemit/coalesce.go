@@ -32,6 +32,16 @@ func New(onFlush Handler) *Coalescer {
 }
 
 func (c *Coalescer) Push(sessionID string, data []byte) {
+	c.push(sessionID, data, false)
+}
+
+// PushImmediate appends and flushes the session buffer now (terminal queries
+// that still need an emulator reply — e.g. CPR — must not sit in the 12ms window).
+func (c *Coalescer) PushImmediate(sessionID string, data []byte) {
+	c.push(sessionID, data, true)
+}
+
+func (c *Coalescer) push(sessionID string, data []byte, immediate bool) {
 	if len(data) == 0 || c.onFlush == nil {
 		return
 	}
@@ -42,7 +52,7 @@ func (c *Coalescer) Push(sessionID string, data []byte) {
 		c.bufs[sessionID] = buf
 	}
 	buf.Write(data)
-	flushNow := buf.Len() >= flushBytes
+	flushNow := immediate || buf.Len() >= flushBytes
 	if flushNow {
 		if t := c.timers[sessionID]; t != nil {
 			t.Stop()
