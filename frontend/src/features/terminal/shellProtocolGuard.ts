@@ -6,6 +6,11 @@
  * then emits replies into onData, which we used to forward blindly. Clearing
  * modes via term.write() is racy — WriteBuffer is async — so sendFocus stays
  * true across focus events until the next tick.
+ *
+ * Forward gate must accept an entire onData chunk of one or more concatenated
+ * auto-replies (mousemove storms). Exact single-reply `$` match let batches
+ * through. Never mid-string strip mixed user+protocol data (that left `1;2c`
+ * orphans).
  */
 
 import type { IDisposable, Terminal } from "@xterm/xterm";
@@ -22,6 +27,27 @@ type XtermCore = {
   coreMouseService?: CoreMouseService;
 };
 
+/**
+ * One full xterm auto-reply. Used as `(?:…)+` against the entire onData chunk.
+ * Covers focus, DA, CPR, DECRPM, and mouse (SGR / urxvt-style / X10).
+ */
+const XTERM_AUTO_REPLY =
+  "(?:" +
+  "\\x1b\\[I|" +
+  "\\x1b\\[O|" +
+  "\\x1b\\[0n|" +
+  "\\x1b\\[\\?\\d+(?:;\\d+)*c|" +
+  "\\x1b\\[>\\d+(?:;\\d+)*c|" +
+  "\\x1b\\[\\d+;\\d+R|" +
+  "\\x1b\\[\\?\\d+;\\d+R|" +
+  "\\x1b\\[\\??\\d+;\\d+\\$y|" +
+  "\\x1b\\[<\\d+;\\d+;\\d+[Mm]|" +
+  "\\x1b\\[\\d+;\\d+;\\d+[Mm]|" +
+  "\\x1b\\[M[\\s\\S]{3}" +
+  ")";
+
+const ENTIRE_CHUNK_AUTO_REPLIES = new RegExp(`^(?:${XTERM_AUTO_REPLY})+$`);
+
 function coreOf(term: Terminal): XtermCore | undefined {
   return (term as unknown as { _core?: XtermCore })._core;
 }
@@ -33,6 +59,11 @@ function onNormalBuffer(term: Terminal): boolean {
 /**
  * Synchronously clear focus-report + mouse tracking in the emulator.
  * Prefer this over term.write(DECRST…): write is async and races focus events.
+ *
+ * xterm v6 paths (verified against @xterm/xterm 6.0.0):
+ *   term._core.coreService.decPrivateModes.sendFocus
+ *   term._core.coreMouseService.reset() / activeProtocol / activeEncoding
+ * Public term.modes mirrors those; use it for reads, not as the clear target.
  */
 export function clearLeakingDecModes(term: Terminal): void {
   const core = coreOf(term);
@@ -77,6 +108,21 @@ export function installShellQuerySuppression(term: Terminal): IDisposable {
   };
 }
 
+/**
+ * After DECSET on the normal buffer, undo focus/mouse so PTY replay cannot
+ * leave tracking on (applyChunk write is async; buffer-change alone misses
+ * same-buffer DECSET). Alt-screen DECSET is left alone.
+ */
+export function installNormalBufferDecSetGuard(term: Terminal): IDisposable {
+  return term.parser.registerCsiHandler({ prefix: "?", final: "h" }, () => {
+    if (!onNormalBuffer(term)) return false;
+    queueMicrotask(() => {
+      if (onNormalBuffer(term)) clearLeakingDecModes(term);
+    });
+    return false;
+  });
+}
+
 /** Full-payload mouse reports xterm emits when mouse tracking is on. */
 export function isMouseReport(data: string): boolean {
   return (
@@ -87,32 +133,24 @@ export function isMouseReport(data: string): boolean {
 }
 
 /**
- * True when `data` is an entire xterm auto-reply (not user input / paste).
- * Exact payload match only — never mid-string strip (that left `1;2c` crumbs).
+ * True when `data` is an entire onData chunk of one or more xterm auto-replies
+ * (not user input / paste). Full-chunk match only — never mid-string strip.
  */
 export function isXtermAutoReply(data: string): boolean {
   if (!data) return false;
-  if (data === "\x1b[I" || data === "\x1b[O") return true;
-  if (data === "\x1b[0n") return true;
-  if (/^\x1b\[\?\d+(?:;\d+)*c$/.test(data)) return true;
-  if (/^\x1b\[>\d+(?:;\d+)*c$/.test(data)) return true;
-  if (/^\x1b\[\d+;\d+R$/.test(data)) return true;
-  if (/^\x1b\[\?\d+;\d+R$/.test(data)) return true;
-  if (/^\x1b\[\??\d+;\d+\$y$/.test(data)) return true;
-  return isMouseReport(data);
+  return ENTIRE_CHUNK_AUTO_REPLIES.test(data);
 }
 
 /**
  * Whether onData bytes should be forwarded to the PTY.
  * Alternate buffer: always (TUIs need protocol replies).
- * Normal buffer: drop auto-replies; ensure leaking modes stay off.
+ * Normal buffer: drop auto-replies; keep leaking modes off.
  */
 export function shouldForwardToPty(term: Terminal, data: string): boolean {
   if (!onNormalBuffer(term)) return true;
 
-  if (term.modes.sendFocusMode || term.modes.mouseTrackingMode !== "none") {
-    clearLeakingDecModes(term);
-  }
+  // Always sync-clear on the shell buffer so mouse/focus cannot stay armed.
+  clearLeakingDecModes(term);
   return !isXtermAutoReply(data);
 }
 
@@ -120,12 +158,14 @@ export function shouldForwardToPty(term: Terminal, data: string): boolean {
 export function installShellProtocolGuard(term: Terminal): IDisposable {
   clearLeakingDecModes(term);
   const queries = installShellQuerySuppression(term);
+  const decSet = installNormalBufferDecSetGuard(term);
   const bufferChange = term.buffer.onBufferChange((buf) => {
     if (buf.type === "normal") clearLeakingDecModes(term);
   });
   return {
     dispose() {
       queries.dispose();
+      decSet.dispose();
       bufferChange.dispose();
     },
   };

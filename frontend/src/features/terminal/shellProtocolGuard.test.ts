@@ -28,6 +28,20 @@ describe("isXtermAutoReply", () => {
     assert.equal(isXtermAutoReply("\x1b[?1;1R"), true);
     assert.equal(isXtermAutoReply("\x1b[?1004;1$y"), true);
     assert.equal(isXtermAutoReply("\x1b[<0;1;1M"), true);
+    assert.equal(isXtermAutoReply("\x1b[<35;67;41M"), true);
+    assert.equal(isXtermAutoReply("\x1b[35;67;41M"), true);
+  });
+
+  it("matches batched concatenated auto-replies as one chunk", () => {
+    const batchedMouse =
+      "\x1b[<35;67;41M\x1b[<35;6;28M\x1b[<35;58;28M\x1b[<35;10;12M";
+    assert.equal(isXtermAutoReply(batchedMouse), true);
+
+    const batchedFocusDa = "\x1b[I\x1b[?1;2c\x1b[O\x1b[?1;2c";
+    assert.equal(isXtermAutoReply(batchedFocusDa), true);
+
+    const mixedSgrUrxvt = "\x1b[<35;1;1M\x1b[35;2;2M\x1b[I";
+    assert.equal(isXtermAutoReply(mixedSgrUrxvt), true);
   });
 
   it("does not match real keystrokes or paste", () => {
@@ -40,6 +54,9 @@ describe("isXtermAutoReply", () => {
     // Orphan crumbs must NOT be treated as auto-replies — never strip mid-string.
     assert.equal(isXtermAutoReply("1;2c"), false);
     assert.equal(isXtermAutoReply("ls 1;2c"), false);
+    // Mixed user + protocol: forward whole chunk (do not strip).
+    assert.equal(isXtermAutoReply("ls\x1b[<35;1;1M"), false);
+    assert.equal(isXtermAutoReply("\x1b[Ihello"), false);
   });
 });
 
@@ -90,7 +107,7 @@ describe("shell protocol guard (xterm)", () => {
     term.dispose();
   });
 
-  it("forwards keystrokes on normal and drops focus/DA replies", async () => {
+  it("forwards keystrokes on normal and drops focus/DA/mouse replies", async () => {
     const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
     installShellProtocolGuard(term);
 
@@ -98,12 +115,19 @@ describe("shell protocol guard (xterm)", () => {
     assert.equal(shouldForwardToPty(term, "\t"), true);
     assert.equal(shouldForwardToPty(term, "\r"), true);
     assert.equal(shouldForwardToPty(term, "\x03"), true);
+    assert.equal(shouldForwardToPty(term, "hello\n"), true);
     assert.equal(shouldForwardToPty(term, "\x1b[I"), false);
     assert.equal(shouldForwardToPty(term, "\x1b[?1;2c"), false);
+    assert.equal(shouldForwardToPty(term, "\x1b[<35;67;41M"), false);
+    assert.equal(
+      shouldForwardToPty(term, "\x1b[<35;67;41M\x1b[<35;6;28M\x1b[<35;58;28M"),
+      false
+    );
 
     await write(term, "\x1b[?1049h");
     assert.equal(shouldForwardToPty(term, "\x1b[I"), true);
     assert.equal(shouldForwardToPty(term, "\x1b[?1;2c"), true);
+    assert.equal(shouldForwardToPty(term, "\x1b[<35;67;41M"), true);
     term.dispose();
   });
 
@@ -119,6 +143,24 @@ describe("shell protocol guard (xterm)", () => {
     assert.equal(term.buffer.active.type, "normal");
     assert.equal(term.modes.sendFocusMode, false);
     assert.equal(term.modes.mouseTrackingMode, "none");
+    term.dispose();
+  });
+
+  it("undoes mouse DECSET on normal buffer so tracking cannot stick", async () => {
+    const term = new Terminal({ allowProposedApi: true, cols: 80, rows: 24 });
+    installShellProtocolGuard(term);
+
+    await write(term, "\x1b[?1003h\x1b[?1006h");
+    // DECSET applies then microtask guard clears.
+    await new Promise<void>((r) => queueMicrotask(r));
+    assert.equal(term.modes.mouseTrackingMode, "none");
+    assert.equal(term.modes.sendFocusMode, false);
+
+    // Alt buffer may still enable mouse for TUIs.
+    await write(term, "\x1b[?1049h\x1b[?1003h\x1b[?1006h");
+    await new Promise<void>((r) => queueMicrotask(r));
+    assert.equal(term.buffer.active.type, "alternate");
+    assert.notEqual(term.modes.mouseTrackingMode, "none");
     term.dispose();
   });
 });

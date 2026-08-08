@@ -98,7 +98,11 @@ const FIND_DECORATIONS: NonNullable<ISearchOptions["decorations"]> = {
 
 function applyChunk(entry: Entry, data: string, seq: number) {
   if (seq && seq <= entry.appliedSeq) return;
-  entry.term.write(b64decode(data));
+  // After parse, undo focus/mouse if we landed on the shell buffer — PTY
+  // chunks can DECSET tracking without an alt↔normal buffer change.
+  entry.term.write(b64decode(data), () => {
+    if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
+  });
   if (seq) entry.appliedSeq = seq;
 }
 
