@@ -7,11 +7,18 @@
  *
  * Native-like rules:
  *   1. Block mouse/focus DECSET on the normal buffer (do not apply-then-undo).
- *   2. Wrap coreMouseService.triggerMouseEvent: on normal → reset + return false
- *      (no encode, no emit). This is the root fix — SGR uses wasUserInput=true.
+ *   2. Patch CoreMouseService.prototype.triggerMouseEvent once: on normal →
+ *      reset + return false (no encode, no emit). Instance wraps are wrong —
+ *      dispose/reinstall shadows the live method and open/bindMouse must always
+ *      hit the guard via the prototype.
  *   3. While muted (scrollback seed / display-only), drop all non-user-input
  *      (and mouse/focus even if marked user-input) so seed cannot feed the PTY.
  *   4. On live normal: core intercept still drops mouse/focus; forward DA/CPR/OSC.
+ *   5. onBufferChange→normal sync-clears mouse — xterm itself leaves tracking
+ *      armed after 1049l unless DECRST mouse was also sent.
+ *   6. Scrollback seed finish: if history left the emulator on alt (truncated
+ *      1049l), force primary for display state, then disarm mouse — live PTY
+ *      apps that need alt re-send 1049h in pending/live chunks after seed.
  *
  * Alternate-screen TUIs keep full mouse/focus/DA behavior.
  *
@@ -37,15 +44,27 @@ type CoreMouseService = {
     alt?: boolean;
     shift?: boolean;
   }) => boolean;
+  _bufferService?: {
+    buffer: object;
+    buffers: { normal: object; alt: object };
+  };
 };
 type CoreService = {
   decPrivateModes?: DecPrivateModes;
   triggerDataEvent?: (data: string, wasUserInput?: boolean) => void;
   triggerBinaryEvent?: (data: string) => void;
 };
+type BufferSet = {
+  activateNormalBuffer?: () => void;
+};
+type BufferService = {
+  buffers?: BufferSet;
+};
 type XtermCore = {
   coreService?: CoreService;
   coreMouseService?: CoreMouseService;
+  /** xterm private field — sync alt→primary without async CSI. */
+  _bufferService?: BufferService;
 };
 
 /**
@@ -101,6 +120,15 @@ const XTERM_AUTO_REPLY =
 
 const ENTIRE_CHUNK_AUTO_REPLIES = new RegExp(`^(?:${XTERM_AUTO_REPLY})+$`);
 
+const devLog =
+  typeof import.meta !== "undefined" &&
+  Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV);
+
+let mouseProtoPatched = false;
+let mouseProtoOrig: CoreMouseService["triggerMouseEvent"] | undefined;
+let loggedInstall = false;
+let loggedBlock = false;
+
 function coreOf(term: Terminal): XtermCore | undefined {
   return (term as unknown as { _core?: XtermCore })._core;
 }
@@ -109,12 +137,48 @@ function onNormalBuffer(term: Terminal): boolean {
   return term.buffer.active.type === "normal";
 }
 
+function mouseServiceOnNormal(mouse: CoreMouseService): boolean {
+  const bs = mouse._bufferService;
+  if (!bs?.buffers) return false;
+  return bs.buffer === bs.buffers.normal;
+}
+
 function flattenCsiParams(params: (number | number[])[]): number[] {
   const out: number[] = [];
   for (const p of params) {
     out.push(typeof p === "number" ? p : p[0]);
   }
   return out;
+}
+
+/**
+ * Force the emulator onto the primary screen (display state only).
+ *
+ * After scrollback seed, history may end mid-alt (`1049h` without `1049l`) while
+ * the live PTY is already a normal shell. Leaving the emulator on alt keeps the
+ * prototype mouse guard from firing (it only blocks on normal) → motion storms.
+ *
+ * Prefer xterm's sync `buffers.activateNormalBuffer()` so seed finish can clear
+ * mouse and flush pending live chunks in order. Live TUIs re-enter via `1049h`
+ * in those pending/live writes. Returns true when primary is active now; false
+ * if only an async CSI fallback was queued (caller should wait on its callback).
+ */
+export function forcePrimaryScreen(term: Terminal, whenReady?: () => void): boolean {
+  if (onNormalBuffer(term)) {
+    whenReady?.();
+    return true;
+  }
+
+  const buffers = coreOf(term)?._bufferService?.buffers;
+  if (buffers?.activateNormalBuffer) {
+    buffers.activateNormalBuffer();
+    whenReady?.();
+    return true;
+  }
+
+  // Last resort: async CSI — preserve caller ordering via whenReady.
+  term.write("\x1b[?1049l", whenReady);
+  return false;
 }
 
 /**
@@ -144,6 +208,39 @@ export function clearLeakingDecModes(term: Terminal): void {
     term.write(
       "\x1b[?1000l\x1b[?1001l\x1b[?1002l\x1b[?1003l\x1b[?1004l\x1b[?1005l\x1b[?1006l\x1b[?1015l\x1b[?1016l"
     );
+  }
+}
+
+/**
+ * Patch CoreMouseService.prototype once for every terminal.
+ *
+ * Instance assignment is unsafe: ensureShellProtocolPipeline dispose() restores
+ * a bound original onto the instance, which shadows any later prototype patch,
+ * and a dispose→reinstall gap can emit with no guard. Prototype lookup always
+ * hits this patch; open()/reset() do not replace the service class.
+ */
+function ensureMousePrototypePatch(sample: CoreMouseService): void {
+  if (mouseProtoPatched) return;
+  const proto = Object.getPrototypeOf(sample) as CoreMouseService;
+  if (!proto?.triggerMouseEvent) return;
+
+  mouseProtoOrig = proto.triggerMouseEvent;
+  const orig = mouseProtoOrig;
+  proto.triggerMouseEvent = function (this: CoreMouseService, e) {
+    if (mouseServiceOnNormal(this)) {
+      this.reset();
+      if (devLog && !loggedBlock) {
+        loggedBlock = true;
+        console.info("[qterm] shell mouse guard blocked report on normal buffer");
+      }
+      return false;
+    }
+    return orig!.call(this, e);
+  };
+  mouseProtoPatched = true;
+  if (devLog && !loggedInstall) {
+    loggedInstall = true;
+    console.info("[qterm] shell mouse guard: CoreMouseService.prototype patched");
   }
 }
 
@@ -185,32 +282,31 @@ export type CoreInterceptOptions = {
 /**
  * Stop mouse-report *generation* on the normal buffer.
  *
- * xterm's CoreMouseService.triggerMouseEvent encodes SGR/DEFAULT reports and
- * calls triggerDataEvent(report, true) / triggerBinaryEvent — marked as user
- * input. Post-hoc onData filters and muted-path !wasUserInput gates therefore
- * miss or race. Native terminals simply do not arm mouse on the primary screen
- * after a TUI; matching that means returning false here before any encode.
+ * Uses a process-wide CoreMouseService.prototype patch (see
+ * ensureMousePrototypePatch). Also strips any leftover instance own-property
+ * from older instance-wrap installs so the prototype guard is reachable.
  */
 export function installMouseEventGuard(term: Terminal): IDisposable {
   const mouse = coreOf(term)?.coreMouseService;
   if (!mouse?.triggerMouseEvent) return { dispose() {} };
 
-  const orig = mouse.triggerMouseEvent.bind(mouse);
-  mouse.triggerMouseEvent = (e) => {
-    if (onNormalBuffer(term)) {
-      // Always disarm — even if a caller force-set activeProtocol.
-      clearLeakingDecModes(term);
-      return false;
-    }
-    return orig(e);
-  };
+  ensureMousePrototypePatch(mouse);
 
-  // Start clean on install (shell buffer).
+  // Older builds assigned an instance own-property wrap; that shadows the
+  // prototype and dispose() can put the real method back on the instance.
+  if (Object.prototype.hasOwnProperty.call(mouse, "triggerMouseEvent")) {
+    delete (mouse as { triggerMouseEvent?: unknown }).triggerMouseEvent;
+  }
+
   if (onNormalBuffer(term)) clearLeakingDecModes(term);
 
   return {
     dispose() {
-      mouse.triggerMouseEvent = orig;
+      // Keep the prototype patch for other / future terminals. Only ensure this
+      // instance does not shadow it with a stale own-property.
+      if (Object.prototype.hasOwnProperty.call(mouse, "triggerMouseEvent")) {
+        delete (mouse as { triggerMouseEvent?: unknown }).triggerMouseEvent;
+      }
     },
   };
 }
@@ -320,10 +416,12 @@ export function installShellProtocolGuard(
 ): IDisposable {
   clearLeakingDecModes(term);
   const decSet = installNormalBufferDecSetGuard(term);
-  // Always wrap mouse service (and restore on dispose). Re-run on every
-  // ensureShellProtocolPipeline / attach so HMR cannot leave an unwrapped core.
+  // Prototype patch + strip instance shadows. Safe across dispose/reinstall and
+  // across term.open()/reset() (service instance is not replaced).
   const mouseGuard = installMouseEventGuard(term);
   const coreIntercept = installCoreDataIntercept(term, { isMuted: opts?.isMuted });
+  // xterm leaves mouse armed after 1049l unless the app also DECRST mouse —
+  // clear as soon as we return to the normal buffer.
   const bufferChange = term.buffer.onBufferChange((buf) => {
     if (buf.type === "normal") clearLeakingDecModes(term);
   });

@@ -8,6 +8,7 @@ import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsj
 import { isAppShortcut } from "@/app/appShortcuts";
 import {
   clearLeakingDecModes,
+  forcePrimaryScreen,
   installShellProtocolGuard,
   shouldForwardToPty,
 } from "@/features/terminal/shellProtocolGuard";
@@ -112,9 +113,9 @@ function bindPtyWriters(entry: Entry, sessionId: string) {
 /**
  * Reinstall protocol guard + PTY writers. Long-lived `entries` survive Vite HMR
  * of other modules; without this, attach can keep a terminal that never got the
- * mouse wrap / CSI handlers (or whose patches were from an older guard).
- * Also call after term.reset() — reset can clear parser state; we always
- * re-wrap triggerMouseEvent + core intercept on every attach/create/seed.
+ * CSI handlers / core intercept (or whose patches were from an older guard).
+ * Always call after term.open() and after term.reset() so instance shadows are
+ * stripped and the prototype mouse guard stays reachable.
  */
 function ensureShellProtocolPipeline(entry: Entry, sessionId: string) {
   entry.protocolGuard.dispose();
@@ -222,13 +223,18 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
       // reset() may clear CSI handlers / core patches — reinstall while still muted.
       ensureShellProtocolPipeline(cur, sessionId);
       const finishSeed = () => {
-        // Scrollback may replay DECSET focus/mouse; keep shell modes clean.
-        if (cur.term.buffer.active.type === "normal") clearLeakingDecModes(cur.term);
-        cur.appliedSeq = Math.max(cur.appliedSeq, seq);
-        cur.seeding = false;
-        const pending = cur.pending;
-        cur.pending = [];
-        for (const p of pending) applyChunk(cur, p.data, p.seq);
+        // Scrollback may end mid-alt with mouse still armed (truncated 1049l)
+        // while the live PTY is already a normal shell. Order matters:
+        // force-primary → clear mouse → flush pending (live TUI may 1049h again).
+        const flushAfterPrimary = () => {
+          clearLeakingDecModes(cur.term);
+          cur.appliedSeq = Math.max(cur.appliedSeq, seq);
+          cur.seeding = false;
+          const pending = cur.pending;
+          cur.pending = [];
+          for (const p of pending) applyChunk(cur, p.data, p.seq);
+        };
+        forcePrimaryScreen(cur.term, flushAfterPrimary);
       };
       if (snap?.data) {
         const bytes = b64decode(snap.data);
@@ -241,11 +247,13 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     } catch {
       const cur = entries.get(sessionId);
       if (!cur) return;
-      if (cur.term.buffer.active.type === "normal") clearLeakingDecModes(cur.term);
-      cur.seeding = false;
-      const pending = cur.pending;
-      cur.pending = [];
-      for (const p of pending) applyChunk(cur, p.data, p.seq);
+      forcePrimaryScreen(cur.term, () => {
+        clearLeakingDecModes(cur.term);
+        cur.seeding = false;
+        const pending = cur.pending;
+        cur.pending = [];
+        for (const p of pending) applyChunk(cur, p.data, p.seq);
+      });
     }
   })();
 
@@ -254,15 +262,16 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
 
 export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fontSize: number }) {
   const entry = getOrCreateTerminal(sessionId, opts);
-  // getOrCreate refreshes the pipeline for existing entries; attach does it
-  // again so remounts after HMR always rebind writers even if create was skipped.
-  ensureShellProtocolPipeline(entry, sessionId);
   const { term, fit } = entry;
+  // open() binds DOM mouse handlers that call coreMouseService.triggerMouseEvent.
+  // Guard must be live after open (prototype patch is global; still reinstall so
+  // instance shadows from older builds are stripped and writers rebound).
   if (!term.element) {
     term.open(host);
   } else if (term.element.parentElement !== host) {
     host.appendChild(term.element);
   }
+  ensureShellProtocolPipeline(entry, sessionId);
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
