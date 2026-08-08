@@ -7,9 +7,11 @@
  *
  * Native-like rules:
  *   1. Block mouse/focus DECSET on the normal buffer (do not apply-then-undo).
- *   2. While muted (scrollback seed / display-only), drop all non-user-input
- *      so replayed queries cannot write replies into the live PTY.
- *   3. On live normal: drop mouse/focus reports only; forward DA/CPR/OSC.
+ *   2. Wrap coreMouseService.triggerMouseEvent: on normal → reset + return false
+ *      (no encode, no emit). This is the root fix — SGR uses wasUserInput=true.
+ *   3. While muted (scrollback seed / display-only), drop all non-user-input
+ *      (and mouse/focus even if marked user-input) so seed cannot feed the PTY.
+ *   4. On live normal: core intercept still drops mouse/focus; forward DA/CPR/OSC.
  *
  * Alternate-screen TUIs keep full mouse/focus/DA behavior.
  *
@@ -181,10 +183,46 @@ export type CoreInterceptOptions = {
 };
 
 /**
+ * Stop mouse-report *generation* on the normal buffer.
+ *
+ * xterm's CoreMouseService.triggerMouseEvent encodes SGR/DEFAULT reports and
+ * calls triggerDataEvent(report, true) / triggerBinaryEvent — marked as user
+ * input. Post-hoc onData filters and muted-path !wasUserInput gates therefore
+ * miss or race. Native terminals simply do not arm mouse on the primary screen
+ * after a TUI; matching that means returning false here before any encode.
+ */
+export function installMouseEventGuard(term: Terminal): IDisposable {
+  const mouse = coreOf(term)?.coreMouseService;
+  if (!mouse?.triggerMouseEvent) return { dispose() {} };
+
+  const orig = mouse.triggerMouseEvent.bind(mouse);
+  mouse.triggerMouseEvent = (e) => {
+    if (onNormalBuffer(term)) {
+      // Always disarm — even if a caller force-set activeProtocol.
+      clearLeakingDecModes(term);
+      return false;
+    }
+    return orig(e);
+  };
+
+  // Start clean on install (shell buffer).
+  if (onNormalBuffer(term)) clearLeakingDecModes(term);
+
+  return {
+    dispose() {
+      mouse.triggerMouseEvent = orig;
+    },
+  };
+}
+
+/**
  * Intercept core emits:
  * - muted: drop all !wasUserInput (scrollback replay must not feed the live PTY)
  * - live normal: drop mouse/focus reports only; DA/CPR/OSC pass through
  * - alternate: unchanged
+ *
+ * Belt-and-suspenders behind installMouseEventGuard: if anything still emits
+ * `\x1b[<35;…M`, this drops it before onData/onBinary listeners.
  */
 export function installCoreDataIntercept(
   term: Terminal,
@@ -199,7 +237,9 @@ export function installCoreDataIntercept(
 
   cs.triggerDataEvent = (data: string, wasUserInput?: boolean) => {
     if (muted()) {
-      if (!wasUserInput) return;
+      // Mouse reports are emitted with wasUserInput=true — still drop them when
+      // muted so seed/HMR cannot feed the live PTY.
+      if (!wasUserInput || isMouseOrFocusReport(data)) return;
       origData(data, wasUserInput);
       return;
     }
@@ -273,13 +313,16 @@ export type ShellProtocolGuardOptions = {
   isMuted?: () => boolean;
 };
 
-/** Install DECSET mouse/focus block + core intercept for a terminal lifetime. */
+/** Install DECSET mouse/focus block + mouse wrap + core intercept for a terminal lifetime. */
 export function installShellProtocolGuard(
   term: Terminal,
   opts?: ShellProtocolGuardOptions
 ): IDisposable {
   clearLeakingDecModes(term);
   const decSet = installNormalBufferDecSetGuard(term);
+  // Always wrap mouse service (and restore on dispose). Re-run on every
+  // ensureShellProtocolPipeline / attach so HMR cannot leave an unwrapped core.
+  const mouseGuard = installMouseEventGuard(term);
   const coreIntercept = installCoreDataIntercept(term, { isMuted: opts?.isMuted });
   const bufferChange = term.buffer.onBufferChange((buf) => {
     if (buf.type === "normal") clearLeakingDecModes(term);
@@ -287,6 +330,7 @@ export function installShellProtocolGuard(
   return {
     dispose() {
       decSet.dispose();
+      mouseGuard.dispose();
       coreIntercept.dispose();
       bufferChange.dispose();
     },

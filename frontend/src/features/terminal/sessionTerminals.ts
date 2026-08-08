@@ -112,8 +112,9 @@ function bindPtyWriters(entry: Entry, sessionId: string) {
 /**
  * Reinstall protocol guard + PTY writers. Long-lived `entries` survive Vite HMR
  * of other modules; without this, attach can keep a terminal that never got the
- * gate (or whose CSI handlers were from an older guard).
- * Also call after term.reset() — reset can clear parser/core patches.
+ * mouse wrap / CSI handlers (or whose patches were from an older guard).
+ * Also call after term.reset() — reset can clear parser state; we always
+ * re-wrap triggerMouseEvent + core intercept on every attach/create/seed.
  */
 function ensureShellProtocolPipeline(entry: Entry, sessionId: string) {
   entry.protocolGuard.dispose();
