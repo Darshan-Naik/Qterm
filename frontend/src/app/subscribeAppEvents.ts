@@ -1,6 +1,6 @@
 import { focusSession } from "@/lib/sessions";
-import { mapLiveSessions } from "@/lib/sessionTitles";
-import { applyTheme, openSettings, uiStore, type ThemeMode } from "@/store/ui";
+import { mapLiveSessions, sortSessionsByStart } from "@/lib/sessionTitles";
+import { applyTheme, openAbout, openSettings, uiStore, type ThemeMode } from "@/store/ui";
 import { ListSessions } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 
@@ -33,7 +33,7 @@ export function subscribeAppEvents(): () => void {
         Object.entries(uiStore.get().paneAnimations).filter(([id]) => alive.has(id)),
       );
       uiStore.set({
-        sessions: live,
+        sessions: sortSessionsByStart(live),
         sessionAgents: agents,
         paneAnimations: anims,
       });
@@ -45,6 +45,10 @@ export function subscribeAppEvents(): () => void {
           ? page
           : "appearance";
       openSettings(p);
+    }),
+
+    on("app:open-about", () => {
+      openAbout();
     }),
 
     on("app:open-inspector", () => {

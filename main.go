@@ -54,7 +54,7 @@ func main() {
 			WindowIsTranslucent:  false,
 			About: &mac.AboutInfo{
 				Title:   appmode.AppTitle,
-				Message: "A fast terminal with project groups and agent hooks.",
+				Message: appmode.AboutMessage(),
 				Icon:    appIcon,
 			},
 		},

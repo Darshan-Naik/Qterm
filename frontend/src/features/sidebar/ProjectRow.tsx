@@ -23,7 +23,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { toggleProjectCollapsed, useUI } from "@/store/ui";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { collectSessionIds, toggleProjectCollapsed, useUI, type SessionInfo } from "@/store/ui";
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
@@ -32,13 +33,42 @@ import { removeProjectById, renameProjectById } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { SessionRow } from "./SessionRow";
 
+function SessionList({ sessions }: { sessions: SessionInfo[] }) {
+  return (
+    <div className="ml-4 mt-0.5 space-y-0.5">
+      {sessions.map((s) => (
+        <SessionRow key={s.id} session={s} />
+      ))}
+    </div>
+  );
+}
+
 export function ProjectRow({ id, name, path }: { id: string; name: string; path: string }) {
   const allSessions = useUI((s) => s.sessions);
+  const splitTree = useUI((s) => s.splitTree);
+  const activeScope = useUI((s) => s.activeScope);
   const sessions = useMemo(() => allSessions.filter((s) => s.projectId === id), [allSessions, id]);
   const collapsed = useUI((s) => !!s.collapsedProjects[id]);
+  const openSessionIds = useMemo(() => {
+    if (activeScope !== id) return new Set<string>();
+    return new Set(collectSessionIds(splitTree));
+  }, [activeScope, id, splitTree]);
+  const peekSessions = useMemo(
+    () => sessions.filter((s) => openSessionIds.has(s.id) || s.pinned),
+    [sessions, openSessionIds]
+  );
+  const peekIds = useMemo(() => new Set(peekSessions.map((s) => s.id)), [peekSessions]);
+  const extraSessions = useMemo(
+    () => sessions.filter((s) => !peekIds.has(s.id)),
+    [sessions, peekIds]
+  );
+
   const { data: gitData } = useGitStatus(path);
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
+
+  const collapsibleSessions = collapsed ? extraSessions : sessions;
+  const showCollapsible = collapsibleSessions.length > 0;
 
   return (
     <div>
@@ -54,10 +84,16 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   toggleProjectCollapsed(id);
                 }}
               >
-                <ProjectIcon className="size-4 opacity-70 group-hover:opacity-0" />
+                <ProjectIcon
+                  className={cn(
+                    "size-4 opacity-70 transition-opacity duration-200 ease-[var(--motion-ease-out)]",
+                    collapsed ? "group-hover:opacity-0" : "opacity-0"
+                  )}
+                />
                 <ChevronRight
                   className={cn(
-                    "absolute size-4 opacity-0 transition-transform group-hover:opacity-100",
+                    "absolute size-4 transition-[transform,opacity] duration-200 ease-[var(--motion-ease-out)]",
+                    collapsed ? "opacity-0 group-hover:opacity-100" : "opacity-70",
                     !collapsed && "rotate-90"
                   )}
                 />
@@ -167,12 +203,13 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
-      {!collapsed && sessions.length > 0 && (
-        <div className="ml-4 mt-0.5 space-y-0.5">
-          {sessions.map((s) => (
-            <SessionRow key={s.id} session={s} />
-          ))}
-        </div>
+      {collapsed && peekSessions.length > 0 && <SessionList sessions={peekSessions} />}
+      {showCollapsible && (
+        <Collapsible open={!collapsed}>
+          <CollapsibleContent>
+            <SessionList sessions={collapsibleSessions} />
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </div>
   );

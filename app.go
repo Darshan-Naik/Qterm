@@ -106,11 +106,7 @@ func (a *App) setupMenu() {
 	// (Wails AppMenu role can't be extended with extra items).
 	app := menu.NewMenu()
 	app.AddText("About "+appmode.AppTitle, nil, func(_ *menu.CallbackData) {
-		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.InfoDialog,
-			Title:   "About " + appmode.AppTitle,
-			Message: "A fast terminal with project groups and agent hooks.",
-		})
+		runtime.EventsEmit(a.ctx, "app:open-about")
 	})
 	app.AddSeparator()
 	app.AddText("Settings…", keys.CmdOrCtrl(","), func(_ *menu.CallbackData) {
@@ -321,6 +317,12 @@ func pruneSessionFromLayout(node config.SplitNode, sessionID string) (config.Spl
 
 func (a *App) onHookIntent(intent hooks.Intent) {
 	runtime.EventsEmit(a.ctx, "hook:intent", intent)
+}
+
+// --- About ---
+
+func (a *App) AboutInfo() appmode.AboutInfo {
+	return appmode.About()
 }
 
 // --- Config ---

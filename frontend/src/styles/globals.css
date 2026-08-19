@@ -77,6 +77,11 @@
    */
   --titlebar-height: 32px;
   --traffic-inset: 80px;
+  /* Snappy macOS-like motion — transform/opacity/grid only on hot paths. */
+  --motion-duration-fast: 140ms;
+  --motion-duration-normal: 200ms;
+  --motion-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
 }
 
 .dark {
@@ -253,4 +258,101 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* --- UI motion (sidebar, collapse, dialogs) --- */
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+.animate-collapsible-down {
+  animation: collapsible-down var(--motion-duration-normal) var(--motion-ease-out);
+}
+.animate-collapsible-up {
+  animation: collapsible-up var(--motion-duration-normal) var(--motion-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-collapsible-down,
+  .animate-collapsible-up {
+    animation: none !important;
+  }
+}
+
+.motion-sidebar {
+  transition: width var(--motion-duration-normal) var(--motion-ease-out);
+  pointer-events: auto;
+}
+.motion-sidebar[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+@keyframes motion-dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes motion-dialog-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes motion-dialog-content-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 6px)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes motion-dialog-content-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 4px)) scale(0.98);
+  }
+}
+.motion-dialog-overlay[data-state="open"] {
+  animation: motion-dialog-overlay-in var(--motion-duration-fast) var(--motion-ease-out) both;
+}
+.motion-dialog-overlay[data-state="closed"] {
+  animation: motion-dialog-overlay-out var(--motion-duration-fast) var(--motion-ease-in) both;
+}
+.motion-dialog-content[data-state="open"] {
+  animation: motion-dialog-content-in var(--motion-duration-normal) var(--motion-ease-out) both;
+}
+.motion-dialog-content[data-state="closed"] {
+  animation: motion-dialog-content-out var(--motion-duration-fast) var(--motion-ease-in) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-sidebar,
+  .motion-dialog-overlay,
+  .motion-dialog-content {
+    animation: none !important;
+    transition: none !important;
+  }
 }

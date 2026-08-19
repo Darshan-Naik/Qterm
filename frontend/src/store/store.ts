@@ -38,6 +38,7 @@ export const uiStore = createStore<UIState>({
   quickOpen: false,
   terminalFindOpen: false,
   agentSessionsOpen: false,
+  aboutOpen: false,
   appMode: "workspace",
   settingsPage: "appearance",
   splitTree: null,
@@ -66,4 +67,12 @@ export function openSettings(page: SettingsPage = "appearance") {
 
 export function closeSettings() {
   uiStore.set({ appMode: "workspace" });
+}
+
+export function openAbout() {
+  uiStore.set({ aboutOpen: true });
+}
+
+export function closeAbout() {
+  uiStore.set({ aboutOpen: false });
 }

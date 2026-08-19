@@ -63,6 +63,8 @@ export type UIState = {
   terminalFindOpen: boolean;
   /** ⌘⇧A agent session history palette */
   agentSessionsOpen: boolean;
+  /** App menu → About */
+  aboutOpen: boolean;
   appMode: AppMode;
   settingsPage: SettingsPage;
   splitTree: SplitNode | null;

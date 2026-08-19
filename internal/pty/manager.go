@@ -224,6 +224,17 @@ func (m *Manager) Rename(id, name string) bool {
 	return true
 }
 
+func (m *Manager) SetPinned(id string, pinned bool) bool {
+	m.mu.RLock()
+	sess, ok := m.sessions[id]
+	m.mu.RUnlock()
+	if !ok {
+		return false
+	}
+	sess.Pinned = pinned
+	return true
+}
+
 func (m *Manager) Get(id string) (*Session, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
