@@ -318,21 +318,21 @@ input[type="number"]::-webkit-outer-spin-button {
 @keyframes motion-dialog-content-in {
   from {
     opacity: 0;
-    transform: translate(-50%, calc(-50% + 6px)) scale(0.98);
+    scale: 0.98;
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    scale: 1;
   }
 }
 @keyframes motion-dialog-content-out {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    scale: 1;
   }
   to {
     opacity: 0;
-    transform: translate(-50%, calc(-50% + 4px)) scale(0.98);
+    scale: 0.98;
   }
 }
 .motion-dialog-overlay[data-state="open"] {

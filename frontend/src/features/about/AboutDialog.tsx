@@ -4,12 +4,20 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui
 import { closeAbout, useUI } from "@/store/ui";
 import { AboutInfo } from "../../../wailsjs/go/main/App";
 
+type AboutData = Awaited<ReturnType<typeof AboutInfo>>;
+
+const aboutFallback: AboutData = {
+  title: "Qterm",
+  description: "A fast terminal with project groups and agent hooks.",
+  version: "",
+  author: "",
+};
+
 export function AboutDialog() {
   const open = useUI((s) => s.aboutOpen);
-  const [info, setInfo] = useState<Awaited<ReturnType<typeof AboutInfo>> | null>(null);
+  const [info, setInfo] = useState<AboutData>(aboutFallback);
 
   useEffect(() => {
-    if (!open) return;
     let cancelled = false;
     void AboutInfo().then((data) => {
       if (!cancelled) setInfo(data);
@@ -17,7 +25,7 @@ export function AboutDialog() {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, []);
 
   return (
     <Dialog
@@ -41,17 +49,15 @@ export function AboutDialog() {
           />
 
           <div className="space-y-2">
-            <DialogTitle className="text-lg font-semibold tracking-tight">
-              {info?.title ?? "Qterm"}
-            </DialogTitle>
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
-              {info?.description ?? "Loading…"}
+            <DialogTitle className="text-lg font-semibold tracking-tight">{info.title}</DialogTitle>
+            <p className="min-h-[2.75rem] text-[13px] leading-relaxed text-muted-foreground">
+              {info.description}
             </p>
           </div>
 
-          <div className="space-y-0.5 text-[12px] text-muted-foreground/90">
-            {info?.version ? <p>Version {info.version}</p> : null}
-            {info?.author ? <p>Designed by {info.author}</p> : null}
+          <div className="min-h-[2.5rem] space-y-0.5 text-[12px] text-muted-foreground/90">
+            <p>{info.version ? `Version ${info.version}` : "\u00A0"}</p>
+            <p>{info.author ? `Designed by ${info.author}` : "\u00A0"}</p>
           </div>
 
           <DialogClose asChild>
