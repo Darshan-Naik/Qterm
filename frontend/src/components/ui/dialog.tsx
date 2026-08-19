@@ -36,10 +36,11 @@ export function DialogContent({
       />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 gap-4 rounded-lg bg-popover p-5 text-popover-foreground shadow-xl outline-none",
-          position === "center" && "motion-dialog-content top-1/2 grid -translate-y-1/2",
+          "fixed z-50 w-[calc(100%-2rem)] max-w-lg gap-4 rounded-lg bg-popover p-5 text-popover-foreground shadow-xl outline-none",
+          position === "center" &&
+            "motion-dialog-content inset-0 m-auto h-fit max-h-[calc(100%-2rem)]",
           position === "top" &&
-            "top-[max(5.5rem,20vh)] flex max-h-[calc(100vh-max(5.5rem,20vh)-20vh)] translate-y-0 flex-col overflow-hidden",
+            "left-1/2 top-[max(5.5rem,20vh)] flex max-h-[calc(100vh-max(5.5rem,20vh)-20vh)] -translate-x-1/2 flex-col overflow-hidden",
           className
         )}
         {...props}
