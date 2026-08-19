@@ -1,8 +1,10 @@
-import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil } from "lucide-react";
+import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-react";
 import { closePane, deleteSession } from "@/lib/panes";
+import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
 import { listLeaves, uiStore, useUI } from "@/store/ui";
 import { splitFocused } from "@/app/splitActions";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +18,7 @@ import { requestSessionRename } from "./PaneTitle";
 
 export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: string }) {
   const leafCount = useUI((s) => listLeaves(s.splitTree).length);
+  const pinned = useUI((s) => !!s.sessions.find((x) => x.id === sessionId)?.pinned);
   const canClosePane = leafCount > 1;
 
   return (
@@ -38,6 +41,10 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
         >
           <Pencil className="size-3.5 opacity-70" />
           Rename…
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void toggleSessionPin(sessionId)}>
+          <Pin className={cn("size-3.5 opacity-70", pinned && "fill-current")} />
+          {pinned ? "Unpin terminal" : "Pin terminal"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

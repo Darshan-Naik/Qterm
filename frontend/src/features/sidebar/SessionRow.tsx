@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { MoreHorizontal, X, Trash2 } from "lucide-react";
+import { MoreHorizontal, X, Trash2, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import {
@@ -20,6 +20,7 @@ import { RenameSession } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { focusSession } from "@/lib/sessions";
 import { closeSessionPanes, deleteSession } from "@/lib/panes";
+import { toggleSessionPin } from "@/lib/sessionPin";
 import { SESSION_DRAG_MIME } from "@/lib/sessionDrag";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
@@ -30,6 +31,7 @@ export function SessionRow({ session }: { session: SessionInfo }) {
   const anim = useUI((s) => s.paneAnimations[session.id] || "none");
   const agent = useUI((s) => s.sessionAgents[session.id] || "");
   const focused = focusedSessionId === session.id;
+  const pinned = !!session.pinned;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const [dragging, setDragging] = useState(false);
@@ -164,7 +166,7 @@ export function SessionRow({ session }: { session: SessionInfo }) {
               />
             ) : (
                 <span
-                  className="min-w-0 flex-1 truncate"
+                  className="flex min-w-0 flex-1 items-center gap-1.5"
                   onDoubleClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -172,7 +174,10 @@ export function SessionRow({ session }: { session: SessionInfo }) {
                     setEditing(true);
                   }}
                 >
-                  {session.name}
+                  {pinned ? (
+                    <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
+                  ) : null}
+                  <span className="min-w-0 flex-1 truncate">{session.name}</span>
                 </span>
             )}
           </button>
@@ -192,6 +197,10 @@ export function SessionRow({ session }: { session: SessionInfo }) {
             <DropdownMenuContent align="end" className="min-w-[12rem]">
               <DropdownMenuItem shortcut={TerminalShortcuts.rename.label} onClick={startRename}>
                 Rename…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void toggleSessionPin(session.id)}>
+                <Pin className={cn("size-3.5 opacity-70", pinned && "fill-current")} />
+                {pinned ? "Unpin terminal" : "Pin terminal"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -216,6 +225,9 @@ export function SessionRow({ session }: { session: SessionInfo }) {
       <ContextMenuContent className="min-w-[12rem]">
         <ContextMenuItem shortcut={TerminalShortcuts.rename.label} onClick={startRename}>
           Rename…
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => void toggleSessionPin(session.id)}>
+          {pinned ? "Unpin terminal" : "Pin terminal"}
         </ContextMenuItem>
         <ContextMenuItem
           shortcut={TerminalShortcuts.close.label}

@@ -57,7 +57,7 @@ export async function hydrateWorkspace() {
   void persistUIPrefs();
 
   const [projects, sessions] = await Promise.all([ListProjects(), ListSessions()]);
-  const live = mapLiveSessions(Array.isArray(sessions) ? sessions : [], uiStore.get().sessions);
+  const live = sortSessionsByStart(mapLiveSessions(Array.isArray(sessions) ? sessions : [], uiStore.get().sessions));
   const nextProjects = Array.isArray(projects) && projects.length ? sortProjectsByAdded(projects) : cfgProjects;
   uiStore.set({
     projects: nextProjects,

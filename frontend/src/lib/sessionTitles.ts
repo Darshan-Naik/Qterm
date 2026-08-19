@@ -43,6 +43,9 @@ export function mapLiveSessions(live: SessionInput[], prev: SessionInfo[] = []):
 /** Seed from config.json — sort by createdAt when present. */
 export function sortSessionsByStart(sessions: SessionInfo[]): SessionInfo[] {
   return [...sessions].sort((a, b) => {
+    const pa = a.pinned ? 1 : 0;
+    const pb = b.pinned ? 1 : 0;
+    if (pa !== pb) return pb - pa;
     const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
     const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
     return ta - tb;
