@@ -81,7 +81,7 @@ export function PaneTitle({ sessionId }: { sessionId: string }) {
       <button
         type="button"
         className={cn(
-          "min-w-0 flex-1 cursor-pointer truncate rounded-sm px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground titlebar-no-drag",
+          "min-w-0 flex-1 cursor-pointer select-none truncate rounded-sm px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground titlebar-no-drag",
           "hover:bg-secondary/40"
         )}
         onDoubleClick={(e) => {
