@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html.drag-resize,
+html.drag-resize * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

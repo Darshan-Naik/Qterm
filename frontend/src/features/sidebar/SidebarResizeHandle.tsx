@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
+import { beginDragResize, endDragResize } from "@/lib/dragResize";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { clampSidebarWidth, persistUIPrefs, uiStore } from "@/store/ui";
 
@@ -10,14 +11,15 @@ export function SidebarResizeHandle({ disabled = false }: { disabled?: boolean }
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disabled) return;
+    e.preventDefault();
     dragging.current = true;
     e.currentTarget.setPointerCapture(e.pointerId);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
+    beginDragResize("col-resize");
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
+    e.preventDefault();
     pending.current = clampSidebarWidth(e.clientX);
     if (raf.current) return;
     raf.current = requestAnimationFrame(() => {
@@ -34,8 +36,7 @@ export function SidebarResizeHandle({ disabled = false }: { disabled?: boolean }
       raf.current = 0;
       uiStore.set({ sidebarWidth: pending.current });
     }
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
+    endDragResize();
     void persistUIPrefs();
   };
 
@@ -46,7 +47,7 @@ export function SidebarResizeHandle({ disabled = false }: { disabled?: boolean }
         aria-orientation="vertical"
         aria-label="Resize sidebar"
         className={cn(
-          "group relative z-20 w-1 shrink-0 self-stretch bg-transparent titlebar-no-drag",
+          "group relative z-20 w-1 shrink-0 touch-none self-stretch bg-transparent titlebar-no-drag",
           disabled
             ? "pointer-events-none cursor-default"
             : "cursor-col-resize hover:bg-foreground/10 active:bg-foreground/15"

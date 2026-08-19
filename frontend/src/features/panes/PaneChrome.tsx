@@ -18,7 +18,7 @@ export function PaneChrome({
 }) {
   return (
     <div
-      className="flex h-[var(--titlebar-height)] shrink-0 items-center gap-1.5 pr-3 titlebar-drag"
+      className="flex h-[var(--titlebar-height)] shrink-0 select-none items-center gap-1.5 pr-3 titlebar-drag"
       style={{ paddingLeft: trafficInset ? "var(--traffic-inset)" : "10px" }}
     >
       {showSidebarToggle && (
