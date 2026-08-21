@@ -33,11 +33,17 @@ import { removeProjectById, renameProjectById } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { SessionRow } from "./SessionRow";
 
-function SessionList({ sessions }: { sessions: SessionInfo[] }) {
+function SessionList({
+  sessions,
+  openIds,
+}: {
+  sessions: SessionInfo[];
+  openIds: Set<string>;
+}) {
   return (
     <div className="ml-4 mt-0.5 space-y-0.5">
       {sessions.map((s) => (
-        <SessionRow key={s.id} session={s} />
+        <SessionRow key={s.id} session={s} openInPane={openIds.has(s.id)} />
       ))}
     </div>
   );
@@ -46,13 +52,15 @@ function SessionList({ sessions }: { sessions: SessionInfo[] }) {
 export function ProjectRow({ id, name, path }: { id: string; name: string; path: string }) {
   const allSessions = useUI((s) => s.sessions);
   const splitTree = useUI((s) => s.splitTree);
-  const activeScope = useUI((s) => s.activeScope);
   const sessions = useMemo(() => allSessions.filter((s) => s.projectId === id), [allSessions, id]);
   const collapsed = useUI((s) => !!s.collapsedProjects[id]);
-  const openSessionIds = useMemo(() => {
-    if (activeScope !== id) return new Set<string>();
-    return new Set(collectSessionIds(splitTree));
-  }, [activeScope, id, splitTree]);
+  // Any session in the current window layout counts as open (incl. other projects).
+  const layoutIds = useMemo(() => new Set(collectSessionIds(splitTree)), [splitTree]);
+  const openSessionIds = useMemo(
+    () => new Set(sessions.map((s) => s.id).filter((sid) => layoutIds.has(sid))),
+    [sessions, layoutIds]
+  );
+  // Peek stays outside the collapsible so open/pinned never animate away on collapse.
   const peekSessions = useMemo(
     () => sessions.filter((s) => openSessionIds.has(s.id) || s.pinned),
     [sessions, openSessionIds]
@@ -66,9 +74,6 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
   const { data: gitData } = useGitStatus(path);
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
-
-  const collapsibleSessions = collapsed ? extraSessions : sessions;
-  const showCollapsible = collapsibleSessions.length > 0;
 
   return (
     <div>
@@ -84,9 +89,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   toggleProjectCollapsed(id);
                 }}
               >
-                <ProjectIcon
-                  className="size-4 opacity-70 transition-opacity duration-200 ease-[var(--motion-ease-out)] group-hover:opacity-0"
-                />
+                <ProjectIcon className="size-4 opacity-70 transition-opacity duration-200 ease-[var(--motion-ease-out)] group-hover:opacity-0" />
                 <ChevronRight
                   className={cn(
                     "absolute size-4 opacity-0 transition-[transform,opacity] duration-200 ease-[var(--motion-ease-out)] group-hover:opacity-100",
@@ -205,11 +208,11 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
-      {collapsed && peekSessions.length > 0 && <SessionList sessions={peekSessions} />}
-      {showCollapsible && (
+      {peekSessions.length > 0 && <SessionList sessions={peekSessions} openIds={openSessionIds} />}
+      {extraSessions.length > 0 && (
         <Collapsible open={!collapsed}>
           <CollapsibleContent>
-            <SessionList sessions={collapsibleSessions} />
+            <SessionList sessions={extraSessions} openIds={openSessionIds} />
           </CollapsibleContent>
         </Collapsible>
       )}

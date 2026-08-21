@@ -7,7 +7,10 @@ export function shellQuote(s: string): string {
 
 /** Space-joined quoted paths with a trailing space (standard terminal drop). */
 export function formatDroppedPaths(paths: string[]): string {
-  const parts = paths.map((p) => shellQuote(String(p || "").trim())).filter(Boolean);
+  const parts = paths
+    .map((p) => String(p || "").trim())
+    .filter(Boolean)
+    .map((p) => shellQuote(p));
   if (!parts.length) return "";
   return parts.join(" ") + " ";
 }

@@ -1,5 +1,6 @@
 import { findLeafBySession, uiStore } from "@/store/ui";
 import { focusTerminal } from "@/features/terminal/sessionTerminals";
+import { isSessionDragActive } from "@/lib/sessionDrag";
 import { formatDroppedPaths } from "@/lib/shellQuote";
 import { SetFocusedSession, WriteSession } from "../../wailsjs/go/main/App";
 import { OnFileDrop, OnFileDropOff } from "../../wailsjs/runtime/runtime";
@@ -16,6 +17,8 @@ function sessionIdAtPoint(x: number, y: number): string {
  */
 export function subscribeFileDrop(): () => void {
   OnFileDrop((x, y, paths) => {
+    // Sidebar→pane session drags can also fire Wails file-drop with empty paths.
+    if (isSessionDragActive()) return;
     if (!paths?.length) return;
 
     let sessionId = sessionIdAtPoint(x, y);

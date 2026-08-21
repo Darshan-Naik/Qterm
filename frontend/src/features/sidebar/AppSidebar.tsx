@@ -3,7 +3,7 @@ import { Plus, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
+import { persistUIPrefs, collectSessionIds, uiStore, useUI } from "@/store/ui";
 import { createDefaultTerminal, isUnbound } from "@/lib/sessions";
 import { SessionRow } from "./SessionRow";
 import { ProjectsSection } from "./ProjectsSection";
@@ -14,9 +14,15 @@ export function AppSidebar() {
   const open = useUI((s) => s.sidebarOpen);
   const width = useUI((s) => s.sidebarWidth);
   const sessions = useUI((s) => s.sessions);
+  const splitTree = useUI((s) => s.splitTree);
   const unboundSessions = useMemo(
     () => sessions.filter((s) => isUnbound(s.projectId)),
     [sessions]
+  );
+  const layoutIds = useMemo(() => new Set(collectSessionIds(splitTree)), [splitTree]);
+  const unboundOpenIds = useMemo(
+    () => new Set(unboundSessions.map((s) => s.id).filter((id) => layoutIds.has(id))),
+    [unboundSessions, layoutIds]
   );
   const shellWidth = sidebarShellWidth(width);
 
@@ -68,7 +74,7 @@ export function AppSidebar() {
               {unboundSessions.length > 0 && (
                 <div className="mt-2 space-y-0.5">
                   {unboundSessions.map((s) => (
-                    <SessionRow key={s.id} session={s} />
+                    <SessionRow key={s.id} session={s} openInPane={unboundOpenIds.has(s.id)} />
                   ))}
                 </div>
               )}
