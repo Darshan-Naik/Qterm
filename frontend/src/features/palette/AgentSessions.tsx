@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Command } from "cmdk";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { uiStore, useUI, leaf, type ProjectInfo, type SessionInfo } from "@/store/ui";
+import { uiStore, useUI, leaf, listLeaves, findLeafBySession, replaceLeafSession, type ProjectInfo, type SessionInfo } from "@/store/ui";
 import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
 import { cn } from "@/lib/utils";
 import {
@@ -11,11 +11,10 @@ import {
   ListAgentCLIs,
   ListAgentSessions,
   ResumeAgentSession,
-  SaveActiveScope,
   SaveLayout,
   SetFocusedSession,
 } from "../../../wailsjs/go/main/App";
-import { focusSession, scopeKey } from "@/lib/sessions";
+import { currentScope, focusSession } from "@/lib/sessions";
 import { sortProjectsByAdded } from "@/lib/sessionTitles";
 
 type AgentHit = {
@@ -146,20 +145,26 @@ export function AgentSessions() {
         cwd: sess.cwd,
         pinned: sess.pinned,
       };
-      const scope = scopeKey(info.projectId);
-      const sessions = [...uiStore.get().sessions.filter((s) => s.id !== info.id), info];
-      const n = leaf(info.id);
+      const state = uiStore.get();
+      const sessions = [...state.sessions.filter((s) => s.id !== info.id), info];
+      const layoutScope = currentScope();
+      let tree = state.splitTree;
+      const paneId = state.focusedPaneId || listLeaves(tree)[0]?.id;
+      if (tree && paneId) {
+        tree = replaceLeafSession(tree, paneId, info.id);
+      } else {
+        tree = leaf(info.id);
+      }
+      const shown = findLeafBySession(tree, info.id);
       uiStore.set({
         sessions,
-        activeScope: scope,
-        splitTree: n,
-        focusedPaneId: n.id,
+        splitTree: tree,
+        focusedPaneId: shown?.id ?? paneId ?? null,
         focusedSessionId: info.id,
-        sessionAgents: { ...uiStore.get().sessionAgents, [info.id]: hit.cli },
+        sessionAgents: { ...state.sessionAgents, [info.id]: hit.cli },
       });
       void SetFocusedSession(info.id);
-      void SaveActiveScope(scope);
-      await SaveLayout(scope, n as any);
+      await SaveLayout(layoutScope, tree as any);
       close();
     } catch (e) {
       console.error(e);

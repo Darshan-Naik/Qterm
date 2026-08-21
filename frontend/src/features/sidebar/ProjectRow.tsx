@@ -28,7 +28,7 @@ import { collectSessionIds, toggleProjectCollapsed, useUI, type SessionInfo } fr
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
-import { createTerminal, focusScope } from "@/lib/sessions";
+import { createTerminal, setActiveScope } from "@/lib/sessions";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
@@ -129,7 +129,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
-                void focusScope(id);
+                void setActiveScope(id);
               }}
               onDoubleClick={() => toggleProjectCollapsed(id)}
             >

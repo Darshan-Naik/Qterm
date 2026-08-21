@@ -1,4 +1,4 @@
-import { createDefaultTerminal, DEFAULT_SCOPE, focusScope, isUnbound } from "@/lib/sessions";
+import { createDefaultTerminal, DEFAULT_SCOPE, loadScopeLayout, isUnbound } from "@/lib/sessions";
 import { mapLiveSessions, sortProjectsByAdded, sortSessionsByStart } from "@/lib/sessionTitles";
 import {
   applyConfigChrome,
@@ -66,12 +66,12 @@ export async function hydrateWorkspace() {
 
   const scope = cfg.activeScope || DEFAULT_SCOPE;
   if (live.length || cfgSessions.length) {
-    await focusScope(scope);
+    await loadScopeLayout(scope);
     if (!uiStore.get().splitTree) {
       const first = (live.length ? live : cfgSessions)[0];
       if (first) {
         const fallback = isUnbound(first.projectId) ? DEFAULT_SCOPE : first.projectId;
-        await focusScope(fallback);
+        await loadScopeLayout(fallback);
       }
     }
     return;

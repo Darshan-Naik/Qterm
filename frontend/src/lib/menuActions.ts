@@ -4,13 +4,13 @@ import {
   createTerminal,
   createDefaultTerminal,
   currentScope,
-  focusScope,
   isUnbound,
+  setActiveScope,
 } from "@/lib/sessions";
 import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
 import { requestSessionRename } from "@/features/panes/PaneTitle";
-import { uiStore } from "@/store/ui";
-import { OpenInFinder, RemoveProject, RenameProject } from "../../wailsjs/go/main/App";
+import { findLeafBySession, listLeaves, removePane, uiStore } from "@/store/ui";
+import { OpenInFinder, RemoveProject, RenameProject, SaveLayout } from "../../wailsjs/go/main/App";
 
 function focusedSessionId() {
   return uiStore.get().focusedSessionId;
@@ -96,9 +96,26 @@ export async function renameProjectById(id: string, currentName: string) {
 /** Project — remove by id (menu on a specific row). */
 export async function removeProjectById(id: string) {
   await RemoveProject(id);
+  const state = uiStore.get();
+  const removedIds = new Set(state.sessions.filter((s) => s.projectId === id).map((s) => s.id));
+  let tree = state.splitTree;
+  if (tree && removedIds.size) {
+    for (const sid of removedIds) {
+      const pane = findLeafBySession(tree, sid);
+      if (pane) {
+        tree = removePane(tree, pane.id);
+        if (!tree) break;
+      }
+    }
+  }
+  const leaves = listLeaves(tree);
   uiStore.set({
-    projects: uiStore.get().projects.filter((p) => p.id !== id),
-    sessions: uiStore.get().sessions.filter((s) => s.projectId !== id),
+    projects: state.projects.filter((p) => p.id !== id),
+    sessions: state.sessions.filter((s) => s.projectId !== id),
+    splitTree: tree,
+    focusedPaneId: leaves[0]?.id ?? null,
+    focusedSessionId: leaves[0]?.sessionId ?? null,
   });
-  await focusScope(DEFAULT_SCOPE);
+  await setActiveScope(DEFAULT_SCOPE);
+  await SaveLayout(DEFAULT_SCOPE, (tree || { type: "" }) as any);
 }
