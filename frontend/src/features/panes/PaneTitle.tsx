@@ -15,7 +15,7 @@ export function PaneTitle({ sessionId }: { sessionId: string }) {
   const name = sessions.find((x) => x.id === sessionId)?.name || "Terminal";
 
   return (
-    <span className="min-w-0 flex-1 select-none truncate px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground">
+    <span className="min-w-0 flex-1 select-none truncate px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground opacity-45 transition-opacity group-hover/chrome:opacity-100">
       {name}
     </span>
   );

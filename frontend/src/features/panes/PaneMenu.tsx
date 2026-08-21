@@ -2,7 +2,7 @@ import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-
 import { closePane, deleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
-import { listLeaves, uiStore, useUI } from "@/store/ui";
+import { listLeaves, persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { splitFocused } from "@/app/splitActions";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +21,15 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
   const pinned = useUI((s) => !!s.sessions.find((x) => x.id === sessionId)?.pinned);
   const canClosePane = leafCount > 1;
 
+  const renameInSidebar = () => {
+    if (!uiStore.get().sidebarOpen) {
+      uiStore.set({ sidebarOpen: true });
+      void persistUIPrefs();
+    }
+    // Wait for the dropdown to close and release focus, then start rename.
+    window.setTimeout(() => requestSessionRename(sessionId), 60);
+  };
+
   return (
     <DropdownMenu>
       <WithTooltip label="Pane menu">
@@ -28,7 +37,7 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
           <Button
             size="icon"
             variant="ghost"
-            className="size-6 shrink-0 text-muted-foreground opacity-0 titlebar-no-drag transition-opacity group-hover/pane:opacity-100 data-[state=open]:opacity-100"
+            className="size-6 shrink-0 text-muted-foreground opacity-0 titlebar-no-drag transition-opacity group-hover/pane:opacity-45 group-hover/chrome:!opacity-100 data-[state=open]:!opacity-100"
           >
             <MoreHorizontal className="size-3.5" />
           </Button>
@@ -37,7 +46,7 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
       <DropdownMenuContent align="end" className="min-w-[13rem]">
         <DropdownMenuItem
           shortcut={TerminalShortcuts.rename.label}
-          onClick={() => requestSessionRename(sessionId)}
+          onClick={renameInSidebar}
         >
           <Pencil className="size-3.5 opacity-70" />
           Rename…
