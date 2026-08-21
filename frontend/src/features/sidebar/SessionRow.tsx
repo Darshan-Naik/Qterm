@@ -51,17 +51,11 @@ export function SessionRow({
   const [draft, setDraft] = useState(session.name);
   const [dragging, setDragging] = useState(false);
   const draggedRef = useRef(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const pendingRename = useRef(false);
 
   useEffect(() => {
     if (!editing) setDraft(session.name);
   }, [session.name, editing]);
-
-  useEffect(() => {
-    if (!editing) return;
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, [editing]);
 
   useEffect(() => {
     const onRename = (e: Event) => {
@@ -73,10 +67,19 @@ export function SessionRow({
     return () => window.removeEventListener(RENAME_SESSION_EVENT, onRename);
   }, [session.id, session.name]);
 
-  const startRename = () => {
+  /** Mark rename; actual edit mode starts in onCloseAutoFocus so autoFocus wins. */
+  const queueRename = () => {
+    pendingRename.current = true;
+  };
+
+  const onMenuCloseAutoFocus = (e: Event) => {
+    if (!pendingRename.current) return;
+    e.preventDefault();
+    pendingRename.current = false;
     setDraft(session.name);
     setEditing(true);
   };
+
   const commit = async () => {
     const next = draft.trim();
     setEditing(false);
@@ -168,8 +171,9 @@ export function SessionRow({
             </span>
             {editing ? (
               <input
-                ref={inputRef}
+                autoFocus
                 value={draft}
+                onFocus={(e) => e.currentTarget.select()}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={() => void commit()}
@@ -217,8 +221,12 @@ export function SessionRow({
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[12rem]">
-              <DropdownMenuItem shortcut={TerminalShortcuts.rename.label} onClick={startRename}>
+            <DropdownMenuContent
+              align="end"
+              className="min-w-[12rem]"
+              onCloseAutoFocus={onMenuCloseAutoFocus}
+            >
+              <DropdownMenuItem shortcut={TerminalShortcuts.rename.label} onSelect={queueRename}>
                 Rename…
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void toggleSessionPin(session.id)}>
@@ -245,8 +253,8 @@ export function SessionRow({
           </DropdownMenu>
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="min-w-[12rem]">
-        <ContextMenuItem shortcut={TerminalShortcuts.rename.label} onClick={startRename}>
+      <ContextMenuContent className="min-w-[12rem]" onCloseAutoFocus={onMenuCloseAutoFocus}>
+        <ContextMenuItem shortcut={TerminalShortcuts.rename.label} onSelect={queueRename}>
           Rename…
         </ContextMenuItem>
         <ContextMenuItem onClick={() => void toggleSessionPin(session.id)}>
