@@ -122,7 +122,7 @@ export function SessionRow({
             }, 0);
           }}
           className={cn(
-            "group relative flex w-full items-center gap-0.5 rounded-lg text-[13px] leading-snug text-muted-foreground hover:text-sidebar-foreground",
+            "group relative flex w-full items-center gap-0.5 rounded-lg text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/35 hover:text-sidebar-foreground",
             canDrag && "cursor-grab active:cursor-grabbing",
             !canDrag && "cursor-pointer",
             openInPane &&

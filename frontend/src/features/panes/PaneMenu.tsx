@@ -28,7 +28,7 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
           <Button
             size="icon"
             variant="ghost"
-            className="size-6 shrink-0 text-muted-foreground titlebar-no-drag"
+            className="size-6 shrink-0 text-muted-foreground opacity-0 titlebar-no-drag transition-opacity group-hover/pane:opacity-100 data-[state=open]:opacity-100"
           >
             <MoreHorizontal className="size-3.5" />
           </Button>
