@@ -1,11 +1,12 @@
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
+import { isUnbound } from "@/lib/sessions";
 import {
-  dropSessionOnEmpty,
+  dropSessionOnOpenWorkspace,
   getActiveSessionDragId,
   isSessionDrag,
   isSessionDragActive,
@@ -14,9 +15,21 @@ import {
   subscribeSessionDrag,
   trackSessionDragPoint,
 } from "@/lib/sessionDrag";
+import { OpenSessionGrid } from "./OpenSessionGrid";
+import { WorkspaceStart } from "./WorkspaceStart";
+import { WorkspaceActions } from "./WorkspaceActions";
 
-export function EmptyWorkspace() {
+export function OpenWorkspace() {
   const sidebarOpen = useUI((s) => s.sidebarOpen);
+  const sessions = useUI((s) => s.sessions);
+  const projects = useUI((s) => s.projects);
+  // List screen when there are projects or pickable sessions; Get started only when neither.
+  const showGrid = useMemo(() => {
+    if (projects.length > 0) return true;
+    if (!sessions.length) return false;
+    const projectIds = new Set(projects.map((p) => p.id));
+    return sessions.some((s) => isUnbound(s.projectId) || projectIds.has(s.projectId));
+  }, [sessions, projects]);
   const [over, setOver] = useState(false);
 
   useEffect(
@@ -43,7 +56,7 @@ export function EmptyWorkspace() {
     const id = readDraggedSessionId(e);
     if (id) {
       markSessionDropHandled();
-      void dropSessionOnEmpty(id);
+      void dropSessionOnOpenWorkspace(id);
     }
   };
 
@@ -71,20 +84,38 @@ export function EmptyWorkspace() {
       )}
       <div
         className={cn(
-          "m-2 flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed text-xs transition-colors",
+          "relative m-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg transition-colors",
           over
-            ? "border-primary/50 bg-primary/10 text-foreground"
-            : "border-transparent text-muted-foreground"
+            ? "border border-primary/50 bg-primary/10"
+            : "border-0 bg-background/40"
         )}
         onDragOver={onDragOver}
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
-        data-drop-empty=""
+        data-drop-open-workspace=""
       >
-        {over ? "Drop to open terminal" : "Create a terminal from the sidebar or press ⌘T"}
-        <span className="mt-1 text-[11px] text-muted-foreground/80">
-          Drag a terminal from the sidebar to split
-        </span>
+        {over ? (
+          <div className="flex flex-1 flex-col items-center justify-center text-[13px] text-foreground">
+            Drop to open terminal
+          </div>
+        ) : showGrid ? (
+          <>
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-2 pt-3">
+              <div className="min-w-0">
+                <p className="text-[14px] font-medium text-foreground">Open a terminal</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Pick a session, or create a new one
+                </p>
+              </div>
+              <WorkspaceActions size="sm" />
+            </div>
+            <OpenSessionGrid />
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center px-6">
+            <WorkspaceStart />
+          </div>
+        )}
       </div>
     </div>
   );

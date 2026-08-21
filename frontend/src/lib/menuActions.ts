@@ -8,6 +8,7 @@ import {
   setActiveScope,
 } from "@/lib/sessions";
 import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
+import { confirm } from "@/lib/confirm";
 import { requestSessionRename } from "@/features/panes/PaneTitle";
 import { findLeafBySession, listLeaves, removePane, uiStore } from "@/store/ui";
 import { OpenInFinder, RemoveProject, RenameProject, SaveLayout } from "../../wailsjs/go/main/App";
@@ -95,10 +96,25 @@ export async function renameProjectById(id: string, currentName: string) {
 
 /** Project — remove by id (menu on a specific row). */
 export async function removeProjectById(id: string) {
-  await RemoveProject(id);
   const state = uiStore.get();
-  const removedIds = new Set(state.sessions.filter((s) => s.projectId === id).map((s) => s.id));
-  let tree = state.splitTree;
+  const project = state.projects.find((p) => p.id === id);
+  const name = project?.name || "this project";
+  const sessionCount = state.sessions.filter((s) => s.projectId === id).length;
+  const ok = await confirm({
+    title: "Remove project?",
+    description:
+      sessionCount > 0
+        ? `Remove “${name}” from the sidebar? Its ${sessionCount} terminal${sessionCount === 1 ? "" : "s"} will also be removed. The folder on disk is kept.`
+        : `Remove “${name}” from the sidebar? The folder on disk is kept.`,
+    confirmLabel: "Remove",
+    destructive: true,
+  });
+  if (!ok) return;
+
+  await RemoveProject(id);
+  const nextState = uiStore.get();
+  const removedIds = new Set(nextState.sessions.filter((s) => s.projectId === id).map((s) => s.id));
+  let tree = nextState.splitTree;
   if (tree && removedIds.size) {
     for (const sid of removedIds) {
       const pane = findLeafBySession(tree, sid);
@@ -110,8 +126,8 @@ export async function removeProjectById(id: string) {
   }
   const leaves = listLeaves(tree);
   uiStore.set({
-    projects: state.projects.filter((p) => p.id !== id),
-    sessions: state.sessions.filter((s) => s.projectId !== id),
+    projects: nextState.projects.filter((p) => p.id !== id),
+    sessions: nextState.sessions.filter((s) => s.projectId !== id),
     splitTree: tree,
     focusedPaneId: leaves[0]?.id ?? null,
     focusedSessionId: leaves[0]?.sessionId ?? null,

@@ -1,5 +1,5 @@
 import { listLeaves, useUI } from "@/store/ui";
-import { EmptyWorkspace } from "./EmptyWorkspace";
+import { OpenWorkspace } from "./OpenWorkspace";
 import { SplitNodeView } from "./SplitNodeView";
 
 export function SplitGrid() {
@@ -9,7 +9,7 @@ export function SplitGrid() {
   const primaryPaneId = leaves[0]?.id ?? null;
 
   if (!tree) {
-    return <EmptyWorkspace />;
+    return <OpenWorkspace />;
   }
 
   return (

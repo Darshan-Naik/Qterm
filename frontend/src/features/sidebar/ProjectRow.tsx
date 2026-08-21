@@ -286,6 +286,16 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
       {collapsed && peekSessions.length > 0 && (
         <SessionList sessions={peekSessions} openIds={openSessionIds} />
       )}
+      {!collapsed && sessions.length === 0 ? (
+        <button
+          type="button"
+          className="ml-4 mt-0.5 flex w-[calc(100%-1rem)] cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          onClick={() => void createTerminal(id)}
+        >
+          <Plus className="size-4 shrink-0 opacity-60" />
+          <span>New terminal</span>
+        </button>
+      ) : null}
       {(!collapsed ? sessions.length > 0 : extraSessions.length > 0) && (
         <Collapsible open={!collapsed}>
           <CollapsibleContent>

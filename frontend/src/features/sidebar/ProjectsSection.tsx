@@ -5,7 +5,7 @@ import { WithTooltip } from "@/components/ui/tooltip";
 import { uiStore, useUI } from "@/store/ui";
 import { AddProject, PickFolder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
-import { createTerminal, isUnbound } from "@/lib/sessions";
+import { isUnbound } from "@/lib/sessions";
 import { sortProjectsByAdded } from "@/lib/sessionTitles";
 import { ProjectRow } from "./ProjectRow";
 import {
@@ -46,7 +46,6 @@ export function ProjectsSection() {
                 uiStore.set({
                   projects: sortProjectsByAdded([...uiStore.get().projects, p]),
                 });
-                await createTerminal(p.id);
               }}
             >
               <FolderPlus className="size-4" />
