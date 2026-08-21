@@ -32,7 +32,18 @@ function layoutHasSessions(node: SplitNode, sessionIds: Set<string>): boolean {
   return layoutHasSessions(node.children[0], sessionIds) && layoutHasSessions(node.children[1], sessionIds);
 }
 
-export async function focusScope(scope: string) {
+/** Mark which project “new terminal” / cwd context uses — does not touch the split tree. */
+export async function setActiveScope(scope: string) {
+  if (uiStore.get().activeScope === scope) return;
+  uiStore.set({ activeScope: scope });
+  void SaveActiveScope(scope);
+}
+
+/**
+ * Load a saved layout for hydrate / explicit workspace restore.
+ * Prefer this over setActiveScope when the window tree must change.
+ */
+export async function loadScopeLayout(scope: string) {
   uiStore.set({ activeScope: scope });
   void SaveActiveScope(scope);
   const layout = (await GetLayout(scope)) as SplitNode | null;
@@ -62,12 +73,20 @@ export async function focusScope(scope: string) {
   }
 }
 
+/** @deprecated Use setActiveScope (no layout swap) or loadScopeLayout (hydrate). */
+export async function focusScope(scope: string) {
+  await loadScopeLayout(scope);
+}
+
+/**
+ * Create a terminal in a project (or home). Replaces the focused pane’s
+ * session (sidebar “New” / project +). Use split actions or drag to split.
+ */
 export async function createTerminal(projectId: string, name?: string) {
   const unbound = isUnbound(projectId);
   const project = uiStore.get().projects.find((p) => p.id === projectId);
   const cwd = unbound ? "" : project?.path || "";
   const pid = unbound ? "" : projectId;
-  const scope = unbound ? DEFAULT_SCOPE : projectId;
   const label = name || randomTerminalName(uiStore.get().sessions.map((s) => s.name));
   const sess = await CreateSession(pid, label, cwd);
   const info: SessionInfo = {
@@ -79,18 +98,27 @@ export async function createTerminal(projectId: string, name?: string) {
     createdAt: sess.createdAt,
   };
   // Backend sorts by start time; append until sessions:changed refreshes.
-  const sessions = [...uiStore.get().sessions.filter((s) => s.id !== info.id), info];
-  const n = leaf(info.id);
+  const state = uiStore.get();
+  const sessions = [...state.sessions.filter((s) => s.id !== info.id), info];
+  const layoutScope = currentScope();
+
+  let tree = state.splitTree;
+  const paneId = state.focusedPaneId || listLeaves(tree)[0]?.id;
+  if (tree && paneId) {
+    tree = replaceLeafSession(tree, paneId, info.id);
+  } else {
+    tree = leaf(info.id);
+  }
+  const shown = findLeafBySession(tree, info.id);
+
   uiStore.set({
     sessions,
-    activeScope: scope,
-    splitTree: n,
-    focusedPaneId: n.id,
+    splitTree: tree,
+    focusedPaneId: shown?.id ?? paneId ?? null,
     focusedSessionId: info.id,
   });
   void SetFocusedSession(info.id);
-  void SaveActiveScope(scope);
-  await SaveLayout(scope, n as any);
+  await SaveLayout(layoutScope, tree as any);
   return info;
 }
 
@@ -99,16 +127,18 @@ export async function createDefaultTerminal() {
   return createTerminal("");
 }
 
-/** Focus an existing session in the current or matching scope layout. */
+/**
+ * Focus an existing session in the current window layout.
+ * Cross-project sessions share one split tree — do not load another scope layout.
+ */
 export async function focusSession(sessionId: string) {
   const state = uiStore.get();
   const session = state.sessions.find((s) => s.id === sessionId);
   if (!session) return;
 
-  const scope = scopeKey(session.projectId);
+  const layoutScope = currentScope();
 
-  // Same scope: focus existing pane, or swap the clicked session into the focused pane.
-  if (state.activeScope === scope && state.splitTree) {
+  if (state.splitTree) {
     const existing = findLeafBySession(state.splitTree, sessionId);
     if (existing) {
       uiStore.set({ focusedPaneId: existing.id, focusedSessionId: sessionId });
@@ -128,28 +158,17 @@ export async function focusSession(sessionId: string) {
         focusedSessionId: sessionId,
       });
       void SetFocusedSession(sessionId);
-      void SaveLayout(scope, next as any);
+      void SaveLayout(layoutScope, next as any);
       return;
     }
   }
 
-  await focusScope(scope);
-  const tree = uiStore.get().splitTree;
-  const pane = findLeafBySession(tree, sessionId);
-  if (pane) {
-    uiStore.set({ focusedPaneId: pane.id, focusedSessionId: sessionId });
-    void SetFocusedSession(sessionId);
-    return;
-  }
-
   const n = leaf(sessionId);
   uiStore.set({
-    activeScope: scope,
     splitTree: n,
     focusedPaneId: n.id,
     focusedSessionId: sessionId,
   });
   void SetFocusedSession(sessionId);
-  void SaveActiveScope(scope);
-  void SaveLayout(scope, n as any);
+  void SaveLayout(layoutScope, n as any);
 }

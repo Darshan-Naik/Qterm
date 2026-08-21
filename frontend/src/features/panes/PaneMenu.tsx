@@ -2,7 +2,7 @@ import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-
 import { closePane, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
-import { listLeaves, persistUIPrefs, uiStore, useUI } from "@/store/ui";
+import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { splitFocused } from "@/app/splitActions";
 import { cn } from "@/lib/utils";
 import {
@@ -28,9 +28,7 @@ export function PaneMenu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const leafCount = useUI((s) => listLeaves(s.splitTree).length);
   const pinned = useUI((s) => !!s.sessions.find((x) => x.id === sessionId)?.pinned);
-  const canClosePane = leafCount > 1;
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
 
   const renameInSidebar = () => {
@@ -108,7 +106,6 @@ export function PaneMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem
           shortcut={TerminalShortcuts.close.label}
-          disabled={!canClosePane}
           onClick={() => void closePane(paneId)}
         >
           <X className="size-3.5 opacity-70" />

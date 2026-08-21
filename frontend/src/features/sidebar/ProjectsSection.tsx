@@ -38,7 +38,7 @@ export function ProjectsSection() {
             <Button
               size="icon"
               variant="ghost"
-              className="size-7 shrink-0 text-muted-foreground"
+              className="size-7 shrink-0 text-muted-foreground opacity-75"
               onClick={async () => {
                 const path = await PickFolder();
                 if (!path) return;
