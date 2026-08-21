@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PanelLeft } from "lucide-react";
 import { persistUIPrefs, uiStore } from "@/store/ui";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ export function PaneChrome({
   showSidebarToggle?: boolean;
   trafficInset?: boolean;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div
       className="group/chrome flex h-[var(--titlebar-height)] shrink-0 select-none items-center gap-1.5 pr-3 titlebar-drag"
@@ -37,8 +40,8 @@ export function PaneChrome({
         </WithTooltip>
       )}
 
-      <PaneTitle key={sessionId} sessionId={sessionId} />
-      <PaneMenu paneId={paneId} sessionId={sessionId} />
+      <PaneTitle key={sessionId} sessionId={sessionId} active={menuOpen} />
+      <PaneMenu paneId={paneId} sessionId={sessionId} open={menuOpen} onOpenChange={setMenuOpen} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-react";
+import { useState } from "react";
 import { closePane, deleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
@@ -16,10 +17,21 @@ import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { requestSessionRename } from "./PaneTitle";
 
-export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: string }) {
+export function PaneMenu({
+  paneId,
+  sessionId,
+  open,
+  onOpenChange,
+}: {
+  paneId: string;
+  sessionId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const leafCount = useUI((s) => listLeaves(s.splitTree).length);
   const pinned = useUI((s) => !!s.sessions.find((x) => x.id === sessionId)?.pinned);
   const canClosePane = leafCount > 1;
+  const [suppressTip, setSuppressTip] = useState(false);
 
   const renameInSidebar = () => {
     if (!uiStore.get().sidebarOpen) {
@@ -31,19 +43,38 @@ export function PaneMenu({ paneId, sessionId }: { paneId: string; sessionId: str
   };
 
   return (
-    <DropdownMenu>
-      <WithTooltip label="Pane menu">
+    <DropdownMenu
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange(next);
+        if (!next) {
+          // Closing restores focus to the trigger and would pop the tooltip.
+          setSuppressTip(true);
+          window.setTimeout(() => setSuppressTip(false), 150);
+        }
+      }}
+    >
+      <WithTooltip label="Pane menu" disabled={open || suppressTip}>
         <DropdownMenuTrigger asChild>
           <Button
             size="icon"
             variant="ghost"
-            className="size-6 shrink-0 text-muted-foreground opacity-0 titlebar-no-drag transition-opacity group-hover/pane:opacity-45 group-hover/chrome:!opacity-100 data-[state=open]:!opacity-100"
+            className={cn(
+              "size-6 shrink-0 text-muted-foreground opacity-0 titlebar-no-drag transition-[opacity,background-color,color]",
+              "group-hover/pane:opacity-45 group-hover/chrome:!opacity-100",
+              "hover:bg-accent hover:text-foreground",
+              open && "!opacity-100 bg-accent text-foreground"
+            )}
           >
             <MoreHorizontal className="size-3.5" />
           </Button>
         </DropdownMenuTrigger>
       </WithTooltip>
-      <DropdownMenuContent align="end" className="min-w-[13rem]">
+      <DropdownMenuContent
+        align="end"
+        className="min-w-[13rem]"
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DropdownMenuItem
           shortcut={TerminalShortcuts.rename.label}
           onClick={renameInSidebar}
