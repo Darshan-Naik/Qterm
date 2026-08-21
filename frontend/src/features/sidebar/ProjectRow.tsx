@@ -6,6 +6,8 @@ import {
   Circle,
   ChevronRight,
   Plus,
+  X,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
@@ -29,6 +31,7 @@ import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
 import { createTerminal, setActiveScope } from "@/lib/sessions";
+import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
@@ -137,7 +140,12 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 <span className="min-w-0 shrink truncate font-normal">{name}</span>
               </WithTooltip>
               {git?.isRepo && (
-                <span className="ml-auto flex min-w-0 max-w-[58%] shrink items-center justify-end gap-1.5 pl-1 text-[12px] text-muted-foreground group-hover:invisible">
+                <span
+                  className={cn(
+                    "ml-auto flex min-w-0 max-w-[58%] shrink items-center justify-end gap-1.5 pl-1 text-[12px] text-muted-foreground group-hover:invisible",
+                    menuOpen && "invisible"
+                  )}
+                >
                   <WithTooltip label={git.branch ?? ""} side="right">
                     <span className="min-w-0 truncate text-right">{git.branch}</span>
                   </WithTooltip>
@@ -205,6 +213,22 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    disabled={openSessionIds.size === 0}
+                    onClick={() => void closeProjectPanes(id)}
+                  >
+                    <X className="size-3.5 opacity-70" />
+                    Close all
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={sessions.length === 0}
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    onClick={() => void requestDeleteProjectSessions(id)}
+                  >
+                    <Trash2 className="size-3.5 opacity-70" />
+                    Delete all
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
                     shortcut={ProjectShortcuts.remove.label}
                     className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                     onClick={() => void removeProjectById(id)}
@@ -234,6 +258,19 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               onClick={() => void OpenInFinder(path)}
             >
               Reveal in Finder
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              disabled={openSessionIds.size === 0}
+              onClick={() => void closeProjectPanes(id)}
+            >
+              Close all
+            </ContextMenuItem>
+            <ContextMenuItem
+              disabled={sessions.length === 0}
+              onClick={() => void requestDeleteProjectSessions(id)}
+            >
+              Delete all
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
