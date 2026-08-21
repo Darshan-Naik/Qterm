@@ -230,7 +230,7 @@ export function OpenProjectSection({
       </div>
 
       {sessions.length > 0 ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(15.5rem,1fr))] gap-2">
           {sessions.map((s) => (
             <OpenSessionTile key={s.id} session={s} />
           ))}
