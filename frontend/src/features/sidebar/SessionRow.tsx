@@ -50,6 +50,8 @@ export function SessionRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const [dragging, setDragging] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [suppressTip, setSuppressTip] = useState(false);
   const draggedRef = useRef(false);
   const pendingRename = useRef(false);
 
@@ -73,11 +75,22 @@ export function SessionRow({
   };
 
   const onMenuCloseAutoFocus = (e: Event) => {
-    if (!pendingRename.current) return;
+    if (pendingRename.current) {
+      e.preventDefault();
+      pendingRename.current = false;
+      setDraft(session.name);
+      setEditing(true);
+      return;
+    }
     e.preventDefault();
-    pendingRename.current = false;
-    setDraft(session.name);
-    setEditing(true);
+  };
+
+  const onSessionMenuOpenChange = (next: boolean) => {
+    setMenuOpen(next);
+    if (!next) {
+      setSuppressTip(true);
+      window.setTimeout(() => setSuppressTip(false), 150);
+    }
   };
 
   const commit = async () => {
@@ -169,58 +182,65 @@ export function SessionRow({
                 </span>
               ) : null}
             </span>
-            {editing ? (
-              <input
-                autoFocus
-                value={draft}
-                onFocus={(e) => e.currentTarget.select()}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={() => void commit()}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                  if (e.key === "Enter") {
+            <span className="flex h-5 min-w-0 flex-1 items-center gap-1.5">
+              {pinned ? (
+                <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
+              ) : null}
+              {editing ? (
+                <input
+                  autoFocus
+                  value={draft}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={() => void commit()}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void commit();
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setDraft(session.name);
+                      setEditing(false);
+                    }
+                  }}
+                  className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] leading-5 text-sidebar-foreground outline-none"
+                />
+              ) : (
+                <span
+                  className="min-w-0 flex-1 truncate leading-5"
+                  onDoubleClick={(e) => {
                     e.preventDefault();
-                    void commit();
-                  }
-                  if (e.key === "Escape") {
-                    e.preventDefault();
+                    e.stopPropagation();
                     setDraft(session.name);
-                    setEditing(false);
-                  }
-                }}
-                className="min-w-0 flex-1 select-text rounded-md bg-secondary/60 px-1.5 py-0.5 text-[13px] text-sidebar-foreground outline-none ring-1 ring-ring/40"
-              />
-            ) : (
-              <span
-                className="flex min-w-0 flex-1 items-center gap-1.5"
-                onDoubleClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDraft(session.name);
-                  setEditing(true);
-                }}
-              >
-                {pinned ? (
-                  <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
-                ) : null}
-                <span className="min-w-0 flex-1 truncate">{session.name}</span>
-              </span>
-            )}
+                    setEditing(true);
+                  }}
+                >
+                  {session.name}
+                </span>
+              )}
+            </span>
           </button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="mr-1 size-7 shrink-0 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
+          <DropdownMenu open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
+            <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    "mr-1 size-7 shrink-0 opacity-0 group-hover:opacity-100",
+                    menuOpen && "!opacity-100 bg-accent text-foreground"
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+            </WithTooltip>
             <DropdownMenuContent
               align="end"
               className="min-w-[12rem]"
