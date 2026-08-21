@@ -102,8 +102,8 @@ export function OpenWorkspace() {
           <>
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-2 pt-3">
               <div className="min-w-0">
-                <p className="text-[14px] font-medium text-foreground">Open a terminal</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[14px] font-medium text-muted-foreground">Open a terminal</p>
+                <p className="text-[11px] text-muted-foreground/70">
                   Pick a session, or create a new one
                 </p>
               </div>

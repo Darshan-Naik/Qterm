@@ -42,7 +42,7 @@ export function OpenSessionGrid() {
                 OPEN_STICKY_SEAL
               )}
             >
-              <h2 className="min-w-0 flex-1 truncate text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+              <h2 className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
                 Home
               </h2>
               <WithTooltip label="New terminal">

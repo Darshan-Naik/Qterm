@@ -158,11 +158,11 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
                     setEditing(false);
                   }
                 }}
-                className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] font-medium leading-5 text-foreground outline-none"
+                className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] font-medium leading-5 text-muted-foreground outline-none"
               />
             ) : (
               <span
-                className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground"
+                className="min-w-0 flex-1 truncate text-[13px] font-medium text-muted-foreground"
                 onDoubleClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
