@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Folder,
   FolderGit2,
@@ -74,6 +74,16 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
   const { data: gitData } = useGitStatus(path);
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [suppressTip, setSuppressTip] = useState(false);
+
+  const onProjectMenuOpenChange = (next: boolean) => {
+    setMenuOpen(next);
+    if (!next) {
+      setSuppressTip(true);
+      window.setTimeout(() => setSuppressTip(false), 150);
+    }
+  };
 
   return (
     <div>
@@ -119,7 +129,12 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </span>
               )}
             </button>
-            <div className="pointer-events-none absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100">
+            <div
+              className={cn(
+                "pointer-events-none absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
+                menuOpen && "pointer-events-auto opacity-100"
+              )}
+            >
               <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
                 <Button
                   type="button"
@@ -134,21 +149,27 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   <Plus className="size-4" />
                 </Button>
               </WithTooltip>
-              <DropdownMenu>
-                <WithTooltip label="Project menu">
+              <DropdownMenu open={menuOpen} onOpenChange={onProjectMenuOpenChange}>
+                <WithTooltip label="Project menu" disabled={menuOpen || suppressTip}>
                   <DropdownMenuTrigger asChild>
                     <Button
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="size-7 shrink-0 data-[state=open]:opacity-100"
+                      className={cn("size-7 shrink-0", menuOpen && "bg-accent text-foreground")}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                 </WithTooltip>
-                <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="min-w-[14rem]">
+                <DropdownMenuContent
+                  align="end"
+                  side="bottom"
+                  sideOffset={4}
+                  className="min-w-[14rem]"
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
                   <DropdownMenuItem
                     shortcut={ProjectShortcuts.newTerminal.label}
                     onClick={() => void createTerminal(id)}
