@@ -123,24 +123,21 @@ export function SessionRow({
     setDragging(true);
   };
 
+  const onDragEnd = () => {
+    if (!canDrag) return;
+    finishSessionDragFromPoint(session.id);
+    setDragging(false);
+    window.setTimeout(() => {
+      draggedRef.current = false;
+    }, 0);
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          draggable={canDrag && !editing}
-          onDragStart={onDragStart}
-          onDragEnd={() => {
-            if (!canDrag) return;
-            finishSessionDragFromPoint(session.id);
-            setDragging(false);
-            window.setTimeout(() => {
-              draggedRef.current = false;
-            }, 0);
-          }}
           className={cn(
             "group relative flex w-full items-center gap-0.5 rounded-lg text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/35 hover:text-sidebar-foreground",
-            canDrag && "cursor-grab active:cursor-grabbing",
-            !canDrag && "cursor-pointer",
             openInPane &&
               !focused &&
               "bg-sidebar-accent/80 text-sidebar-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-primary/55",
@@ -152,12 +149,24 @@ export function SessionRow({
             complete && "session-complete"
           )}
         >
-          <button
-            type="button"
-            draggable={false}
-            className="flex min-w-0 flex-1 cursor-inherit items-center gap-2.5 px-2.5 py-1.5 text-left"
+          <div
+            role="button"
+            tabIndex={0}
+            draggable={canDrag && !editing}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 text-left",
+              canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+            )}
             onClick={() => {
               if (!editing && !draggedRef.current) void focusSession(session.id);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (!editing && !draggedRef.current) void focusSession(session.id);
+              }
             }}
           >
             <span className="relative flex size-4 shrink-0 items-center justify-center">
@@ -222,7 +231,7 @@ export function SessionRow({
                 </span>
               )}
             </span>
-          </button>
+          </div>
 
           <DropdownMenu open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
             <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>
