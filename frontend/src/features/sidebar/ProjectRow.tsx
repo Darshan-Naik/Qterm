@@ -119,7 +119,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </span>
               )}
             </button>
-            <div className="pointer-events-none absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-lg bg-gradient-to-l from-sidebar from-55% to-transparent pl-4 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100">
+            <div className="pointer-events-none absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100">
               <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
                 <Button
                   type="button"
@@ -208,11 +208,17 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
-      {peekSessions.length > 0 && <SessionList sessions={peekSessions} openIds={openSessionIds} />}
-      {extraSessions.length > 0 && (
+      {/* Peek only when collapsed — when expanded keep stable session order. */}
+      {collapsed && peekSessions.length > 0 && (
+        <SessionList sessions={peekSessions} openIds={openSessionIds} />
+      )}
+      {(!collapsed ? sessions.length > 0 : extraSessions.length > 0) && (
         <Collapsible open={!collapsed}>
           <CollapsibleContent>
-            <SessionList sessions={extraSessions} openIds={openSessionIds} />
+            <SessionList
+              sessions={collapsed ? extraSessions : sessions}
+              openIds={openSessionIds}
+            />
           </CollapsibleContent>
         </Collapsible>
       )}

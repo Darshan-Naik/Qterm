@@ -70,7 +70,7 @@ export function PaneLeaf({
     <div
       ref={rootRef}
       data-pane-id={paneId}
-      className="relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background"
+      className="group/pane relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background"
       onDragOverCapture={onDragOver}
       onDropCapture={onDrop}
     >
