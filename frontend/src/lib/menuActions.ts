@@ -7,7 +7,7 @@ import {
   focusScope,
   isUnbound,
 } from "@/lib/sessions";
-import { closeSessionPanes, deleteSession } from "@/lib/panes";
+import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
 import { requestSessionRename } from "@/features/panes/PaneTitle";
 import { uiStore } from "@/store/ui";
 import { OpenInFinder, RemoveProject, RenameProject } from "../../wailsjs/go/main/App";
@@ -39,11 +39,11 @@ export async function closeFocusedTerminalPanes() {
   await closeSessionPanes(id);
 }
 
-/** Terminal — delete focused session. */
+/** Terminal — delete focused session (opens confirmation). */
 export async function deleteFocusedTerminal() {
   const id = focusedSessionId();
   if (!id) return;
-  await deleteSession(id);
+  await requestDeleteSession(id);
 }
 
 /** Project — new terminal in the active project (or home). */

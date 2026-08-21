@@ -1,6 +1,6 @@
 import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-react";
 import { useState } from "react";
-import { closePane, deleteSession } from "@/lib/panes";
+import { closePane, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
 import { listLeaves, persistUIPrefs, uiStore, useUI } from "@/store/ui";
@@ -119,7 +119,7 @@ export function PaneMenu({
         <DropdownMenuItem
           shortcut={TerminalShortcuts.delete.label}
           className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-          onClick={() => void deleteSession(sessionId)}
+          onClick={() => requestDeleteSession(sessionId)}
         >
           <Trash2 className="size-3.5 opacity-70" />
           Delete
