@@ -39,11 +39,16 @@ async function persistKeybindings(overrides: KeybindingOverrides) {
 
 export function applyUiZoom(zoom: number) {
   const next = clampUiZoom(zoom);
-  const root = document.documentElement;
-  if (next === UI_ZOOM_DEFAULT) {
-    root.style.removeProperty("zoom");
-  } else {
-    root.style.zoom = `${next}%`;
+  const ratio = next / UI_ZOOM_DEFAULT;
+  const html = document.documentElement;
+  // Never zoom <html>/<body> — CSS zoom on an ancestor breaks Radix/Floating UI
+  // (position:fixed + transform). Zoom #root instead; portals stay on body.
+  html.style.setProperty("--ui-zoom", String(ratio));
+  html.style.removeProperty("zoom");
+  const app = document.getElementById("root");
+  if (app) {
+    if (next === UI_ZOOM_DEFAULT) app.style.removeProperty("zoom");
+    else app.style.zoom = `${next}%`;
   }
   // Help xterm FitAddon / layout listeners pick up the new size.
   requestAnimationFrame(() => {

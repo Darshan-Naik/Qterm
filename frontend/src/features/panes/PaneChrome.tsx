@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { PanelLeft } from "lucide-react";
 import { persistUIPrefs, uiStore } from "@/store/ui";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
+import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { PaneMenu } from "./PaneMenu";
 import { PaneTitle } from "./PaneTitle";
 
@@ -17,7 +17,7 @@ export function PaneChrome({
   showSidebarToggle?: boolean;
   trafficInset?: boolean;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useExclusiveMenu(`pane:${paneId}`);
 
   return (
     <div

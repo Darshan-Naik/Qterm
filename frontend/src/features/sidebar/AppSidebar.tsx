@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { Plus, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { persistUIPrefs, collectSessionIds, uiStore, useUI } from "@/store/ui";
 import { createDefaultTerminal, isUnbound } from "@/lib/sessions";
+import { cn } from "@/lib/utils";
 import { SessionRow } from "./SessionRow";
 import { ProjectsSection } from "./ProjectsSection";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
-import { sidebarShellWidth } from "./sidebarLayout";
+import { SIDEBAR_STICKY_SEAL, sidebarShellWidth } from "./sidebarLayout";
 
 export function AppSidebar() {
   const open = useUI((s) => s.sidebarOpen);
@@ -32,10 +32,7 @@ export function AppSidebar() {
       style={{ width: open ? shellWidth : 0 }}
       aria-hidden={!open}
     >
-      <div
-        className="flex h-full min-w-0"
-        style={{ width: shellWidth }}
-      >
+      <div className="flex h-full min-w-0" style={{ width: shellWidth }}>
         <aside
           style={{ width }}
           className="flex h-full min-w-0 flex-col select-none bg-sidebar text-sidebar-foreground titlebar-no-drag"
@@ -56,32 +53,33 @@ export function AppSidebar() {
             </WithTooltip>
             <div className="min-w-0 flex-1" />
           </div>
-          <ScrollArea className="min-h-0 flex-1 px-3">
-            <div className="pb-4 pt-1">
-              <div className="mb-1">
-                <WithTooltip label="New terminal in home" side="right">
-                  <button
-                    type="button"
-                    className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground hover:bg-sidebar-accent/50"
-                    onClick={() => void createDefaultTerminal()}
-                  >
-                    <Plus className="size-4 shrink-0 opacity-60" />
-                    <span>New</span>
-                  </button>
-                </WithTooltip>
+
+          {/* Always pinned — not part of the scroll region. */}
+          <div className={cn("relative z-30 shrink-0 bg-sidebar px-3 pb-1 pt-1", SIDEBAR_STICKY_SEAL)}>
+            <WithTooltip label="New terminal in home" side="right">
+              <button
+                type="button"
+                className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground hover:bg-sidebar-accent/50"
+                onClick={() => void createDefaultTerminal()}
+              >
+                <Plus className="size-4 shrink-0 opacity-60" />
+                <span>New</span>
+              </button>
+            </WithTooltip>
+          </div>
+
+          {/* Native overflow so position:sticky works (Radix ScrollArea breaks it). */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
+            {unboundSessions.length > 0 && (
+              <div className="mt-1 space-y-0.5">
+                {unboundSessions.map((s) => (
+                  <SessionRow key={s.id} session={s} openInPane={unboundOpenIds.has(s.id)} />
+                ))}
               </div>
+            )}
 
-              {unboundSessions.length > 0 && (
-                <div className="mt-2 space-y-0.5">
-                  {unboundSessions.map((s) => (
-                    <SessionRow key={s.id} session={s} openInPane={unboundOpenIds.has(s.id)} />
-                  ))}
-                </div>
-              )}
-
-              <ProjectsSection />
-            </div>
-          </ScrollArea>
+            <ProjectsSection />
+          </div>
         </aside>
         <SidebarResizeHandle disabled={!open} />
       </div>

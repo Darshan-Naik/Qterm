@@ -1,20 +1,32 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
+import { PortalZoom } from "@/lib/portalZoom"
 import { cn } from "@/lib/utils"
 
 export const DropdownMenu = DropdownMenuPrimitive.Root
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 
-export function DropdownMenuContent({ className, sideOffset = 6, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+export function DropdownMenuContent({
+  className,
+  sideOffset = 4,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
-        className={cn(
-          "z-50 min-w-[11rem] overflow-hidden rounded-md bg-popover p-1.5 text-popover-foreground shadow-xl",
-          className
-        )}
+        className="z-50 bg-transparent p-0 shadow-none outline-none"
         {...props}
-      />
+      >
+        <PortalZoom
+          className={cn(
+            "min-w-[11rem] overflow-hidden rounded-md bg-popover p-1.5 text-popover-foreground shadow-xl",
+            className
+          )}
+        >
+          {children}
+        </PortalZoom>
+      </DropdownMenuPrimitive.Content>
     </DropdownMenuPrimitive.Portal>
   )
 }

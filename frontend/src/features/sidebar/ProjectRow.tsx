@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Folder,
   FolderGit2,
@@ -31,7 +31,10 @@ import { useGitStatus } from "@/queries";
 import { createTerminal, focusScope } from "@/lib/sessions";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
+import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
+import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { SessionRow } from "./SessionRow";
+import { SIDEBAR_PROJECT_STICKY_TOP, SIDEBAR_STICKY_SEAL } from "./sidebarLayout";
 
 function SessionList({
   sessions,
@@ -74,27 +77,35 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
   const { data: gitData } = useGitStatus(path);
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [suppressTip, setSuppressTip] = useState(false);
+  const [menuOpen, setMenuOpen] = useExclusiveMenu(`project:${id}`);
+  const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
 
   const onProjectMenuOpenChange = (next: boolean) => {
     setMenuOpen(next);
-    if (!next) {
-      setSuppressTip(true);
-      window.setTimeout(() => setSuppressTip(false), 150);
-    }
+    if (!next) suppressTipAfterMenuClose();
   };
 
   return (
     <div>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              "group relative flex w-full min-w-0 items-center rounded-lg hover:bg-sidebar-accent/50",
-              menuOpen && "bg-sidebar-accent/50"
-            )}
-          >
+      <div
+        className={cn(
+          "sticky z-10 -mx-3 bg-sidebar px-3",
+          SIDEBAR_PROJECT_STICKY_TOP,
+          SIDEBAR_STICKY_SEAL
+        )}
+      >
+        <ContextMenu
+          onOpenChange={(open) => {
+            if (open) dismissExclusiveMenus();
+          }}
+        >
+          <ContextMenuTrigger asChild>
+            <div
+              className={cn(
+                "group relative flex w-full min-w-0 items-center rounded-lg hover:bg-sidebar-accent/50",
+                menuOpen && "bg-sidebar-accent/50"
+              )}
+            >
             <WithTooltip label={collapsed ? "Expand" : "Collapse"} side="right">
               <button
                 type="button"
@@ -136,7 +147,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </button>
             <div
               className={cn(
-                "pointer-events-none absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
+                "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
                 menuOpen && "pointer-events-auto opacity-100"
               )}
             >
@@ -154,7 +165,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   <Plus className="size-4" />
                 </Button>
               </WithTooltip>
-              <DropdownMenu open={menuOpen} onOpenChange={onProjectMenuOpenChange}>
+              <DropdownMenu modal={false} open={menuOpen} onOpenChange={onProjectMenuOpenChange}>
                 <WithTooltip label="Project menu" disabled={menuOpen || suppressTip}>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -163,6 +174,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                       variant="ghost"
                       className={cn("size-7 shrink-0", menuOpen && "bg-accent text-foreground")}
                       onClick={(e) => e.stopPropagation()}
+                      {...tipTriggerProps}
                     >
                       <MoreHorizontal className="size-4" />
                     </Button>
@@ -170,8 +182,6 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </WithTooltip>
                 <DropdownMenuContent
                   align="end"
-                  side="bottom"
-                  sideOffset={4}
                   className="min-w-[14rem]"
                   onCloseAutoFocus={(e) => e.preventDefault()}
                 >
@@ -204,36 +214,37 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="min-w-[14rem]">
-          <ContextMenuItem
-            shortcut={ProjectShortcuts.newTerminal.label}
-            onClick={() => void createTerminal(id)}
-          >
-            New terminal
-          </ContextMenuItem>
-          <ContextMenuItem
-            shortcut={ProjectShortcuts.rename.label}
-            onClick={() => void renameProjectById(id, name)}
-          >
-            Rename
-          </ContextMenuItem>
-          <ContextMenuItem
-            shortcut={ProjectShortcuts.reveal.label}
-            onClick={() => void OpenInFinder(path)}
-          >
-            Reveal in Finder
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            shortcut={ProjectShortcuts.remove.label}
-            onClick={() => void removeProjectById(id)}
-          >
-            Remove project
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="min-w-[14rem]">
+            <ContextMenuItem
+              shortcut={ProjectShortcuts.newTerminal.label}
+              onClick={() => void createTerminal(id)}
+            >
+              New terminal
+            </ContextMenuItem>
+            <ContextMenuItem
+              shortcut={ProjectShortcuts.rename.label}
+              onClick={() => void renameProjectById(id, name)}
+            >
+              Rename
+            </ContextMenuItem>
+            <ContextMenuItem
+              shortcut={ProjectShortcuts.reveal.label}
+              onClick={() => void OpenInFinder(path)}
+            >
+              Reveal in Finder
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              shortcut={ProjectShortcuts.remove.label}
+              onClick={() => void removeProjectById(id)}
+            >
+              Remove project
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      </div>
       {/* Peek only when collapsed — when expanded keep stable session order. */}
       {collapsed && peekSessions.length > 0 && (
         <SessionList sessions={peekSessions} openIds={openSessionIds} />

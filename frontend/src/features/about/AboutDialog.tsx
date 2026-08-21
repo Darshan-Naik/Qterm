@@ -35,7 +35,8 @@ export function AboutDialog() {
       }}
     >
       <DialogContent
-        className="max-w-sm gap-0 p-0 text-center [&>button]:hidden"
+        showClose={false}
+        className="max-w-sm gap-0 p-0 text-center"
         aria-describedby={undefined}
       >
         <div className="flex flex-col items-center gap-4 px-6 pb-6 pt-8">

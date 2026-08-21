@@ -160,7 +160,8 @@ export function CommandPalette() {
     <Dialog open={open} onOpenChange={(v) => uiStore.set({ paletteOpen: v, quickOpen: v ? false : uiStore.get().quickOpen })}>
       <DialogContent
         position="top"
-        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
+        showClose={false}
+        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl"
         aria-describedby={undefined}
       >
         <Command className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover" label="Command palette">

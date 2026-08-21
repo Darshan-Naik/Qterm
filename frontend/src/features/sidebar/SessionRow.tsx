@@ -24,6 +24,8 @@ import { toggleSessionPin } from "@/lib/sessionPin";
 import { SESSION_DRAG_MIME, beginSessionDrag, finishSessionDragFromPoint } from "@/lib/sessionDrag";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
+import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
+import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { AgentIcon, agentLabel } from "./AgentIcon";
 
 export function SessionRow({
@@ -50,8 +52,8 @@ export function SessionRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const [dragging, setDragging] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [suppressTip, setSuppressTip] = useState(false);
+  const [menuOpen, setMenuOpen] = useExclusiveMenu(`session:${session.id}`);
+  const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
   const draggedRef = useRef(false);
   const pendingRename = useRef(false);
 
@@ -87,10 +89,7 @@ export function SessionRow({
 
   const onSessionMenuOpenChange = (next: boolean) => {
     setMenuOpen(next);
-    if (!next) {
-      setSuppressTip(true);
-      window.setTimeout(() => setSuppressTip(false), 150);
-    }
+    if (!next) suppressTipAfterMenuClose();
   };
 
   const commit = async () => {
@@ -133,7 +132,11 @@ export function SessionRow({
   };
 
   return (
-    <ContextMenu>
+    <ContextMenu
+      onOpenChange={(open) => {
+        if (open) dismissExclusiveMenus();
+      }}
+    >
       <ContextMenuTrigger asChild>
         <div
           className={cn(
@@ -233,7 +236,7 @@ export function SessionRow({
             </span>
           </div>
 
-          <DropdownMenu open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
+          <DropdownMenu modal={false} open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
             <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -245,6 +248,7 @@ export function SessionRow({
                     menuOpen && "!opacity-100 bg-accent text-foreground"
                   )}
                   onClick={(e) => e.stopPropagation()}
+                  {...tipTriggerProps}
                 >
                   <MoreHorizontal className="size-4" />
                 </Button>
