@@ -12,7 +12,7 @@ import {
 } from "@/store/ui";
 import { createTerminal, createDefaultTerminal, currentScope, DEFAULT_SCOPE } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
-import { closePane, deleteSession } from "@/lib/panes";
+import { closePane, requestDeleteSession } from "@/lib/panes";
 import {
   CreateSession,
   SaveLayout,
@@ -149,7 +149,7 @@ export function CommandPalette() {
         run: async () => {
           const { focusedSessionId } = uiStore.get();
           if (!focusedSessionId) return;
-          await deleteSession(focusedSessionId);
+          await requestDeleteSession(focusedSessionId);
         },
       },
     ],

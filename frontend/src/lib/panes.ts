@@ -1,4 +1,5 @@
 import { currentScope } from "@/lib/sessions";
+import { confirm } from "@/lib/confirm";
 import { disposeSession } from "@/features/terminal";
 import {
   collectSessionIds,
@@ -42,6 +43,19 @@ export async function closeSessionPanes(sessionId: string) {
     focusedSessionId: nextLeaves[0]?.sessionId || null,
   });
   await persistLayout(currentScope(), next);
+}
+
+/** Ask to delete a session, then kill PTY / erase history if confirmed. */
+export async function requestDeleteSession(sessionId: string) {
+  const name = uiStore.get().sessions.find((s) => s.id === sessionId)?.name || "Terminal";
+  const ok = await confirm({
+    title: "Delete terminal?",
+    description: `“${name}” will be removed permanently. This cannot be undone.`,
+    confirmLabel: "Delete",
+    destructive: true,
+  });
+  if (!ok) return;
+  await deleteSession(sessionId);
 }
 
 /** Delete session: kill PTY, erase history, remove from sidebar and layouts. */

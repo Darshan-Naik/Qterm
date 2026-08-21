@@ -19,7 +19,7 @@ import { collectSessionIds, uiStore, useUI, type SessionInfo } from "@/store/ui"
 import { RenameSession } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { focusSession } from "@/lib/sessions";
-import { closeSessionPanes, deleteSession } from "@/lib/panes";
+import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { SESSION_DRAG_MIME, beginSessionDrag, finishSessionDragFromPoint } from "@/lib/sessionDrag";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
@@ -273,7 +273,7 @@ export function SessionRow({
               <DropdownMenuItem
                 shortcut={TerminalShortcuts.delete.label}
                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                onClick={() => void deleteSession(session.id)}
+                onClick={() => requestDeleteSession(session.id)}
               >
                 <Trash2 className="size-3.5 opacity-70" />
                 Delete
@@ -297,7 +297,7 @@ export function SessionRow({
         </ContextMenuItem>
         <ContextMenuItem
           shortcut={TerminalShortcuts.delete.label}
-          onClick={() => void deleteSession(session.id)}
+          onClick={() => requestDeleteSession(session.id)}
         >
           Delete
         </ContextMenuItem>
