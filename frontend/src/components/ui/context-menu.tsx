@@ -1,19 +1,30 @@
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
+import { PortalZoom } from "@/lib/portalZoom"
 import { cn } from "@/lib/utils"
 
 export const ContextMenu = ContextMenuPrimitive.Root
 export const ContextMenuTrigger = ContextMenuPrimitive.Trigger
 
-export function ContextMenuContent({ className, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
+export function ContextMenuContent({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
   return (
     <ContextMenuPrimitive.Portal>
       <ContextMenuPrimitive.Content
-        className={cn(
-          "z-50 min-w-[11rem] overflow-hidden rounded-md bg-popover p-1.5 text-popover-foreground shadow-xl",
-          className
-        )}
+        className="z-50 bg-transparent p-0 shadow-none outline-none"
         {...props}
-      />
+      >
+        <PortalZoom
+          className={cn(
+            "min-w-[11rem] overflow-hidden rounded-md bg-popover p-1.5 text-popover-foreground shadow-xl",
+            className
+          )}
+        >
+          {children}
+        </PortalZoom>
+      </ContextMenuPrimitive.Content>
     </ContextMenuPrimitive.Portal>
   )
 }

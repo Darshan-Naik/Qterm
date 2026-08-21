@@ -237,7 +237,8 @@ export function AgentSessions() {
     >
       <DialogContent
         position="top"
-        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl [&>button]:hidden"
+        showClose={false}
+        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl"
         aria-describedby={undefined}
       >
         {pending ? (

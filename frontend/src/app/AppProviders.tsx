@@ -4,11 +4,12 @@ import { AboutDialog } from "@/features/about";
 import { CommandPalette, QuickOpen, AgentSessions } from "@/features/palette";
 import { ConnectNudgeListener, HookIntentListener } from "@/features/hooks";
 import { ConfirmHost } from "@/lib/confirm";
+import { ExclusiveMenuDismiss } from "@/hooks/ExclusiveMenuDismiss";
 import { ThemedToaster } from "./ThemedToaster";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <TooltipProvider delayDuration={350} skipDelayDuration={200}>
+    <TooltipProvider delayDuration={500} skipDelayDuration={0}>
       {children}
       <CommandPalette />
       <QuickOpen />
@@ -17,6 +18,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <ConnectNudgeListener />
       <AboutDialog />
       <ConfirmHost />
+      <ExclusiveMenuDismiss />
       <ThemedToaster />
     </TooltipProvider>
   );

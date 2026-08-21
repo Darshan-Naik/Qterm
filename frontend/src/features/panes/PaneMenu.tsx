@@ -1,5 +1,4 @@
 import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-react";
-import { useState } from "react";
 import { closePane, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
+import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { requestSessionRename } from "./PaneTitle";
 
 export function PaneMenu({
@@ -31,7 +31,7 @@ export function PaneMenu({
   const leafCount = useUI((s) => listLeaves(s.splitTree).length);
   const pinned = useUI((s) => !!s.sessions.find((x) => x.id === sessionId)?.pinned);
   const canClosePane = leafCount > 1;
-  const [suppressTip, setSuppressTip] = useState(false);
+  const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
 
   const renameInSidebar = () => {
     if (!uiStore.get().sidebarOpen) {
@@ -44,14 +44,11 @@ export function PaneMenu({
 
   return (
     <DropdownMenu
+      modal={false}
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
-        if (!next) {
-          // Closing restores focus to the trigger and would pop the tooltip.
-          setSuppressTip(true);
-          window.setTimeout(() => setSuppressTip(false), 150);
-        }
+        if (!next) suppressTipAfterMenuClose();
       }}
     >
       <WithTooltip label="Pane menu" disabled={open || suppressTip}>
@@ -65,6 +62,7 @@ export function PaneMenu({
               "hover:bg-accent hover:text-foreground",
               open && "!opacity-100 bg-accent text-foreground"
             )}
+            {...tipTriggerProps}
           >
             <MoreHorizontal className="size-3.5" />
           </Button>

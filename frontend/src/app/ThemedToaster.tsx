@@ -28,5 +28,5 @@ export function ThemedToaster() {
     return () => mq.removeEventListener("change", sync);
   }, [theme]);
 
-  return <Toaster theme={sonnerTheme} richColors position="bottom-right" />;
+  return <Toaster theme={sonnerTheme} richColors position="bottom-right" style={{ zoom: "var(--ui-zoom, 1)" }} />;
 }
