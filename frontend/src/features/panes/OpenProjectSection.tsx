@@ -92,11 +92,11 @@ export function OpenProjectSection({
                   <ProjectIcon className="size-3.5" />
                 </span>
               </WithTooltip>
-              <h2 className="min-w-0 shrink truncate text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+              <h2 className="min-w-0 shrink truncate text-[13px] font-medium text-foreground">
                 {name}
               </h2>
               {git?.isRepo && git.branch ? (
-                <span className="flex min-w-0 max-w-[40%] items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="flex min-w-0 max-w-[40%] items-center gap-1.5 text-[12px] text-muted-foreground">
                   <span className="min-w-0 truncate">{git.branch}</span>
                   {git.dirty ? (
                     <Circle className="size-1.5 shrink-0 fill-amber-400 text-amber-400" />
