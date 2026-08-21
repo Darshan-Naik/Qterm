@@ -89,11 +89,16 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
     <div>
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="group relative flex w-full min-w-0 items-center">
+          <div
+            className={cn(
+              "group relative flex w-full min-w-0 items-center rounded-lg hover:bg-sidebar-accent/50",
+              menuOpen && "bg-sidebar-accent/50"
+            )}
+          >
             <WithTooltip label={collapsed ? "Expand" : "Collapse"} side="right">
               <button
                 type="button"
-                className="relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                className="relative flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-sidebar-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleProjectCollapsed(id);
@@ -110,7 +115,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </WithTooltip>
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void focusScope(id);
