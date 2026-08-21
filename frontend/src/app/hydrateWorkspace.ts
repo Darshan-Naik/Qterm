@@ -1,4 +1,4 @@
-import { createDefaultTerminal, DEFAULT_SCOPE, loadScopeLayout, isUnbound } from "@/lib/sessions";
+import { DEFAULT_SCOPE, loadScopeLayout, isUnbound } from "@/lib/sessions";
 import { mapLiveSessions, sortProjectsByAdded, sortSessionsByStart } from "@/lib/sessionTitles";
 import {
   applyConfigChrome,
@@ -7,31 +7,12 @@ import {
   persistUIPrefs,
   sanitizeKeybindings,
   uiStore,
-  type SessionInfo,
   type ThemeMode,
 } from "@/store/ui";
 import { GetConfig, ListProjects, ListSessions } from "../../wailsjs/go/main/App";
 import { whenAppReady } from "./whenAppReady";
 
-function toSessionInfo(s: {
-  id: string;
-  name: string;
-  projectId?: string;
-  cwd: string;
-  pinned?: boolean;
-  createdAt?: string;
-}): SessionInfo {
-  return {
-    id: s.id,
-    name: s.name,
-    projectId: s.projectId || "",
-    cwd: s.cwd,
-    pinned: s.pinned,
-    createdAt: s.createdAt,
-  };
-}
-
-/** Load config → seed UI → sync live PTYs → restore focus (or create first terminal). */
+/** Load config → seed UI → sync live PTYs → restore layout (or leave empty start screen). */
 export async function hydrateWorkspace() {
   await whenAppReady();
 
@@ -41,8 +22,6 @@ export async function hydrateWorkspace() {
   applyConfigChrome(cfg);
 
   const rawProjects = Array.isArray(cfg.projects) ? cfg.projects : [];
-  const rawSessions = Array.isArray(cfg.sessions) ? cfg.sessions : [];
-  const cfgSessions = sortSessionsByStart(rawSessions.map(toSessionInfo));
   const cfgProjects = sortProjectsByAdded(rawProjects);
   uiStore.set({
     theme: themeMode,
@@ -50,32 +29,43 @@ export async function hydrateWorkspace() {
     shell: cfg.shell || "",
     activeScope: cfg.activeScope || DEFAULT_SCOPE,
     projects: cfgProjects,
-    sessions: cfgSessions,
+    sessions: [],
     keybindings: sanitizeKeybindings(cfg.keybindings),
   });
   // Persist chrome after seed — never before, and never block listing.
   void persistUIPrefs();
 
   const [projects, sessions] = await Promise.all([ListProjects(), ListSessions()]);
-  const live = sortSessionsByStart(mapLiveSessions(Array.isArray(sessions) ? sessions : [], uiStore.get().sessions));
-  const nextProjects = Array.isArray(projects) && projects.length ? sortProjectsByAdded(projects) : cfgProjects;
+  // Only live PTYs. Go restoreSessions() already recreated them before Ready().
+  // Never fall back to config-only ghosts (that forced a pane open on reload).
+  const live = sortSessionsByStart(
+    mapLiveSessions(Array.isArray(sessions) ? sessions : [], [])
+  );
+  const nextProjects =
+    Array.isArray(projects) && projects.length ? sortProjectsByAdded(projects) : cfgProjects;
   uiStore.set({
     projects: nextProjects,
-    sessions: live.length ? live : cfgSessions,
+    sessions: live,
   });
 
   const scope = cfg.activeScope || DEFAULT_SCOPE;
-  if (live.length || cfgSessions.length) {
+  if (live.length) {
     await loadScopeLayout(scope);
     if (!uiStore.get().splitTree) {
-      const first = (live.length ? live : cfgSessions)[0];
+      const first = live[0];
       if (first) {
         const fallback = isUnbound(first.projectId) ? DEFAULT_SCOPE : first.projectId;
-        await loadScopeLayout(fallback);
+        if (fallback !== scope) await loadScopeLayout(fallback);
       }
     }
     return;
   }
 
-  await createDefaultTerminal();
+  // No live sessions — centered Get started. Do not CreateSession.
+  uiStore.set({
+    splitTree: null,
+    focusedPaneId: null,
+    focusedSessionId: null,
+    activeScope: DEFAULT_SCOPE,
+  });
 }

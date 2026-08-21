@@ -67,7 +67,7 @@ export function finishSessionDragFromPoint(sessionId: string) {
   });
 
   const pane = el?.closest?.("[data-pane-id]") as HTMLElement | null;
-  const empty = el?.closest?.("[data-drop-empty]") as HTMLElement | null;
+  const empty = el?.closest?.("[data-drop-open-workspace]") as HTMLElement | null;
 
   if (pane?.dataset?.paneId) {
     const rect = pane.getBoundingClientRect();
@@ -76,7 +76,7 @@ export function finishSessionDragFromPoint(sessionId: string) {
     void dropSessionOnPane(sessionId, pane.dataset.paneId, edge);
   } else if (empty) {
     dropHandled = true;
-    void dropSessionOnEmpty(sessionId);
+    void dropSessionOnOpenWorkspace(sessionId);
   }
 
   endSessionDrag();
@@ -155,7 +155,7 @@ async function persist(scope: string, tree: SplitNode | null) {
   await SaveLayout(scope, (tree || { type: "" }) as any);
 }
 
-export async function dropSessionOnEmpty(sessionId: string) {
+export async function dropSessionOnOpenWorkspace(sessionId: string) {
   const state = uiStore.get();
   const session = state.sessions.find((s) => s.id === sessionId);
   if (!session) return;
@@ -195,7 +195,7 @@ export async function dropSessionOnPane(
 
   let tree = state.splitTree;
   if (!tree) {
-    await dropSessionOnEmpty(sessionId);
+    await dropSessionOnOpenWorkspace(sessionId);
     return;
   }
 
@@ -212,7 +212,7 @@ export async function dropSessionOnPane(
     if (l.sessionId === sessionId && l.id !== targetPaneId) {
       const next = removePane(tree, l.id);
       if (!next) {
-        await dropSessionOnEmpty(sessionId);
+        await dropSessionOnOpenWorkspace(sessionId);
         return;
       }
       tree = next;
@@ -220,7 +220,7 @@ export async function dropSessionOnPane(
   }
 
   if (!listLeaves(tree).some((l) => l.id === targetPaneId)) {
-    await dropSessionOnEmpty(sessionId);
+    await dropSessionOnOpenWorkspace(sessionId);
     return;
   }
 

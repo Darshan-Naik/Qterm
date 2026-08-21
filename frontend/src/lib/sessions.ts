@@ -60,17 +60,8 @@ export async function loadScopeLayout(scope: string) {
     return;
   }
 
-  const sessions = uiStore.get().sessions.filter((s) =>
-    scope === DEFAULT_SCOPE ? isUnbound(s.projectId) : s.projectId === scope
-  );
-  if (sessions[0]) {
-    const n = leaf(sessions[0].id);
-    uiStore.set({ splitTree: n, focusedPaneId: n.id, focusedSessionId: sessions[0].id });
-    void SetFocusedSession(sessions[0].id);
-    await SaveLayout(scope, n as any);
-  } else {
-    uiStore.set({ splitTree: null, focusedPaneId: null, focusedSessionId: null });
-  }
+  // No saved panes — keep the empty workspace. Do not auto-open a session.
+  uiStore.set({ splitTree: null, focusedPaneId: null, focusedSessionId: null });
 }
 
 /** @deprecated Use setActiveScope (no layout swap) or loadScopeLayout (hydrate). */
