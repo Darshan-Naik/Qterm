@@ -1,8 +1,10 @@
 import { PanelLeft } from "lucide-react";
-import { persistUIPrefs, uiStore } from "@/store/ui";
+import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
+import { isUnbound } from "@/lib/sessions";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
+import { GitChip } from "@/features/git";
 import { PaneMenu } from "./PaneMenu";
 import { PaneTitle } from "./PaneTitle";
 
@@ -18,6 +20,13 @@ export function PaneChrome({
   trafficInset?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useExclusiveMenu(`pane:${paneId}`);
+  const sessions = useUI((s) => s.sessions);
+  const projects = useUI((s) => s.projects);
+  const session = sessions.find((x) => x.id === sessionId);
+  const project =
+    session && !isUnbound(session.projectId)
+      ? projects.find((p) => p.id === session.projectId)
+      : undefined;
 
   return (
     <div
@@ -41,6 +50,15 @@ export function PaneChrome({
       )}
 
       <PaneTitle key={sessionId} sessionId={sessionId} active={menuOpen} />
+      {project ? (
+        <GitChip
+          projectId={project.id}
+          path={project.path}
+          projectName={project.name}
+          paneId={paneId}
+          variant="pane"
+        />
+      ) : null}
       <PaneMenu paneId={paneId} sessionId={sessionId} open={menuOpen} onOpenChange={setMenuOpen} />
     </div>
   );

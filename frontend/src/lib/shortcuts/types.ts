@@ -20,6 +20,7 @@ export type ShortcutId =
   | "renameProject"
   | "revealProject"
   | "removeProject"
+  | "gitToolkit"
   | "toggleTheme"
   | "zoomIn"
   | "zoomOut"

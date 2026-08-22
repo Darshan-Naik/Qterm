@@ -50,6 +50,7 @@ export const uiStore = createStore<UIState>({
   suggestText: null,
   collapsedProjects: {},
   keybindings: {},
+  gitPanel: null,
 });
 
 export const useUI = createUseStore(uiStore);
@@ -62,6 +63,7 @@ export function openSettings(page: SettingsPage = "appearance") {
     quickOpen: false,
     terminalFindOpen: false,
     agentSessionsOpen: false,
+    gitPanel: null,
   });
 }
 

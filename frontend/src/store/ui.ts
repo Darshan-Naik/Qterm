@@ -1,6 +1,8 @@
 export type {
   AnimateState,
   AppMode,
+  GitPanelTarget,
+  GitPanelView,
   HookIntent,
   ProjectInfo,
   SessionInfo,

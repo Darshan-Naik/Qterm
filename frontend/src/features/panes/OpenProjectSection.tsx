@@ -1,5 +1,4 @@
 import {
-  Circle,
   Folder,
   FolderGit2,
   MoreHorizontal,
@@ -28,6 +27,7 @@ import { collectSessionIds, useUI, type SessionInfo } from "@/store/ui";
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
+import { GitChip } from "@/features/git";
 import { createTerminal } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
@@ -95,14 +95,13 @@ export function OpenProjectSection({
               <h2 className="min-w-0 shrink truncate text-[13px] font-medium text-foreground">
                 {name}
               </h2>
-              {git?.isRepo && git.branch ? (
-                <span className="flex min-w-0 max-w-[40%] items-center gap-1.5 text-[12px] text-muted-foreground">
-                  <span className="min-w-0 truncate">{git.branch}</span>
-                  {git.dirty ? (
-                    <Circle className="size-1.5 shrink-0 fill-amber-400 text-amber-400" />
-                  ) : null}
-                </span>
-              ) : null}
+              <GitChip
+                projectId={id}
+                path={path}
+                projectName={name}
+                listenToShortcut={false}
+                variant="open"
+              />
               <div
                 className={cn(
                   "ml-auto flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100",

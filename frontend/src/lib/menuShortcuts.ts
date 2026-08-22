@@ -43,4 +43,7 @@ export const ProjectShortcuts = {
   get remove() {
     return { label: label("removeProject") };
   },
+  get gitToolkit() {
+    return { label: label("gitToolkit") };
+  },
 };

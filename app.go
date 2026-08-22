@@ -586,6 +586,54 @@ func (a *App) GetGitStatus(path string) git.Status {
 	return git.Probe(path)
 }
 
+func (a *App) GetGitSnapshot(path string) git.Snapshot {
+	return git.LoadSnapshot(path)
+}
+
+func (a *App) ListGitBranches(path string) []git.Branch {
+	return git.ListBranches(path)
+}
+
+func (a *App) GitFetch(path string) git.Result {
+	return git.Fetch(path)
+}
+
+func (a *App) GitPull(path string) git.Result {
+	return git.Pull(path)
+}
+
+func (a *App) GitPush(path string) git.Result {
+	return git.Push(path)
+}
+
+func (a *App) GitStage(path, file string) git.Result {
+	return git.Stage(path, file)
+}
+
+func (a *App) GitUnstage(path, file string) git.Result {
+	return git.Unstage(path, file)
+}
+
+func (a *App) GitStageAll(path string) git.Result {
+	return git.StageAll(path)
+}
+
+func (a *App) GitCommit(path, message string) git.Result {
+	return git.Commit(path, message)
+}
+
+func (a *App) GitCheckout(path, branch string) git.Result {
+	return git.Checkout(path, branch)
+}
+
+func (a *App) GitCreateBranch(path, name string) git.Result {
+	return git.CreateBranch(path, name)
+}
+
+func (a *App) GitDiscard(path, file string) git.Result {
+	return git.Discard(path, file)
+}
+
 // --- Sessions / PTY ---
 
 type SessionDTO struct {

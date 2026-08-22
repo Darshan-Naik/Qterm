@@ -148,6 +148,13 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     group: "Project",
     whenSettings: "block",
   },
+  {
+    id: "gitToolkit",
+    label: "Git toolkit",
+    description: "Pull, push, stage, commit, and switch branches",
+    group: "Project",
+    whenSettings: "block",
+  },
 ];
 
 const mod = (key: string, extra?: Partial<KeyChord>): KeyChord => ({
@@ -190,6 +197,7 @@ export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   renameProject: [modShift("e")],
   revealProject: [modShift("o")],
   removeProject: [modShift("Backspace", { codes: ["Backspace"], alt: true })],
+  gitToolkit: [modShift("g")],
 };
 
 export const SHORTCUT_GROUPS: Array<ShortcutMeta["group"]> = ["General", "View", "Terminal", "Project"];
