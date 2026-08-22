@@ -13,6 +13,7 @@ import {
 import { createTerminal, createDefaultTerminal, currentScope, DEFAULT_SCOPE } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane, requestDeleteSession } from "@/lib/panes";
+import { openGitToolkit, runScopedGit } from "@/features/git";
 import {
   CreateSession,
   SaveLayout,
@@ -42,6 +43,48 @@ export function CommandPalette() {
         label: "Resume agent session",
         run: async () => {
           uiStore.set({ agentSessionsOpen: true, paletteOpen: false, quickOpen: false });
+        },
+      },
+      {
+        id: "git-open",
+        label: "Git: Open toolkit",
+        run: async () => {
+          await openGitToolkit();
+        },
+      },
+      {
+        id: "git-switch",
+        label: "Git: Switch branch",
+        run: async () => {
+          await openGitToolkit("branches");
+        },
+      },
+      {
+        id: "git-fetch",
+        label: "Git: Fetch",
+        run: async () => {
+          await runScopedGit("fetch");
+        },
+      },
+      {
+        id: "git-pull",
+        label: "Git: Pull",
+        run: async () => {
+          await runScopedGit("pull");
+        },
+      },
+      {
+        id: "git-push",
+        label: "Git: Push",
+        run: async () => {
+          await runScopedGit("push");
+        },
+      },
+      {
+        id: "git-commit",
+        label: "Git: Commit",
+        run: async () => {
+          await openGitToolkit();
         },
       },
       {

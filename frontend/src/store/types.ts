@@ -78,4 +78,15 @@ export type UIState = {
   collapsedProjects: Record<string, boolean>;
   /** Custom keybinding overrides (defaults live in shortcut catalog). */
   keybindings: KeybindingOverrides;
+  /** Which git chip should show the toolkit popover. */
+  gitPanel: GitPanelTarget | null;
+};
+
+export type GitPanelView = "main" | "branches";
+
+export type GitPanelTarget = {
+  projectId: string;
+  /** Pane chrome chip; `null` means the sidebar project chip. */
+  paneId: string | null;
+  view: GitPanelView;
 };

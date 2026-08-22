@@ -16,11 +16,33 @@ export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.
 
 export function GetConfig():Promise<config.AppConfig>;
 
+export function GetGitSnapshot(arg1:string):Promise<git.Snapshot>;
+
 export function GetGitStatus(arg1:string):Promise<git.Status>;
 
 export function GetLayout(arg1:string):Promise<config.SplitNode>;
 
 export function GetScrollback(arg1:string):Promise<Record<string, any>>;
+
+export function GitCheckout(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitCommit(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitCreateBranch(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitDiscard(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitFetch(arg1:string):Promise<git.Result>;
+
+export function GitPull(arg1:string):Promise<git.Result>;
+
+export function GitPush(arg1:string):Promise<git.Result>;
+
+export function GitStage(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitStageAll(arg1:string):Promise<git.Result>;
+
+export function GitUnstage(arg1:string,arg2:string):Promise<git.Result>;
 
 export function InstallAgentCLI(arg1:string):Promise<core.InstallResult>;
 
@@ -29,6 +51,8 @@ export function KillSession(arg1:string):Promise<void>;
 export function ListAgentCLIs():Promise<Array<core.CLIInfo>>;
 
 export function ListAgentSessions(arg1:string,arg2:string):Promise<Array<core.Session>>;
+
+export function ListGitBranches(arg1:string):Promise<Array<git.Branch>>;
 
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 

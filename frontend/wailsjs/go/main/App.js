@@ -22,6 +22,10 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function GetGitSnapshot(arg1) {
+  return window['go']['main']['App']['GetGitSnapshot'](arg1);
+}
+
 export function GetGitStatus(arg1) {
   return window['go']['main']['App']['GetGitStatus'](arg1);
 }
@@ -32,6 +36,46 @@ export function GetLayout(arg1) {
 
 export function GetScrollback(arg1) {
   return window['go']['main']['App']['GetScrollback'](arg1);
+}
+
+export function GitCheckout(arg1, arg2) {
+  return window['go']['main']['App']['GitCheckout'](arg1, arg2);
+}
+
+export function GitCommit(arg1, arg2) {
+  return window['go']['main']['App']['GitCommit'](arg1, arg2);
+}
+
+export function GitCreateBranch(arg1, arg2) {
+  return window['go']['main']['App']['GitCreateBranch'](arg1, arg2);
+}
+
+export function GitDiscard(arg1, arg2) {
+  return window['go']['main']['App']['GitDiscard'](arg1, arg2);
+}
+
+export function GitFetch(arg1) {
+  return window['go']['main']['App']['GitFetch'](arg1);
+}
+
+export function GitPull(arg1) {
+  return window['go']['main']['App']['GitPull'](arg1);
+}
+
+export function GitPush(arg1) {
+  return window['go']['main']['App']['GitPush'](arg1);
+}
+
+export function GitStage(arg1, arg2) {
+  return window['go']['main']['App']['GitStage'](arg1, arg2);
+}
+
+export function GitStageAll(arg1) {
+  return window['go']['main']['App']['GitStageAll'](arg1);
+}
+
+export function GitUnstage(arg1, arg2) {
+  return window['go']['main']['App']['GitUnstage'](arg1, arg2);
 }
 
 export function InstallAgentCLI(arg1) {
@@ -48,6 +92,10 @@ export function ListAgentCLIs() {
 
 export function ListAgentSessions(arg1, arg2) {
   return window['go']['main']['App']['ListAgentSessions'](arg1, arg2);
+}
+
+export function ListGitBranches(arg1) {
+  return window['go']['main']['App']['ListGitBranches'](arg1);
 }
 
 export function ListProjects() {

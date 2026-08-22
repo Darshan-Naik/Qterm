@@ -3,7 +3,6 @@ import {
   Folder,
   FolderGit2,
   MoreHorizontal,
-  Circle,
   ChevronRight,
   Plus,
   X,
@@ -30,6 +29,7 @@ import { collectSessionIds, toggleProjectCollapsed, useUI, type SessionInfo } fr
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
+import { GitChip } from "@/features/git";
 import { createTerminal, setActiveScope } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
@@ -139,23 +139,17 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               <WithTooltip label={name} side="right">
                 <span className="min-w-0 shrink truncate font-normal">{name}</span>
               </WithTooltip>
-              {git?.isRepo && (
-                <span
-                  className={cn(
-                    "ml-auto flex min-w-0 max-w-[58%] shrink items-center justify-end gap-1.5 pl-1 text-[12px] text-muted-foreground group-hover:invisible",
-                    menuOpen && "invisible"
-                  )}
-                >
-                  <WithTooltip label={git.branch ?? ""} side="right">
-                    <span className="min-w-0 truncate text-right">{git.branch}</span>
-                  </WithTooltip>
-                  {git.dirty && <Circle className="size-1.5 shrink-0 fill-amber-400 text-amber-400" />}
-                </span>
-              )}
             </button>
+            <GitChip
+              projectId={id}
+              path={path}
+              projectName={name}
+              paneId={null}
+              variant="sidebar"
+            />
             <div
               className={cn(
-                "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
+                "flex w-14 shrink-0 items-center justify-end gap-0.5 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100",
                 menuOpen && "pointer-events-auto opacity-100"
               )}
             >

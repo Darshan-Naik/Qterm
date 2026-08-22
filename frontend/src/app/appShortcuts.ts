@@ -1,4 +1,5 @@
 import { createDefaultTerminal } from "@/lib/sessions";
+import { toggleGitToolkit } from "@/features/git";
 import {
   deleteFocusedTerminal,
   newTerminalInActiveProject,
@@ -85,6 +86,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   renameProject: () => void renameActiveProject(),
   revealProject: () => void revealActiveProject(),
   removeProject: () => void removeActiveProject(),
+  gitToolkit: () => toggleGitToolkit(),
 };
 
 /**
