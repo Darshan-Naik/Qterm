@@ -102,3 +102,36 @@ func unquoteGit(s string) string {
 	inner = strings.ReplaceAll(inner, `\"`, `"`)
 	return inner
 }
+
+func parseStashList(out string) []Stash {
+	list := make([]Stash, 0)
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, "\x00")
+		s := Stash{Ref: strings.TrimSpace(parts[0])}
+		if s.Ref == "" {
+			continue
+		}
+		if len(parts) > 1 {
+			s.Message = strings.TrimSpace(parts[1])
+		}
+		if len(parts) > 2 {
+			s.Age = strings.TrimSpace(parts[2])
+		}
+		list = append(list, s)
+	}
+	return list
+}
+
+func stashRef(ref string) (string, bool) {
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return "stash@{0}", true
+	}
+	if !strings.HasPrefix(ref, "stash@{") || !strings.HasSuffix(ref, "}") {
+		return "", false
+	}
+	return ref, true
+}

@@ -122,6 +122,41 @@ func Discard(path, file string) Result {
 	})
 }
 
+func Stash(path, message string) Result {
+	return withRoot(path, func(root string) Result {
+		args := []string{"stash", "push", "-u"}
+		if msg := strings.TrimSpace(message); msg != "" {
+			args = append(args, "-m", msg)
+		}
+		out, errb, err := run(root, timeoutMutate, args...)
+		return resultFrom(err, out, errb, args...)
+	})
+}
+
+func StashPop(path, ref string) Result {
+	return stashOp(path, "pop", ref)
+}
+
+func StashApply(path, ref string) Result {
+	return stashOp(path, "apply", ref)
+}
+
+func StashDrop(path, ref string) Result {
+	return stashOp(path, "drop", ref)
+}
+
+func stashOp(path, op, ref string) Result {
+	target, ok := stashRef(ref)
+	if !ok {
+		return Result{Stderr: "invalid stash ref", Cmd: "git stash " + op}
+	}
+	return withRoot(path, func(root string) Result {
+		args := []string{"stash", op, target}
+		out, errb, err := run(root, timeoutMutate, args...)
+		return resultFrom(err, out, errb, args...)
+	})
+}
+
 func needsUpstream(stderr string) bool {
 	s := strings.ToLower(stderr)
 	return strings.Contains(s, "no upstream") ||

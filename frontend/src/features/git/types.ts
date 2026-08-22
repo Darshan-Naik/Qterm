@@ -17,7 +17,14 @@ export type GitFile = {
 export type GitSnapshot = GitStatus & {
   upstream: string;
   inProgress: string;
+  stashCount: number;
   files: GitFile[];
+};
+
+export type GitStash = {
+  ref: string;
+  message: string;
+  age: string;
 };
 
 export type GitBranch = {
@@ -54,6 +61,7 @@ export function asSnapshot(raw: unknown): GitSnapshot | undefined {
     ...st,
     upstream: s.upstream || "",
     inProgress: s.inProgress || "",
+    stashCount: Number(s.stashCount) || 0,
     files: Array.isArray(s.files) ? s.files : [],
   };
 }
@@ -78,4 +86,25 @@ export function statusLetter(code: string): string {
   if (xy === "??") return "U";
   const mark = xy[0] !== " " ? xy[0] : xy[1];
   return (mark || "?").trim() || "?";
+}
+
+export function statusTone(letter: string): string {
+  switch (letter) {
+    case "M":
+      return "text-amber-500";
+    case "A":
+      return "text-emerald-500";
+    case "D":
+      return "text-destructive";
+    case "R":
+      return "text-sky-500";
+    default:
+      return "text-muted-foreground";
+  }
+}
+
+export function fileParts(path: string): { dir: string; name: string } {
+  const i = path.lastIndexOf("/");
+  if (i < 0) return { dir: "", name: path };
+  return { dir: path.slice(0, i), name: path.slice(i + 1) };
 }

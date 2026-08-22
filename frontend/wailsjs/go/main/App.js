@@ -74,6 +74,22 @@ export function GitStageAll(arg1) {
   return window['go']['main']['App']['GitStageAll'](arg1);
 }
 
+export function GitStash(arg1, arg2) {
+  return window['go']['main']['App']['GitStash'](arg1, arg2);
+}
+
+export function GitStashApply(arg1, arg2) {
+  return window['go']['main']['App']['GitStashApply'](arg1, arg2);
+}
+
+export function GitStashDrop(arg1, arg2) {
+  return window['go']['main']['App']['GitStashDrop'](arg1, arg2);
+}
+
+export function GitStashPop(arg1, arg2) {
+  return window['go']['main']['App']['GitStashPop'](arg1, arg2);
+}
+
 export function GitUnstage(arg1, arg2) {
   return window['go']['main']['App']['GitUnstage'](arg1, arg2);
 }
@@ -96,6 +112,10 @@ export function ListAgentSessions(arg1, arg2) {
 
 export function ListGitBranches(arg1) {
   return window['go']['main']['App']['ListGitBranches'](arg1);
+}
+
+export function ListGitStashes(arg1) {
+  return window['go']['main']['App']['ListGitStashes'](arg1);
 }
 
 export function ListProjects() {

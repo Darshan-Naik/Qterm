@@ -18,12 +18,13 @@ export function PopoverContent({
       <PopoverPrimitive.Content
         align={align}
         sideOffset={sideOffset}
-        className="z-50 bg-transparent p-0 shadow-none outline-none"
+        collisionPadding={10}
+        className="motion-popover z-50 bg-transparent p-0 shadow-none outline-none"
         {...props}
       >
         <PortalZoom
           className={cn(
-            "w-80 max-h-[min(70vh,32rem)] overflow-hidden rounded-md bg-popover text-popover-foreground shadow-xl",
+            "w-[22.5rem] max-h-[min(70vh,34rem)] overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-xl",
             className
           )}
         >

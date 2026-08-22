@@ -8,6 +8,8 @@ import {
   GitFetch,
   GitPull,
   GitPush,
+  GitStash,
+  GitStashPop,
   WriteSession,
 } from "../../../wailsjs/go/main/App";
 import { asStatus, type GitResult } from "./types";
@@ -85,7 +87,7 @@ export function runGitInTerminal(cmd: string) {
   void WriteSession(id, line);
 }
 
-export async function runScopedGit(kind: "fetch" | "pull" | "push") {
+export async function runScopedGit(kind: "fetch" | "pull" | "push" | "stash" | "stash-pop") {
   const target = resolveGitTarget();
   if (!target) {
     toast.error("No git project");
@@ -101,9 +103,18 @@ export async function runScopedGit(kind: "fetch" | "pull" | "push") {
     toast.error("Not a git repository");
     return;
   }
-  const fn = kind === "fetch" ? GitFetch : kind === "pull" ? GitPull : GitPush;
+  const fn =
+    kind === "fetch"
+      ? GitFetch
+      : kind === "pull"
+        ? GitPull
+        : kind === "push"
+          ? GitPush
+          : kind === "stash"
+            ? (p: string) => GitStash(p, "")
+            : (p: string) => GitStashPop(p, "");
   const result = (await fn(project.path)) as GitResult;
   invalidateGit(project.path);
-  if (result?.ok) toast.success(`git ${kind}`);
+  if (result?.ok) toast.success(`git ${kind.replace("-", " ")}`);
   else toast.error(result?.stderr || `git ${kind} failed`);
 }

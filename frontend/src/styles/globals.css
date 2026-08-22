@@ -355,10 +355,25 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: motion-dialog-content-out var(--motion-duration-fast) var(--motion-ease-in) both;
 }
 
+@keyframes motion-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.motion-popover[data-state="open"] {
+  animation: motion-popover-in var(--motion-duration-fast) var(--motion-ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motion-sidebar,
   .motion-dialog-overlay,
-  .motion-dialog-content {
+  .motion-dialog-content,
+  .motion-popover {
     animation: none !important;
     transition: none !important;
   }

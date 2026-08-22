@@ -27,7 +27,14 @@ type Snapshot struct {
 	Status
 	Upstream   string `json:"upstream"`
 	InProgress string `json:"inProgress"`
+	StashCount int    `json:"stashCount"`
 	Files      []File `json:"files"`
+}
+
+type Stash struct {
+	Ref     string `json:"ref"`
+	Message string `json:"message"`
+	Age     string `json:"age"`
 }
 
 type Branch struct {
@@ -61,8 +68,22 @@ func LoadSnapshot(path string) Snapshot {
 	}
 	if st.IsRepo {
 		snap.InProgress = inProgress(st.Path)
+		stashes := ListStashes(st.Path)
+		snap.StashCount = len(stashes)
 	}
 	return snap
+}
+
+func ListStashes(path string) []Stash {
+	root, err := findRoot(path)
+	if err != nil || root == "" {
+		return []Stash{}
+	}
+	out, _, err := runRead(root, timeoutQuick, "stash", "list", "--format=%gd%x00%s%x00%cr")
+	if err != nil {
+		return []Stash{}
+	}
+	return parseStashList(out)
 }
 
 func ListBranches(path string) []Branch {
@@ -70,7 +91,7 @@ func ListBranches(path string) []Branch {
 	if err != nil || root == "" {
 		return []Branch{}
 	}
-	out, _, err := run(root, timeoutQuick, "for-each-ref",
+	out, _, err := runRead(root, timeoutQuick, "for-each-ref",
 		"--sort=-committerdate",
 		"--format=%(refname:short)%00%(HEAD)%00%(committerdate:unix)",
 		"refs/heads")
@@ -108,7 +129,7 @@ func inspect(path string) (Status, branchInfo, []File) {
 	st.IsRepo = true
 	st.Path = root
 
-	out, _, err := run(root, timeoutQuick, "status", "--porcelain", "-b")
+	out, _, err := runRead(root, timeoutQuick, "status", "--porcelain", "-b")
 	if err != nil {
 		return st, branchInfo{}, nil
 	}

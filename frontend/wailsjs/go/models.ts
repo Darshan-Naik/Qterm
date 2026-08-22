@@ -381,6 +381,7 @@ export namespace git {
 	    behind: number;
 	    upstream: string;
 	    inProgress: string;
+	    stashCount: number;
 	    files: File[];
 	
 	    static createFrom(source: any = {}) {
@@ -397,6 +398,7 @@ export namespace git {
 	        this.behind = source["behind"];
 	        this.upstream = source["upstream"];
 	        this.inProgress = source["inProgress"];
+	        this.stashCount = source["stashCount"];
 	        this.files = this.convertValues(source["files"], File);
 	    }
 	
@@ -417,6 +419,22 @@ export namespace git {
 		    }
 		    return a;
 		}
+	}
+	export class Stash {
+	    ref: string;
+	    message: string;
+	    age: string;
+
+	    static createFrom(source: any = {}) {
+	        return new Stash(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ref = source["ref"];
+	        this.message = source["message"];
+	        this.age = source["age"];
+	    }
 	}
 	export class Status {
 	    path: string;

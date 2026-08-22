@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
 import { Check, ChevronLeft, Loader2, Plus } from "lucide-react";
 import { confirm } from "@/lib/confirm";
@@ -23,11 +23,16 @@ export function GitBranchSwitcher({
   onCreate: (name: string) => void;
 }) {
   const [q, setQ] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const query = q.trim();
   const exact = useMemo(
     () => branches.some((b) => b.name === query),
     [branches, query]
   );
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const switchTo = async (name: string) => {
     if (name === current) return;
@@ -56,8 +61,8 @@ export function GitBranchSwitcher({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-1 border-b border-border/60 px-1.5 py-1.5">
+    <div className="flex max-h-[min(70vh,34rem)] min-h-[18rem] flex-col">
+      <div className="flex items-center gap-1 border-b border-border/70 px-1.5 py-1.5">
         <button
           type="button"
           className="flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -65,14 +70,15 @@ export function GitBranchSwitcher({
         >
           <ChevronLeft className="size-3.5" />
         </button>
-        <span className="text-[12px] font-medium">Switch branch</span>
+        <span className="text-[13px] font-medium">Switch branch</span>
       </div>
       <Command className="flex min-h-0 flex-1 flex-col" shouldFilter>
         <Command.Input
+          ref={inputRef}
           value={q}
           onValueChange={setQ}
           placeholder="Find or create…"
-          className="h-8 w-full shrink-0 bg-transparent px-3 text-[12px] outline-none placeholder:text-muted-foreground"
+          className="h-9 w-full shrink-0 border-b border-border/70 bg-transparent px-3 text-[13px] outline-none placeholder:text-muted-foreground"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();
@@ -81,15 +87,15 @@ export function GitBranchSwitcher({
             }
           }}
         />
-        <Command.List className="min-h-0 flex-1 overflow-auto px-1 pb-2">
-          <Command.Empty className="px-2 py-3 text-[12px] text-muted-foreground">
-            No branches.
+        <Command.List className="min-h-0 flex-1 overflow-auto p-1.5">
+          <Command.Empty className="px-2 py-6 text-center text-[12px] text-muted-foreground">
+            No matching branches.
           </Command.Empty>
           {query && !exact ? (
             <Command.Item
               value={`create ${query}`}
               onSelect={() => void create()}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] aria-selected:bg-accent"
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] aria-selected:bg-accent"
             >
               {busy === "create" ? (
                 <Loader2 className="size-3.5 animate-spin opacity-70" />
@@ -105,7 +111,7 @@ export function GitBranchSwitcher({
               value={b.name}
               onSelect={() => void switchTo(b.name)}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] aria-selected:bg-accent",
+                "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] aria-selected:bg-accent",
                 b.current && "text-foreground"
               )}
             >
@@ -113,7 +119,7 @@ export function GitBranchSwitcher({
                 {busy === `checkout:${b.name}` ? (
                   <Loader2 className="size-3 animate-spin opacity-70" />
                 ) : b.current ? (
-                  <Check className="size-3 opacity-70" />
+                  <Check className="size-3.5 opacity-80" />
                 ) : null}
               </span>
               <span className="min-w-0 truncate">{b.name}</span>
