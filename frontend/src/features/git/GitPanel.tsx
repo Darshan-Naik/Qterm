@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { invalidateGit, useGitBranches, useGitSnapshot } from "@/queries";
+import { ChevronDown, GitBranch, Loader2 } from "lucide-react";
+import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes } from "@/queries";
 import { useUI } from "@/store/ui";
 import {
   GitCheckout,
@@ -12,14 +12,21 @@ import {
   GitPush,
   GitStage,
   GitStageAll,
+  GitStash,
+  GitStashApply,
+  GitStashDrop,
+  GitStashPop,
   GitUnstage,
 } from "../../../wailsjs/go/main/App";
 import { GitActionRow } from "./GitActionRow";
 import { GitBranchSwitcher } from "./GitBranchSwitcher";
 import { GitCommitBox } from "./GitCommitBox";
 import { GitFileList } from "./GitFileList";
+import { GitOverflowMenu } from "./GitOverflowMenu";
+import { GitStashList } from "./GitStashList";
 import { runGitInTerminal } from "./gitScope";
-import { asSnapshot, trackingLabel, type GitFile, type GitResult } from "./types";
+import { cn } from "@/lib/utils";
+import { asSnapshot, type GitFile, type GitResult } from "./types";
 
 function asResult(raw: unknown): GitResult {
   const r = (raw || {}) as Partial<GitResult>;
@@ -41,13 +48,14 @@ export function GitPanel({
   open: boolean;
 }) {
   const requestedView = useUI((s) => s.gitPanel?.view ?? "main");
-  const [view, setView] = useState<"main" | "branches">(requestedView);
+  const [view, setView] = useState<"main" | "branches" | "stashes">(requestedView);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<GitResult | null>(null);
   const [message, setMessage] = useState("");
 
   const snapQuery = useGitSnapshot(path, open);
   const branchQuery = useGitBranches(path, open && view === "branches");
+  const stashQuery = useGitStashes(path, open && view === "stashes");
   const snap = asSnapshot(snapQuery.data);
   const branches = (branchQuery.data || []) as Array<{
     name?: string;
@@ -60,12 +68,12 @@ export function GitPanel({
   }, [open, requestedView]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || busy) return;
     const t = window.setInterval(() => {
       void snapQuery.refetch();
     }, 2000);
     return () => window.clearInterval(t);
-  }, [open, snapQuery.refetch]);
+  }, [open, busy, snapQuery.refetch]);
 
   const run = async (op: string, fn: () => Promise<unknown>): Promise<boolean> => {
     setBusy(op);
@@ -132,62 +140,97 @@ export function GitPanel({
     );
   }
 
-  const track = snap ? trackingLabel(snap.ahead, snap.behind) : "";
+  if (view === "stashes") {
+    const stashes = ((stashQuery.data || []) as Array<{ ref?: string; message?: string; age?: string }>).map(
+      (s) => ({
+        ref: s.ref || "",
+        message: s.message || "",
+        age: s.age || "",
+      })
+    );
+    return (
+      <GitStashList
+        stashes={stashes}
+        busy={busy}
+        onBack={() => setView("main")}
+        onPop={async (ref) => {
+          const ok = await run(`stash-pop:${ref}`, () => GitStashPop(path, ref));
+          if (ok) setView("main");
+        }}
+        onApply={(ref) => void run(`stash-apply:${ref}`, () => GitStashApply(path, ref))}
+        onDrop={async (ref) => {
+          const ok = await run(`stash-drop:${ref}`, () => GitStashDrop(path, ref));
+          if (ok) void stashQuery.refetch();
+        }}
+      />
+    );
+  }
+
   const canPush = !!snap && (snap.ahead > 0 || !snap.upstream);
   const stagedCount = snap?.files.filter((f) => f.staged).length ?? 0;
+  const dirty = !!snap?.dirty;
+  const loading = snapQuery.isLoading && !snap;
 
   return (
-    <div className="flex max-h-[min(70vh,32rem)] min-h-0 flex-col">
-      <div className="flex items-center gap-2 px-3 pb-1.5 pt-2.5">
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] text-muted-foreground">Git</div>
-          <div className="truncate text-[13px] font-medium">{projectName}</div>
-        </div>
+    <div className="flex max-h-[min(70vh,34rem)] min-h-0 flex-col">
+      <div
+        className={cn(
+          "flex min-w-0 shrink-0 items-center gap-0.5 px-1.5 pt-1",
+          dirty && "border-b border-border/70"
+        )}
+      >
         <button
           type="button"
-          className="flex min-w-0 max-w-[45%] cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left hover:bg-accent/50"
           onClick={() => setView("branches")}
         >
-          <span className="min-w-0 truncate">{snap?.branch || "—"}</span>
-          {track ? <span className="shrink-0 tabular-nums">{track}</span> : null}
-          <ChevronDown className="size-3 shrink-0 opacity-70" />
+          {loading ? (
+            <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+          ) : (
+            <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span className="max-w-[8.5rem] shrink-0 truncate text-[13px] font-medium">
+            {snap?.branch || "—"}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">
+            · {projectName}
+          </span>
+          <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
         </button>
+        <GitActionRow
+          ahead={snap?.ahead ?? 0}
+          behind={snap?.behind ?? 0}
+          canPush={canPush}
+          busy={busy}
+          onPull={() => void run("pull", () => GitPull(path))}
+          onPush={() => void run("push", () => GitPush(path))}
+        />
+        <GitOverflowMenu
+          dirty={dirty}
+          stashCount={snap?.stashCount ?? 0}
+          busy={busy}
+          onFetch={() => void run("fetch", () => GitFetch(path))}
+          onStash={async () => {
+            const ok = await run("stash", () => GitStash(path, message.trim()));
+            if (ok) setMessage("");
+          }}
+          onPop={async () => {
+            const ok = await run("stash-pop", () => GitStashPop(path, ""));
+            if (ok) setMessage("");
+          }}
+          onOpenStashes={() => setView("stashes")}
+        />
       </div>
 
-      <GitActionRow
-        canPush={canPush}
-        busy={busy}
-        onFetch={() => void run("fetch", () => GitFetch(path))}
-        onPull={() => void run("pull", () => GitPull(path))}
-        onPush={() => void run("push", () => GitPush(path))}
-      />
-
       {conflict ? (
-        <div className="mx-2.5 mb-2 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive">
+        <div className="mx-3 mb-2 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive">
           Conflicts — resolve in the terminal
         </div>
       ) : null}
 
-      <GitFileList
-        files={snap?.files ?? []}
-        busy={busy}
-        onToggle={toggleFile}
-        onStageAll={() => void run("stage-all", () => GitStageAll(path))}
-        onDiscard={(file) => void run(`discard:${file.path}`, () => GitDiscard(path, file.path))}
-      />
-
-      <GitCommitBox
-        message={message}
-        onMessage={setMessage}
-        canCommit={stagedCount > 0}
-        busy={busy}
-        onCommit={() => void commit(false)}
-        onCommitPush={() => void commit(true)}
-      />
-
       {error && !error.ok ? (
-        <div className="border-t border-border/60 px-2.5 py-2">
-          <p className="max-h-16 overflow-auto whitespace-pre-wrap text-[11px] text-destructive">
+        <div className="mx-3 mb-2 rounded-md bg-destructive/10 px-2.5 py-1.5">
+          <p className="max-h-14 overflow-auto whitespace-pre-wrap text-[11px] text-destructive">
             {error.stderr || "git command failed"}
           </p>
           {error.cmd ? (
@@ -200,6 +243,26 @@ export function GitPanel({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {dirty ? (
+        <>
+          <GitFileList
+            files={snap?.files ?? []}
+            busy={busy}
+            onToggle={toggleFile}
+            onStageAll={() => void run("stage-all", () => GitStageAll(path))}
+            onDiscard={(file) => void run(`discard:${file.path}`, () => GitDiscard(path, file.path))}
+          />
+          <GitCommitBox
+            message={message}
+            onMessage={setMessage}
+            canCommit={stagedCount > 0}
+            busy={busy}
+            onCommit={() => void commit(false)}
+            onCommitPush={() => void commit(true)}
+          />
+        </>
       ) : null}
     </div>
   );

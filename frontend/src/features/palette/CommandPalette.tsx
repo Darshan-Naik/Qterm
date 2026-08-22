@@ -81,6 +81,27 @@ export function CommandPalette() {
         },
       },
       {
+        id: "git-stash",
+        label: "Git: Stash",
+        run: async () => {
+          await runScopedGit("stash");
+        },
+      },
+      {
+        id: "git-stash-pop",
+        label: "Git: Pop stash",
+        run: async () => {
+          await runScopedGit("stash-pop");
+        },
+      },
+      {
+        id: "git-stashes",
+        label: "Git: Stashes",
+        run: async () => {
+          await openGitToolkit("stashes");
+        },
+      },
+      {
         id: "git-commit",
         label: "Git: Commit",
         run: async () => {

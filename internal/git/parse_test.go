@@ -77,3 +77,31 @@ func TestNeedsUpstream(t *testing.T) {
 		t.Fatal("should not match")
 	}
 }
+
+func TestIsIndexLock(t *testing.T) {
+	msg := "fatal: Unable to create '/tmp/repo/.git/index.lock': File exists."
+	if !isIndexLock(msg) {
+		t.Fatal("expected lock")
+	}
+	if isIndexLock("error: failed to push some refs") {
+		t.Fatal("should not match")
+	}
+}
+
+func TestParseStashList(t *testing.T) {
+	out := "stash@{0}\x00WIP on main: abc\x002 minutes ago\nstash@{1}\x00fix login\x001 day ago\n"
+	got := parseStashList(out)
+	if len(got) != 2 || got[0].Ref != "stash@{0}" || got[1].Message != "fix login" {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestStashRef(t *testing.T) {
+	r, ok := stashRef("")
+	if !ok || r != "stash@{0}" {
+		t.Fatalf("%s %v", r, ok)
+	}
+	if _, ok := stashRef("main"); ok {
+		t.Fatal("rejected")
+	}
+}

@@ -6,6 +6,7 @@ import {
   GetGitStatus,
   GetGitSnapshot,
   ListGitBranches,
+  ListGitStashes,
   GetConfig,
 } from "../../wailsjs/go/main/App";
 
@@ -70,11 +71,21 @@ export function useGitBranches(path: string | undefined, enabled: boolean) {
   });
 }
 
+export function useGitStashes(path: string | undefined, enabled: boolean) {
+  return useQuery(["git-stashes", path || ""], {
+    fetcher: () => ListGitStashes(path || ""),
+    enabled: !!path && enabled,
+    staleTime: 5_000,
+    persist: false,
+  });
+}
+
 export function invalidateGit(path: string) {
   if (!path) return;
   invalidateQuery(["git", path]);
   invalidateQuery(["git-snapshot", path]);
   invalidateQuery(["git-branches", path]);
+  invalidateQuery(["git-stashes", path]);
 }
 
 export function useAppConfig() {

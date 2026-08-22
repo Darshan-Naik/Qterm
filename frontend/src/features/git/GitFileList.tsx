@@ -1,7 +1,8 @@
-import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { Loader2, Minus, Plus, Undo2 } from "lucide-react";
 import { confirm } from "@/lib/confirm";
 import { cn } from "@/lib/utils";
-import { statusLetter, type GitFile } from "./types";
+import { fileParts, statusLetter, statusTone, type GitFile } from "./types";
 
 export function GitFileList({
   files,
@@ -30,40 +31,20 @@ export function GitFileList({
     if (ok) onDiscard(file);
   };
 
-  if (files.length === 0) {
-    return (
-      <p className="px-3 py-3 text-[12px] text-muted-foreground">No local changes.</p>
-    );
-  }
+  if (files.length === 0) return null;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-1">
-        <span className="text-[11px] text-muted-foreground">
-          Changes {files.length}
-        </span>
-        {unstaged.length > 0 ? (
-          <button
-            type="button"
-            disabled={!!busy}
-            className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
-            onClick={onStageAll}
-          >
-            {busy === "stage-all" ? (
-              <Loader2 className="inline size-3 animate-spin" />
-            ) : (
-              "Stage all"
-            )}
-          </button>
-        ) : null}
-      </div>
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
       {split ? (
         <>
           <FileGroup
-            label="Unstaged"
+            label="Changes"
             files={unstaged}
             busy={busy}
             action="stage"
+            actionLabel="Stage all"
+            onAction={onStageAll}
+            actionBusy={busy === "stage-all"}
             onToggle={onToggle}
             onDiscard={discard}
           />
@@ -78,8 +59,13 @@ export function GitFileList({
         </>
       ) : (
         <FileGroup
+          label={unstaged.length > 0 ? "Changes" : "Staged"}
           files={files}
           busy={busy}
+          action={unstaged.length > 0 ? "stage" : "unstage"}
+          actionLabel={unstaged.length > 0 ? "Stage all" : undefined}
+          onAction={unstaged.length > 0 ? onStageAll : undefined}
+          actionBusy={busy === "stage-all"}
           onToggle={onToggle}
           onDiscard={discard}
         />
@@ -93,67 +79,120 @@ function FileGroup({
   files,
   busy,
   action,
+  actionLabel,
+  onAction,
+  actionBusy,
   onToggle,
   onDiscard,
 }: {
-  label?: string;
+  label: string;
   files: GitFile[];
   busy: string | null;
-  action?: "stage" | "unstage";
+  action: "stage" | "unstage";
+  actionLabel?: string;
+  onAction?: () => void;
+  actionBusy?: boolean;
   onToggle: (file: GitFile) => void;
   onDiscard: (file: GitFile) => void;
 }) {
   return (
     <div>
-      {label ? (
-        <div className="px-3 pb-0.5 pt-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-popover px-3 pb-1 pt-1.5">
+        <span className="text-[11px] text-muted-foreground">
           {label}
-        </div>
-      ) : null}
+          <span className="tabular-nums"> {files.length}</span>
+        </span>
+        {onAction && actionLabel ? (
+          <button
+            type="button"
+            disabled={!!busy}
+            className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+            onClick={onAction}
+          >
+            {actionBusy ? <Loader2 className="inline size-3 animate-spin" /> : actionLabel}
+          </button>
+        ) : null}
+      </div>
       {files.map((file) => {
-        const id = `${label || ""}:${file.path}`;
         const spinning = busy === `file:${file.path}` || busy === `discard:${file.path}`;
-        const handle = () => {
+        const letter = statusLetter(file.code);
+        const { dir, name } = fileParts(file.path);
+        const toggle = () => {
           if (action === "stage") onToggle({ ...file, unstaged: true, staged: false });
-          else if (action === "unstage") onToggle({ ...file, unstaged: false, staged: true });
-          else onToggle(file);
+          else onToggle({ ...file, unstaged: false, staged: true });
         };
         return (
           <div
-            key={id}
-            className="group/file flex min-w-0 items-center gap-1.5 px-2.5 py-0.5 hover:bg-accent/60"
+            key={`${label}:${file.path}`}
+            className="group/file flex min-w-0 items-center gap-1 px-2.5 py-1 hover:bg-accent/60"
           >
-            <button
-              type="button"
-              disabled={!!busy}
-              className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-sm py-0.5 text-left disabled:opacity-50"
-              onClick={handle}
-            >
-              <span className="w-3.5 shrink-0 text-center font-mono text-[10px] text-muted-foreground">
-                {spinning ? (
-                  <Loader2 className="inline size-3 animate-spin" />
-                ) : (
-                  statusLetter(file.code)
-                )}
-              </span>
-              <span className="min-w-0 truncate text-[12px]" title={file.path}>
-                {file.path}
-              </span>
-            </button>
-            <button
-              type="button"
-              disabled={!!busy}
+            <span
               className={cn(
-                "shrink-0 cursor-pointer px-1.5 text-[10px] text-muted-foreground opacity-0 hover:text-destructive group-hover/file:opacity-100",
-                "disabled:opacity-0"
+                "w-3.5 shrink-0 text-center font-mono text-[10px] font-medium",
+                statusTone(letter)
               )}
-              onClick={() => void onDiscard(file)}
             >
-              Discard
-            </button>
+              {letter}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[12px] leading-tight">
+              <span className="text-foreground">{name}</span>
+              {dir ? <span className="text-muted-foreground"> {dir}</span> : null}
+            </span>
+            {spinning ? (
+              <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <IconButton
+                  label={action === "stage" ? "Stage" : "Unstage"}
+                  disabled={!!busy}
+                  onClick={toggle}
+                >
+                  {action === "stage" ? <Plus className="size-3.5" /> : <Minus className="size-3.5" />}
+                </IconButton>
+                <IconButton
+                  label="Discard"
+                  disabled={!!busy}
+                  danger
+                  onClick={() => void onDiscard(file)}
+                >
+                  <Undo2 className="size-3.5" />
+                </IconButton>
+              </>
+            )}
           </div>
         );
       })}
     </div>
+  );
+}
+
+function IconButton({
+  label,
+  disabled,
+  danger,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  danger?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      title={label}
+      className={cn(
+        "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
+        "opacity-0 hover:bg-accent hover:text-foreground group-hover/file:opacity-100",
+        danger && "hover:text-destructive",
+        "disabled:opacity-0"
+      )}
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }

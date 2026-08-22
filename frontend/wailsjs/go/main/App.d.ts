@@ -42,6 +42,14 @@ export function GitStage(arg1:string,arg2:string):Promise<git.Result>;
 
 export function GitStageAll(arg1:string):Promise<git.Result>;
 
+export function GitStash(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitStashApply(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitStashDrop(arg1:string,arg2:string):Promise<git.Result>;
+
+export function GitStashPop(arg1:string,arg2:string):Promise<git.Result>;
+
 export function GitUnstage(arg1:string,arg2:string):Promise<git.Result>;
 
 export function InstallAgentCLI(arg1:string):Promise<core.InstallResult>;
@@ -53,6 +61,8 @@ export function ListAgentCLIs():Promise<Array<core.CLIInfo>>;
 export function ListAgentSessions(arg1:string,arg2:string):Promise<Array<core.Session>>;
 
 export function ListGitBranches(arg1:string):Promise<Array<git.Branch>>;
+
+export function ListGitStashes(arg1:string):Promise<Array<git.Stash>>;
 
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 

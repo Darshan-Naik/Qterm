@@ -634,6 +634,26 @@ func (a *App) GitDiscard(path, file string) git.Result {
 	return git.Discard(path, file)
 }
 
+func (a *App) ListGitStashes(path string) []git.Stash {
+	return git.ListStashes(path)
+}
+
+func (a *App) GitStash(path, message string) git.Result {
+	return git.Stash(path, message)
+}
+
+func (a *App) GitStashPop(path, ref string) git.Result {
+	return git.StashPop(path, ref)
+}
+
+func (a *App) GitStashApply(path, ref string) git.Result {
+	return git.StashApply(path, ref)
+}
+
+func (a *App) GitStashDrop(path, ref string) git.Result {
+	return git.StashDrop(path, ref)
+}
+
 // --- Sessions / PTY ---
 
 type SessionDTO struct {

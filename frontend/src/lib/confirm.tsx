@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { dismissExclusiveMenus } from "@/hooks/useExclusiveMenu";
 
 export type ConfirmOptions = {
   title: string;
@@ -32,7 +31,6 @@ function emit() {
  * Requires `<ConfirmHost />` mounted once (next to the toaster).
  */
 export function confirm(options: ConfirmOptions): Promise<boolean> {
-  dismissExclusiveMenus();
   if (pending) pending.resolve(false);
   return new Promise((resolve) => {
     pending = { ...options, resolve };

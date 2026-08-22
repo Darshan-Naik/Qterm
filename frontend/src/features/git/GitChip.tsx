@@ -112,9 +112,28 @@ export function GitChip({
       <PopoverContent
         align={variant === "pane" ? "end" : "start"}
         side={variant === "sidebar" ? "right" : "bottom"}
+        sideOffset={6}
         onOpenAutoFocus={(e: Event) => e.preventDefault()}
         onCloseAutoFocus={(e: Event) => e.preventDefault()}
         onMouseDown={(e: MouseEvent) => e.stopPropagation()}
+        onInteractOutside={(e) => {
+          const t = e.target;
+          if (
+            t instanceof Element &&
+            (t.closest('[role="dialog"]') || t.closest('[role="menu"]'))
+          ) {
+            e.preventDefault();
+          }
+        }}
+        onFocusOutside={(e) => {
+          const t = e.target;
+          if (
+            t instanceof Element &&
+            (t.closest('[role="dialog"]') || t.closest('[role="menu"]'))
+          ) {
+            e.preventDefault();
+          }
+        }}
       >
         <GitPanel path={path} projectName={projectName} open={menuOpen} />
       </PopoverContent>
