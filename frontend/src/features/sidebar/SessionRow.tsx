@@ -145,7 +145,7 @@ export function SessionRow({
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group relative flex w-full items-center gap-0.5 rounded-lg pr-1 text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/35 hover:text-sidebar-foreground",
+            "group relative flex w-full flex-col rounded-lg pr-1 text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/35 hover:text-sidebar-foreground",
             openInPane &&
               !focused &&
               "bg-sidebar-accent/80 text-sidebar-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-primary/55",
@@ -243,8 +243,10 @@ export function SessionRow({
 
           <div
             className={cn(
-              "hidden shrink-0 items-center justify-end group-hover:flex",
-              menuOpen && "flex"
+              "absolute right-1 top-1.5 z-10 flex items-center rounded-md bg-sidebar opacity-0 group-hover:bg-sidebar-accent/35 group-hover:opacity-100",
+              menuOpen && "bg-sidebar-accent/35 opacity-100",
+              focused && "bg-sidebar-accent",
+              openInPane && !focused && "bg-sidebar-accent/80"
             )}
           >
             <DropdownMenu modal={false} open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
@@ -295,14 +297,18 @@ export function SessionRow({
           </div>
 
           {showWorktreeChip && project ? (
-            <GitChip
-              projectId={session.projectId}
-              path={session.cwd}
-              projectName={project.name}
-              paneId={`session:${session.id}`}
-              listenToShortcut={false}
-              variant="session"
-            />
+            <div className="min-w-0 px-2 pb-1 pl-9">
+              <GitChip
+                projectId={session.projectId}
+                path={session.cwd}
+                projectName={project.name}
+                paneId={`session:${session.id}`}
+                listenToShortcut={false}
+                variant="meta"
+                side="right"
+                worktree
+              />
+            </div>
           ) : null}
         </div>
       </ContextMenuTrigger>

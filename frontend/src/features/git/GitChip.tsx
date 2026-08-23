@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Circle } from "lucide-react";
+import { Circle, FolderGit2, GitBranch } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
@@ -19,14 +19,18 @@ export function GitChip({
   listenToShortcut = true,
   variant,
   always = true,
+  worktree = false,
+  side,
 }: {
   projectId: string;
   path: string;
   projectName: string;
   paneId?: string | null;
   listenToShortcut?: boolean;
-  variant: "sidebar" | "open" | "pane" | "session";
+  variant: "sidebar" | "open" | "pane" | "session" | "meta";
   always?: boolean;
+  worktree?: boolean;
+  side?: "right" | "bottom";
 }) {
   const { data } = useGitStatus(path);
   const git = asStatus(data);
@@ -63,6 +67,8 @@ export function GitChip({
   const scope = gitToolkitScope(path, rootPath);
   const track = trackingLabel(git.ahead, git.behind);
   const label = listenToShortcut ? `${chipTooltip(git)} (${shortcut})` : chipTooltip(git);
+  const popoverSide =
+    side ?? (variant === "pane" || variant === "open" || variant === "meta" ? "bottom" : "right");
 
   const onOpenChange = (next: boolean) => {
     setMenuOpen(next);
@@ -84,7 +90,11 @@ export function GitChip({
 
   return (
     <Popover modal={false} open={menuOpen} onOpenChange={onOpenChange}>
-      <WithTooltip label={label} disabled={menuOpen} side={variant === "pane" ? "bottom" : "right"}>
+      <WithTooltip
+        label={label}
+        disabled={menuOpen}
+        side={variant === "pane" ? "bottom" : "right"}
+      >
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -96,9 +106,11 @@ export function GitChip({
                 "max-w-[8rem] shrink-0 px-1.5 text-[12px] text-muted-foreground hover:text-foreground",
               variant === "session" &&
                 "max-w-[7rem] shrink-0 rounded-md px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+              variant === "meta" &&
+                "w-max max-w-full min-w-0 justify-start rounded-md px-1 py-0.5 text-left text-[11px] leading-4 text-muted-foreground hover:bg-accent/50 hover:text-foreground",
               variant === "pane" &&
                 cn(
-                  "max-w-[8.5rem] shrink-0 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground",
+                  "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground",
                   "hover:bg-accent hover:text-foreground",
                   always
                     ? "opacity-45 group-hover/chrome:opacity-100"
@@ -109,7 +121,16 @@ export function GitChip({
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <span className="min-w-0 truncate">{git.branch || "HEAD"}</span>
+            {variant === "meta" ? (
+              worktree ? (
+                <FolderGit2 className="size-3 shrink-0 opacity-70" />
+              ) : (
+                <GitBranch className="size-3 shrink-0 opacity-70" />
+              )
+            ) : null}
+            <span className={cn(variant === "pane" ? "whitespace-nowrap" : "min-w-0 truncate")}>
+              {git.branch || "HEAD"}
+            </span>
             {track ? <span className="shrink-0 tabular-nums">{track}</span> : null}
             {git.dirty ? (
               <Circle className="size-1.5 shrink-0 fill-amber-400 text-amber-400" />
@@ -119,7 +140,7 @@ export function GitChip({
       </WithTooltip>
       <PopoverContent
         align={variant === "pane" ? "end" : "start"}
-        side={variant === "sidebar" || variant === "session" ? "right" : "bottom"}
+        side={popoverSide}
         sideOffset={6}
         onOpenAutoFocus={(e: Event) => e.preventDefault()}
         onCloseAutoFocus={(e: Event) => e.preventDefault()}
