@@ -157,6 +157,7 @@ export namespace config {
 	    sidebarWidth?: number;
 	    uiZoom?: number;
 	    collapsedProjects?: Record<string, boolean>;
+	    sidebarFooter: string[];
 	    agentCLIs?: Record<string, string>;
 	    keybindings?: Record<string, Array<KeyChord>>;
 	
@@ -177,6 +178,7 @@ export namespace config {
 	        this.sidebarWidth = source["sidebarWidth"];
 	        this.uiZoom = source["uiZoom"];
 	        this.collapsedProjects = source["collapsedProjects"];
+	        this.sidebarFooter = source["sidebarFooter"];
 	        this.agentCLIs = source["agentCLIs"];
 	        this.keybindings = this.convertValues(source["keybindings"], Array<KeyChord>, true);
 	    }
@@ -229,6 +231,7 @@ export namespace config {
 	    sidebarWidth: number;
 	    uiZoom: number;
 	    collapsedProjects: Record<string, boolean>;
+	    sidebarFooter: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new UIPrefs(source);
@@ -240,6 +243,7 @@ export namespace config {
 	        this.sidebarWidth = source["sidebarWidth"];
 	        this.uiZoom = source["uiZoom"];
 	        this.collapsedProjects = source["collapsedProjects"];
+	        this.sidebarFooter = source["sidebarFooter"];
 	    }
 	}
 

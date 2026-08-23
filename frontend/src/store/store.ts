@@ -4,6 +4,7 @@ import {
   DEFAULT_SCOPE,
   FONT_SIZE_DEFAULT,
   SIDEBAR_DEFAULT,
+  SIDEBAR_FOOTER_DEFAULT,
   UI_ZOOM_DEFAULT,
 } from "./defaults";
 
@@ -13,6 +14,8 @@ export {
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
   SIDEBAR_DEFAULT,
+  SIDEBAR_FOOTER_DEFAULT,
+  SIDEBAR_FOOTER_IDS,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
   UI_ZOOM_DEFAULT,
@@ -22,6 +25,7 @@ export {
   clampFontSize,
   clampSidebarWidth,
   clampUiZoom,
+  sanitizeSidebarFooter,
 } from "./defaults";
 
 export const uiStore = createStore<UIState>({
@@ -50,6 +54,7 @@ export const uiStore = createStore<UIState>({
   suggestText: null,
   collapsedProjects: {},
   keybindings: {},
+  sidebarFooter: [...SIDEBAR_FOOTER_DEFAULT],
   gitPanel: null,
 });
 

@@ -14,6 +14,7 @@ import { SettingCard } from "../ui/SettingCard";
 import { SettingRow } from "../ui/SettingRow";
 import { PillSelect } from "../ui/PillSelect";
 import { Input } from "@/components/ui/input";
+import { SidebarFooterSettings } from "../ui/SidebarFooterSettings";
 
 export function AppearancePage() {
   const theme = useUI((s) => s.theme);
@@ -67,6 +68,14 @@ export function AppearancePage() {
             }
           />
         </SettingCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionLabel>Sidebar footer</SectionLabel>
+        <p className="mb-3 max-w-xl text-[12.5px] leading-relaxed text-muted-foreground">
+          Choose icons for the sidebar footer. Turn all off to hide the footer.
+        </p>
+        <SidebarFooterSettings />
       </div>
     </div>
   );

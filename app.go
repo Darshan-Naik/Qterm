@@ -410,6 +410,11 @@ func (a *App) SaveUIPrefs(prefs config.UIPrefs) error {
 		} else {
 			cfg.CollapsedProjects = prefs.CollapsedProjects
 		}
+		if prefs.SidebarFooter == nil {
+			cfg.SidebarFooter = []string{}
+		} else {
+			cfg.SidebarFooter = prefs.SidebarFooter
+		}
 	})
 }
 

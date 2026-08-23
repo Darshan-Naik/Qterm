@@ -5,11 +5,14 @@ import { SaveKeybindings, SaveUIPrefs } from "../../wailsjs/go/main/App";
 import {
   clampSidebarWidth,
   clampUiZoom,
+  sanitizeSidebarFooter,
   SIDEBAR_DEFAULT,
+  SIDEBAR_FOOTER_IDS,
   UI_ZOOM_DEFAULT,
   UI_ZOOM_STEP,
   uiStore,
 } from "./store";
+import type { SidebarFooterId } from "./types";
 
 /** Validate + drop unknown ids / default-equal overrides (for config.json). */
 export function sanitizeKeybindings(raw: unknown): KeybindingOverrides {
@@ -65,6 +68,7 @@ export async function persistUIPrefs() {
     sidebarWidth: clampSidebarWidth(s.sidebarWidth),
     uiZoom: clampUiZoom(s.uiZoom),
     collapsedProjects: s.collapsedProjects,
+    sidebarFooter: s.sidebarFooter,
   });
 }
 
@@ -89,6 +93,7 @@ export function applyConfigChrome(cfg: {
   sidebarWidth?: number;
   uiZoom?: number;
   collapsedProjects?: Record<string, boolean> | null;
+  sidebarFooter?: string[] | null;
 }) {
   const zoom = clampUiZoom(typeof cfg.uiZoom === "number" ? cfg.uiZoom : UI_ZOOM_DEFAULT);
   applyUiZoom(zoom);
@@ -98,7 +103,18 @@ export function applyConfigChrome(cfg: {
     uiZoom: zoom,
     collapsedProjects:
       cfg.collapsedProjects && typeof cfg.collapsedProjects === "object" ? cfg.collapsedProjects : {},
+    sidebarFooter: sanitizeSidebarFooter(cfg.sidebarFooter),
   });
+}
+
+export function setSidebarFooterItem(id: SidebarFooterId, on: boolean) {
+  const enabled = new Set(uiStore.get().sidebarFooter);
+  if (on) enabled.add(id);
+  else enabled.delete(id);
+  uiStore.set({
+    sidebarFooter: SIDEBAR_FOOTER_IDS.filter((item) => enabled.has(item)),
+  });
+  void persistUIPrefs();
 }
 
 export function toggleProjectCollapsed(projectId: string) {

@@ -4,6 +4,7 @@ export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "action_required" | "task_complete" | "thinking";
 export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts";
 export type AppMode = "workspace" | "settings";
+export type SidebarFooterId = "palette" | "agent" | "theme" | "settings";
 
 export type { KeybindingOverrides };
 
@@ -78,6 +79,8 @@ export type UIState = {
   collapsedProjects: Record<string, boolean>;
   /** Custom keybinding overrides (defaults live in shortcut catalog). */
   keybindings: KeybindingOverrides;
+  /** Enabled sidebar footer icons. Empty hides the footer. */
+  sidebarFooter: SidebarFooterId[];
   /** Which git chip should show the toolkit popover. */
   gitPanel: GitPanelTarget | null;
 };

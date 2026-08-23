@@ -1,3 +1,5 @@
+import type { SidebarFooterId } from "./types";
+
 /**
  * App-level UI defaults. Keep numeric values in sync with `internal/config`
  * (DefaultFontSize, DefaultSidebarWidth, DefaultUiZoom, DefaultScope, …).
@@ -7,6 +9,12 @@ export const DEFAULT_SCOPE = "_default";
 export const SIDEBAR_MIN = 180;
 export const SIDEBAR_MAX = 480;
 export const SIDEBAR_DEFAULT = 240;
+
+/** Catalog order: left cluster then right cluster. */
+export const SIDEBAR_FOOTER_IDS: SidebarFooterId[] = ["palette", "agent", "theme", "settings"];
+
+/** Current footer: agent (if a CLI is connected) + settings. */
+export const SIDEBAR_FOOTER_DEFAULT: SidebarFooterId[] = ["agent", "settings"];
 
 export const FONT_SIZE_MIN = 10;
 export const FONT_SIZE_MAX = 24;
@@ -31,4 +39,17 @@ export function clampUiZoom(zoom: number) {
 export function clampSidebarWidth(width: number) {
   const n = Math.round(Number(width) || SIDEBAR_DEFAULT);
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, n));
+}
+
+const FOOTER_IDS = new Set<string>(SIDEBAR_FOOTER_IDS);
+
+/** Missing / invalid → defaults. Empty array is valid (hide footer). */
+export function sanitizeSidebarFooter(raw: unknown): SidebarFooterId[] {
+  if (!Array.isArray(raw)) return [...SIDEBAR_FOOTER_DEFAULT];
+  const seen = new Set<SidebarFooterId>();
+  for (const id of raw) {
+    if (typeof id !== "string" || !FOOTER_IDS.has(id)) continue;
+    seen.add(id as SidebarFooterId);
+  }
+  return SIDEBAR_FOOTER_IDS.filter((id) => seen.has(id));
 }
