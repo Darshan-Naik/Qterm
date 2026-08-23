@@ -7,6 +7,7 @@ import { createDefaultTerminal, isUnbound } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
 import { SessionRow } from "./SessionRow";
 import { ProjectsSection } from "./ProjectsSection";
+import { SidebarFooter } from "./SidebarFooter";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { SIDEBAR_STICKY_SEAL, sidebarShellWidth } from "./sidebarLayout";
 
@@ -69,7 +70,7 @@ export function AppSidebar() {
           </div>
 
           {/* Native overflow so position:sticky works (Radix ScrollArea breaks it). */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2">
             {unboundSessions.length > 0 && (
               <div className="mt-1 space-y-0.5">
                 {unboundSessions.map((s) => (
@@ -80,6 +81,8 @@ export function AppSidebar() {
 
             <ProjectsSection />
           </div>
+
+          <SidebarFooter />
         </aside>
         <SidebarResizeHandle disabled={!open} />
       </div>

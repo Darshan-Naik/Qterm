@@ -4,6 +4,7 @@ import { InstallAgentCLI } from "../../../wailsjs/go/main/App";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
 import { agentLabel } from "@/features/sidebar/AgentIcon";
 import { connectSuccessToast, isCliNudgeSnoozed, snoozeCliNudge } from "@/lib/agentConnect";
+import { invalidateAgentCLIs } from "@/queries";
 
 type Nudge = {
   cli: string;
@@ -34,6 +35,7 @@ export function ConnectNudgeListener() {
             void (async () => {
               try {
                 await InstallAgentCLI(cli);
+                invalidateAgentCLIs();
                 const msg = connectSuccessToast(name);
                 toast.success(msg.title, {
                   description: msg.description,

@@ -122,7 +122,7 @@ export function ShortcutRow({
             "inline-flex h-8 items-center gap-1.5 rounded-lg px-1.5 transition-colors",
             recording
               ? "bg-secondary text-foreground ring-1 ring-foreground/20"
-              : "hover:bg-secondary/70"
+              : "hover:bg-foreground/5"
           )}
         >
           {recording ? (

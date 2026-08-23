@@ -36,7 +36,7 @@ export {
   useUI,
 } from "./store";
 
-export { applyTheme } from "./theme";
+export { applyTheme, setThemeMode } from "./theme";
 export {
   adjustUiZoom,
   applyConfigChrome,

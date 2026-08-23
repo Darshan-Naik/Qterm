@@ -12,15 +12,14 @@ import { matchShortcut, metaFor, type ShortcutId } from "@/lib/shortcuts";
 import { isKeybindingCapturing } from "@/lib/shortcuts/capture";
 import {
   adjustUiZoom,
-  applyTheme,
   closeSettings,
   openSettings,
   persistUIPrefs,
+  setThemeMode,
   setUiZoom,
   UI_ZOOM_DEFAULT,
   uiStore,
 } from "@/store/ui";
-import { SaveTheme } from "../../wailsjs/go/main/App";
 import { closeFocused, cycleFocus, cycleTerminal, splitFocused } from "@/app/splitActions";
 
 const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
@@ -61,9 +60,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   openSettings: () => openSettings(),
   toggleTheme: () => {
     const next = uiStore.get().theme === "dark" ? "light" : "dark";
-    uiStore.set({ theme: next });
-    applyTheme(next);
-    void SaveTheme(next);
+    setThemeMode(next);
   },
   zoomIn: () => void adjustUiZoom(1),
   zoomOut: () => void adjustUiZoom(-1),
