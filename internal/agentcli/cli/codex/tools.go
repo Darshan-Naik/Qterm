@@ -121,7 +121,7 @@ func listPluginsCLI() ([]core.ToolItem, error) {
 }
 
 func parsePluginJSON(raw string) ([]core.ToolItem, error) {
-	raw = strings.TrimSpace(raw)
+	raw = core.ExtractJSON(raw)
 	if raw == "" {
 		return nil, nil
 	}
@@ -172,22 +172,26 @@ func parsePluginJSON(raw string) ([]core.ToolItem, error) {
 		if v, ok := p["enabled"].(bool); ok {
 			en = v
 		}
-		src := mp
+		installPath := ""
 		if srcMap, ok := p["source"].(map[string]any); ok {
-			if path := pickString(srcMap, "path"); path != "" {
-				src = path
-			}
+			installPath = pickString(srcMap, "path")
 		}
-		out = append(out, core.ToolItem{
+		item := core.ToolItem{
 			ID:          id,
 			Name:        name,
 			Kind:        core.ToolKindPlugin,
 			Version:     pickString(p, "version"),
 			Description: pickString(p, "description"),
-			Source:      src,
+			Source:      mp,
 			Enabled:     en,
 			System:      core.IsQtermToolID(id),
-		})
+		}
+		if installPath != "" {
+			enrichPluginFromDisk(&item, installPath)
+		} else {
+			enrichPluginFromDisk(&item, filepath.Join(home(), "plugins", name))
+		}
+		out = append(out, item)
 	}
 	for _, p := range avail {
 		id := pickString(p, "pluginId", "id")
@@ -240,12 +244,19 @@ func parsePluginLines(raw string) []core.ToolItem {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+		// Skip JSON / warning dumps that aren't table rows.
+		if strings.HasPrefix(line, "{") || strings.HasPrefix(line, "}") ||
+			strings.HasPrefix(line, "[") || strings.HasPrefix(line, "]") ||
+			strings.HasPrefix(line, `"`) || strings.HasPrefix(strings.ToUpper(line), "WARNING") {
+			continue
+		}
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
 			continue
 		}
 		id := fields[0]
-		if seen[id] {
+		if strings.EqualFold(id, "name") || strings.EqualFold(id, "plugin") ||
+			strings.EqualFold(id, "pluginid") || seen[id] {
 			continue
 		}
 		seen[id] = true
@@ -253,10 +264,12 @@ func parsePluginLines(raw string) []core.ToolItem {
 		if before, _, ok := strings.Cut(id, "@"); ok {
 			name = before
 		}
-		out = append(out, core.ToolItem{
+		item := core.ToolItem{
 			ID: id, Name: name, Kind: core.ToolKindPlugin,
 			Enabled: true, System: core.IsQtermToolID(id),
-		})
+		}
+		enrichPluginFromDisk(&item, filepath.Join(home(), "plugins", name))
+		out = append(out, item)
 	}
 	return out
 }
@@ -266,16 +279,19 @@ func listPluginsFS() []core.ToolItem {
 	root := filepath.Join(home(), "plugins")
 	entries, _ := os.ReadDir(root)
 	for _, e := range entries {
-		if !e.IsDir() {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
 			continue
 		}
 		name := e.Name()
-		out = append(out, core.ToolItem{
+		path := filepath.Join(root, name)
+		item := core.ToolItem{
 			ID: name, Name: name, Kind: core.ToolKindPlugin,
-			Version: readPluginVersion(filepath.Join(root, name)),
-			Source:  filepath.Join(root, name),
+			Version: readPluginVersion(path),
+			Source:  path,
 			Enabled: true, System: core.IsQtermToolID(name),
-		})
+		}
+		enrichPluginFromDisk(&item, path)
+		out = append(out, item)
 	}
 	return out
 }
@@ -342,21 +358,29 @@ func listSkills() []core.ToolItem {
 }
 
 func listMCP() []core.ToolItem {
+	// Plugin MCP servers are nested under plugins via enrichPluginFromDisk.
+	// Only surface top-level user MCP entries from config.toml.
 	var out []core.ToolItem
-	path := filepath.Join(pluginRoot(), ".mcp.json")
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(filepath.Join(home(), "config.toml"))
 	if err != nil {
 		return out
 	}
-	var root map[string]any
-	if json.Unmarshal(b, &root) != nil {
-		return out
-	}
-	servers, _ := root["mcpServers"].(map[string]any)
-	for name := range servers {
+	seen := map[string]bool{}
+	for _, line := range strings.Split(string(b), "\n") {
+		line = strings.TrimSpace(line)
+		const prefix = "[mcp_servers."
+		if !strings.HasPrefix(line, prefix) || !strings.HasSuffix(line, "]") {
+			continue
+		}
+		name := strings.TrimSuffix(strings.TrimPrefix(line, prefix), "]")
+		if name == "" || strings.Contains(name, ".") || seen[name] {
+			continue
+		}
+		seen[name] = true
 		out = append(out, core.ToolItem{
-			ID: name, Name: name, Kind: core.ToolKindMCP, Source: path,
-			Enabled: true, System: name == core.PluginName,
+			ID: name, Name: name, Kind: core.ToolKindMCP,
+			Source: filepath.Join(home(), "config.toml"), Enabled: true,
+			System: name == core.PluginName,
 		})
 	}
 	return out
@@ -385,6 +409,143 @@ func installSkillPath(source string) error {
 	return os.WriteFile(filepath.Join(dest, "SKILL.md"), b, 0o644)
 }
 
+func enrichPluginFromDisk(item *core.ToolItem, installPath string) {
+	if item == nil || installPath == "" {
+		return
+	}
+	st, err := os.Stat(installPath)
+	if err != nil || !st.IsDir() {
+		return
+	}
+
+	for _, rel := range []string{
+		filepath.Join(".codex-plugin", "plugin.json"),
+		"plugin.json",
+	} {
+		b, err := os.ReadFile(filepath.Join(installPath, rel))
+		if err != nil {
+			continue
+		}
+		var meta map[string]any
+		if json.Unmarshal(b, &meta) != nil {
+			continue
+		}
+		if item.Description == "" {
+			if iface, ok := meta["interface"].(map[string]any); ok {
+				if s, ok := iface["shortDescription"].(string); ok {
+					item.Description = strings.TrimSpace(s)
+				}
+				if item.Description == "" {
+					if s, ok := iface["longDescription"].(string); ok {
+						item.Description = strings.TrimSpace(s)
+					}
+				}
+			}
+			if item.Description == "" {
+				if s, ok := meta["description"].(string); ok {
+					item.Description = strings.TrimSpace(s)
+				}
+			}
+		}
+		if item.Version == "" {
+			if s, ok := meta["version"].(string); ok {
+				item.Version = strings.TrimSpace(s)
+			}
+		}
+		break
+	}
+
+	if len(item.Skills) == 0 {
+		if entries, err := os.ReadDir(filepath.Join(installPath, "skills")); err == nil {
+			for _, e := range entries {
+				if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+					continue
+				}
+				name := e.Name()
+				desc := skillFrontmatter(filepath.Join(installPath, "skills", name, "SKILL.md"), "description")
+				if desc == "" {
+					desc = skillFrontmatter(filepath.Join(installPath, "skills", name, "skill.md"), "description")
+				}
+				item.Skills = append(item.Skills, core.ToolPart{Name: name, Description: desc})
+			}
+		}
+	}
+
+	if len(item.Agents) == 0 {
+		if entries, err := os.ReadDir(filepath.Join(installPath, "agents")); err == nil {
+			for _, e := range entries {
+				if strings.HasPrefix(e.Name(), ".") {
+					continue
+				}
+				name := e.Name()
+				agentPath := filepath.Join(installPath, "agents", name)
+				if !e.IsDir() {
+					name = strings.TrimSuffix(name, filepath.Ext(name))
+				} else {
+					agentPath = filepath.Join(agentPath, "AGENT.md")
+					if _, err := os.Stat(agentPath); err != nil {
+						agentPath = filepath.Join(installPath, "agents", e.Name(), "agent.md")
+					}
+				}
+				desc := ""
+				if b, err := os.ReadFile(agentPath); err == nil {
+					desc = skillFrontmatterFrom(string(b), "description")
+				}
+				if name != "" {
+					item.Agents = append(item.Agents, core.ToolPart{Name: name, Description: desc})
+				}
+			}
+		}
+	}
+
+	if len(item.Hooks) == 0 {
+		for _, rel := range []string{
+			filepath.Join("hooks", "hooks.json"),
+			"hooks.json",
+		} {
+			b, err := os.ReadFile(filepath.Join(installPath, rel))
+			if err != nil {
+				continue
+			}
+			var doc struct {
+				Hooks map[string]any `json:"hooks"`
+			}
+			if json.Unmarshal(b, &doc) != nil || len(doc.Hooks) == 0 {
+				continue
+			}
+			for name := range doc.Hooks {
+				item.Hooks = append(item.Hooks, core.ToolPart{
+					Name:        name,
+					Description: codexHookDescription(name),
+				})
+			}
+			break
+		}
+	}
+
+	if len(item.MCPServers) == 0 {
+		for _, rel := range []string{".mcp.json", "mcp.json"} {
+			b, err := os.ReadFile(filepath.Join(installPath, rel))
+			if err != nil {
+				continue
+			}
+			var doc struct {
+				MCPServers map[string]any `json:"mcpServers"`
+			}
+			if json.Unmarshal(b, &doc) != nil {
+				continue
+			}
+			for name := range doc.MCPServers {
+				item.MCPServers = append(item.MCPServers, core.ToolPart{
+					Name:        name,
+					Description: "MCP server provided by this plugin",
+				})
+			}
+			break
+		}
+	}
+}
+
 func readPluginVersion(root string) string {
 	for _, p := range []string{
 		filepath.Join(root, ".codex-plugin", "plugin.json"),
@@ -403,6 +564,55 @@ func readPluginVersion(root string) string {
 		}
 	}
 	return ""
+}
+
+func skillFrontmatter(path, key string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return skillFrontmatterFrom(string(b), key)
+}
+
+func skillFrontmatterFrom(md, key string) string {
+	if !strings.HasPrefix(md, "---") {
+		return ""
+	}
+	rest := strings.TrimPrefix(md, "---")
+	end := strings.Index(rest, "\n---")
+	if end < 0 {
+		return ""
+	}
+	for _, line := range strings.Split(rest[:end], "\n") {
+		line = strings.TrimSpace(line)
+		if before, after, ok := strings.Cut(line, ":"); ok && strings.TrimSpace(before) == key {
+			return strings.Trim(strings.TrimSpace(after), `"'`)
+		}
+	}
+	return ""
+}
+
+func codexHookDescription(name string) string {
+	switch name {
+	case "PreToolUse":
+		return "Runs before a tool call is executed"
+	case "PostToolUse":
+		return "Runs after a tool call completes"
+	case "PermissionRequest":
+		return "Runs when Codex requests permission for an action"
+	case "Notification":
+		return "Runs when Codex emits a notification"
+	case "SessionStart":
+		return "Runs when a session starts"
+	case "SessionEnd":
+		return "Runs when a session ends"
+	case "Stop":
+		return "Runs when Codex finishes responding"
+	case "UserPromptSubmit":
+		return "Runs when the user submits a prompt"
+	default:
+		return "Plugin hook"
+	}
 }
 
 func pickString(m map[string]any, keys ...string) string {

@@ -104,7 +104,9 @@ func GuardQtermSystem(id string) error {
 	return nil
 }
 
-// RunCLI runs binary with args, capturing combined output. Returns trimmed stdout+stderr text.
+// RunCLI runs binary with args. On success it returns trimmed stdout (stderr is
+// ignored unless stdout is empty, so CLI warnings don't corrupt JSON payloads).
+// On failure it returns combined stdout+stderr for diagnostics.
 func RunCLI(timeout time.Duration, binary string, args ...string) (string, error) {
 	if timeout <= 0 {
 		timeout = DefaultToolsTimeout
@@ -113,21 +115,64 @@ func RunCLI(timeout time.Duration, binary string, args ...string) (string, error
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, binary, args...)
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	err := cmd.Run()
-	out := strings.TrimSpace(buf.String())
+	out := strings.TrimSpace(stdout.String())
+	errOut := strings.TrimSpace(stderr.String())
+	combined := out
+	if errOut != "" {
+		if combined != "" {
+			combined += "\n" + errOut
+		} else {
+			combined = errOut
+		}
+	}
 	if ctx.Err() == context.DeadlineExceeded {
-		return out, fmt.Errorf("%s timed out after %s", binary, timeout)
+		return combined, fmt.Errorf("%s timed out after %s", binary, timeout)
 	}
 	if err != nil {
-		if out != "" {
-			return out, fmt.Errorf("%s: %w\n%s", binary, err, out)
+		if combined != "" {
+			return combined, fmt.Errorf("%s: %w\n%s", binary, err, combined)
 		}
-		return out, fmt.Errorf("%s: %w", binary, err)
+		return combined, fmt.Errorf("%s: %w", binary, err)
 	}
-	return out, nil
+	if out != "" {
+		return out, nil
+	}
+	return errOut, nil
+}
+
+// ExtractJSON returns the first JSON object/array payload in s.
+// Useful when CLIs print warnings before JSON.
+func ExtractJSON(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return s
+	}
+	if s[0] == '{' || s[0] == '[' {
+		return s
+	}
+	obj := strings.IndexByte(s, '{')
+	arr := strings.IndexByte(s, '[')
+	i := -1
+	switch {
+	case obj >= 0 && arr >= 0:
+		if obj < arr {
+			i = obj
+		} else {
+			i = arr
+		}
+	case obj >= 0:
+		i = obj
+	case arr >= 0:
+		i = arr
+	}
+	if i < 0 {
+		return s
+	}
+	return strings.TrimSpace(s[i:])
 }
 
 // FirstBinary returns the first of names found on PATH.

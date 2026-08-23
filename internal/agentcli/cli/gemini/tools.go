@@ -24,9 +24,30 @@ func (adapter) ToolsCaps() core.ToolsCaps {
 
 func (adapter) ListTools() ([]core.ToolItem, error) {
 	var out []core.ToolItem
-	out = append(out, listExtensions()...)
-	out = append(out, listSkills()...)
-	out = append(out, listMCP()...)
+	exts := listExtensions()
+	out = append(out, exts...)
+	ownedSkills := map[string]bool{}
+	ownedMCP := map[string]bool{}
+	for _, e := range exts {
+		for _, s := range e.Skills {
+			ownedSkills[strings.ToLower(s.Name)] = true
+		}
+		for _, m := range e.MCPServers {
+			ownedMCP[strings.ToLower(m.Name)] = true
+		}
+	}
+	for _, s := range listStandaloneSkills() {
+		if ownedSkills[strings.ToLower(s.ID)] || ownedSkills[strings.ToLower(s.Name)] {
+			continue
+		}
+		out = append(out, s)
+	}
+	for _, m := range listStandaloneMCP() {
+		if ownedMCP[strings.ToLower(m.ID)] || ownedMCP[strings.ToLower(m.Name)] {
+			continue
+		}
+		out = append(out, m)
+	}
 	return out, nil
 }
 
@@ -105,36 +126,46 @@ func (adapter) UpdateTool(kind core.ToolKind, id string) error {
 
 func listExtensions() []core.ToolItem {
 	if bin, err := core.FirstBinary("gemini"); err == nil {
-		if text, err := core.RunCLI(core.DefaultToolsTimeout, bin, "extensions", "list", "-o", "json"); err == nil {
-			if parsed := parseGeminiExtensionsJSON(text); len(parsed) > 0 {
-				return parsed
+		for _, args := range [][]string{
+			{"extensions", "list", "-o", "json"},
+			{"extensions", "list", "--output-format", "json"},
+		} {
+			if text, err := core.RunCLI(core.DefaultToolsTimeout, bin, args...); err == nil {
+				if parsed := parseGeminiExtensionsJSON(text); len(parsed) > 0 {
+					return parsed
+				}
 			}
 		}
 		if text, err := core.RunCLI(core.DefaultToolsTimeout, bin, "extensions", "list"); err == nil {
 			if parsed := parseNameLines(text, core.ToolKindExtension); len(parsed) > 0 {
+				for i := range parsed {
+					enrichExtensionFromDisk(&parsed[i], filepath.Join(extensionsRoot(), parsed[i].Name))
+				}
 				return parsed
 			}
 		}
 	}
 	var out []core.ToolItem
-	root := filepath.Join(core.UserHomeDir(), ".gemini", "extensions")
-	entries, _ := os.ReadDir(root)
+	entries, _ := os.ReadDir(extensionsRoot())
 	for _, e := range entries {
-		if !e.IsDir() {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
 			continue
 		}
 		name := e.Name()
-		out = append(out, core.ToolItem{
+		path := filepath.Join(extensionsRoot(), name)
+		item := core.ToolItem{
 			ID: name, Name: name, Kind: core.ToolKindExtension,
-			Version: readExtVersion(filepath.Join(root, name)),
-			Source:  filepath.Join(root, name),
+			Version: readExtVersion(path),
+			Source:  path,
 			Enabled: true, System: core.IsQtermToolID(name),
-		})
+		}
+		enrichExtensionFromDisk(&item, path)
+		out = append(out, item)
 	}
 	return out
 }
 
-func listSkills() []core.ToolItem {
+func listStandaloneSkills() []core.ToolItem {
 	if bin, err := core.FirstBinary("gemini"); err == nil {
 		if text, err := core.RunCLI(core.DefaultToolsTimeout, bin, "skills", "list"); err == nil {
 			if parsed := parseNameLines(text, core.ToolKindSkill); len(parsed) > 0 {
@@ -164,32 +195,27 @@ func listSkills() []core.ToolItem {
 	return out
 }
 
-func listMCP() []core.ToolItem {
+func listStandaloneMCP() []core.ToolItem {
 	var out []core.ToolItem
 	seen := map[string]bool{}
-	for _, path := range []string{
-		filepath.Join(extensionRoot(), "gemini-extension.json"),
-		settingsJSON(),
-	} {
-		b, err := os.ReadFile(path)
-		if err != nil {
+	b, err := os.ReadFile(settingsJSON())
+	if err != nil {
+		return out
+	}
+	var root map[string]any
+	if json.Unmarshal(b, &root) != nil {
+		return out
+	}
+	servers, _ := root["mcpServers"].(map[string]any)
+	for name := range servers {
+		if seen[name] {
 			continue
 		}
-		var root map[string]any
-		if json.Unmarshal(b, &root) != nil {
-			continue
-		}
-		servers, _ := root["mcpServers"].(map[string]any)
-		for name := range servers {
-			if seen[name] {
-				continue
-			}
-			seen[name] = true
-			out = append(out, core.ToolItem{
-				ID: name, Name: name, Kind: core.ToolKindMCP, Source: path,
-				Enabled: true, System: name == core.PluginName,
-			})
-		}
+		seen[name] = true
+		out = append(out, core.ToolItem{
+			ID: name, Name: name, Kind: core.ToolKindMCP, Source: settingsJSON(),
+			Enabled: true, System: name == core.PluginName,
+		})
 	}
 	return out
 }
@@ -202,14 +228,20 @@ func parseNameLines(text string, kind core.ToolKind) []core.ToolItem {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		if strings.HasPrefix(line, "─") || strings.HasPrefix(line, "┌") || strings.HasPrefix(line, "│") {
+		if strings.HasPrefix(line, "─") || strings.HasPrefix(line, "┌") || strings.HasPrefix(line, "│") ||
+			strings.HasPrefix(line, "✓") || strings.HasPrefix(line, "ID:") || strings.HasPrefix(line, "Path:") ||
+			strings.HasPrefix(line, "Enabled") || strings.HasPrefix(line, "Context") ||
+			strings.HasPrefix(line, "MCP") || strings.HasPrefix(line, "Agent") {
 			continue
 		}
+		// "✓ qterm (1.2.5)" style
+		line = strings.TrimPrefix(line, "✓")
+		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
 			continue
 		}
-		name := strings.Trim(fields[0], "│|")
+		name := strings.Trim(fields[0], "│|()")
 		if name == "" || seen[name] {
 			continue
 		}
@@ -219,7 +251,7 @@ func parseNameLines(text string, kind core.ToolKind) []core.ToolItem {
 		seen[name] = true
 		ver := ""
 		if len(fields) > 1 {
-			ver = fields[1]
+			ver = strings.Trim(fields[1], "()")
 		}
 		out = append(out, core.ToolItem{
 			ID: name, Name: name, Kind: kind, Version: ver,
@@ -231,7 +263,7 @@ func parseNameLines(text string, kind core.ToolKind) []core.ToolItem {
 }
 
 func parseGeminiExtensionsJSON(raw string) []core.ToolItem {
-	raw = strings.TrimSpace(raw)
+	raw = core.ExtractJSON(raw)
 	if raw == "" {
 		return nil
 	}
@@ -254,15 +286,162 @@ func parseGeminiExtensionsJSON(raw string) []core.ToolItem {
 		en := true
 		if v, ok := p["enabled"].(bool); ok {
 			en = v
+		} else if v, ok := p["isActive"].(bool); ok {
+			en = v
 		}
-		out = append(out, core.ToolItem{
+		path := pickGeminiString(p, "path", "installPath", "source")
+		item := core.ToolItem{
 			ID: name, Name: name, Kind: core.ToolKindExtension,
-			Version: pickGeminiString(p, "version"),
-			Source:  pickGeminiString(p, "path", "installPath", "source"),
-			Enabled: en, System: core.IsQtermToolID(name),
-		})
+			Version:     pickGeminiString(p, "version"),
+			Description: pickGeminiString(p, "description"),
+			Source:      path,
+			Enabled:     en,
+			System:      core.IsQtermToolID(name),
+		}
+		// Nested parts from CLI JSON when present.
+		if skills, ok := p["skills"].([]any); ok {
+			for _, s := range skills {
+				m, _ := s.(map[string]any)
+				if m == nil {
+					continue
+				}
+				n := pickGeminiString(m, "name")
+				if n == "" {
+					continue
+				}
+				item.Skills = append(item.Skills, core.ToolPart{
+					Name:        n,
+					Description: pickGeminiString(m, "description"),
+				})
+			}
+		}
+		if hooks, ok := p["hooks"].(map[string]any); ok {
+			for n := range hooks {
+				item.Hooks = append(item.Hooks, core.ToolPart{
+					Name:        n,
+					Description: geminiHookDescription(n),
+				})
+			}
+		}
+		if servers, ok := p["mcpServers"].(map[string]any); ok {
+			for n := range servers {
+				item.MCPServers = append(item.MCPServers, core.ToolPart{
+					Name:        n,
+					Description: "MCP server provided by this extension",
+				})
+			}
+		}
+		if agents, ok := p["agents"].([]any); ok {
+			for _, a := range agents {
+				m, _ := a.(map[string]any)
+				if m == nil {
+					continue
+				}
+				n := pickGeminiString(m, "name")
+				if n == "" {
+					continue
+				}
+				item.Agents = append(item.Agents, core.ToolPart{
+					Name:        n,
+					Description: pickGeminiString(m, "description"),
+				})
+			}
+		}
+		installPath := path
+		if installPath == "" {
+			installPath = filepath.Join(extensionsRoot(), name)
+		}
+		enrichExtensionFromDisk(&item, installPath)
+		out = append(out, item)
 	}
 	return out
+}
+
+func enrichExtensionFromDisk(item *core.ToolItem, installPath string) {
+	if item == nil || installPath == "" {
+		return
+	}
+	st, err := os.Stat(installPath)
+	if err != nil || !st.IsDir() {
+		return
+	}
+
+	for _, rel := range []string{"gemini-extension.json", "extension.json"} {
+		b, err := os.ReadFile(filepath.Join(installPath, rel))
+		if err != nil {
+			continue
+		}
+		var meta map[string]any
+		if json.Unmarshal(b, &meta) != nil {
+			continue
+		}
+		if item.Description == "" {
+			if s, ok := meta["description"].(string); ok {
+				item.Description = strings.TrimSpace(s)
+			}
+		}
+		if item.Version == "" {
+			if s, ok := meta["version"].(string); ok {
+				item.Version = strings.TrimSpace(s)
+			}
+		}
+		if len(item.MCPServers) == 0 {
+			if servers, ok := meta["mcpServers"].(map[string]any); ok {
+				for n := range servers {
+					item.MCPServers = append(item.MCPServers, core.ToolPart{
+						Name:        n,
+						Description: "MCP server provided by this extension",
+					})
+				}
+			}
+		}
+		break
+	}
+
+	if len(item.Skills) == 0 {
+		if entries, err := os.ReadDir(filepath.Join(installPath, "skills")); err == nil {
+			for _, e := range entries {
+				if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+					continue
+				}
+				name := e.Name()
+				desc := skillFrontmatter(filepath.Join(installPath, "skills", name, "SKILL.md"), "description")
+				if desc == "" {
+					desc = skillFrontmatter(filepath.Join(installPath, "skills", name, "skill.md"), "description")
+				}
+				item.Skills = append(item.Skills, core.ToolPart{Name: name, Description: desc})
+			}
+		}
+	}
+
+	if len(item.Hooks) == 0 {
+		for _, rel := range []string{
+			filepath.Join("hooks", "hooks.json"),
+			"hooks.json",
+		} {
+			b, err := os.ReadFile(filepath.Join(installPath, rel))
+			if err != nil {
+				continue
+			}
+			var doc struct {
+				Hooks map[string]any `json:"hooks"`
+			}
+			if json.Unmarshal(b, &doc) != nil || len(doc.Hooks) == 0 {
+				continue
+			}
+			for name := range doc.Hooks {
+				item.Hooks = append(item.Hooks, core.ToolPart{
+					Name:        name,
+					Description: geminiHookDescription(name),
+				})
+			}
+			break
+		}
+	}
+}
+
+func extensionsRoot() string {
+	return filepath.Join(core.UserHomeDir(), ".gemini", "extensions")
 }
 
 func pickGeminiString(m map[string]any, keys ...string) string {
@@ -287,4 +466,51 @@ func readExtVersion(root string) string {
 	}
 	s, _ := m["version"].(string)
 	return s
+}
+
+func skillFrontmatter(path, key string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return skillFrontmatterFrom(string(b), key)
+}
+
+func skillFrontmatterFrom(md, key string) string {
+	if !strings.HasPrefix(md, "---") {
+		return ""
+	}
+	rest := strings.TrimPrefix(md, "---")
+	end := strings.Index(rest, "\n---")
+	if end < 0 {
+		return ""
+	}
+	for _, line := range strings.Split(rest[:end], "\n") {
+		line = strings.TrimSpace(line)
+		if before, after, ok := strings.Cut(line, ":"); ok && strings.TrimSpace(before) == key {
+			return strings.Trim(strings.TrimSpace(after), `"'`)
+		}
+	}
+	return ""
+}
+
+func geminiHookDescription(name string) string {
+	switch name {
+	case "BeforeAgent", "BeforeAgentStart":
+		return "Runs before the agent starts a turn"
+	case "AfterAgent", "AfterAgentEnd":
+		return "Runs after the agent finishes a turn"
+	case "BeforeTool", "BeforeToolUse":
+		return "Runs before a tool call is executed"
+	case "AfterTool", "AfterToolUse":
+		return "Runs after a tool call completes"
+	case "SessionStart":
+		return "Runs when a session starts"
+	case "SessionEnd":
+		return "Runs when a session ends"
+	case "Notification":
+		return "Runs when Gemini emits a notification"
+	default:
+		return "Extension hook"
+	}
 }
