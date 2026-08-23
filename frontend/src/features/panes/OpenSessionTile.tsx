@@ -102,9 +102,9 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group relative flex min-h-10 w-full min-w-0 items-center rounded-lg border border-transparent bg-accent/20 px-2.5 py-2 text-left",
-            "transition-colors hover:border-border hover:bg-accent/45",
-            menuOpen && "border-border bg-accent/45",
+            "group relative flex min-h-10 w-full min-w-0 items-center rounded-lg bg-accent/20 px-2.5 py-2 text-left",
+            "transition-colors hover:bg-accent/45",
+            menuOpen && "bg-accent/45",
             needsInput && "session-needs-input",
             thinking && "session-thinking",
             complete && "session-complete"
