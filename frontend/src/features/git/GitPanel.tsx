@@ -281,40 +281,32 @@ export function GitPanel({
 
   return (
     <div className="flex max-h-[min(70vh,34rem)] min-h-0 flex-col overflow-hidden">
-      <div className="relative z-20 flex min-w-0 shrink-0 items-center gap-1 border-b border-border/70 bg-popover px-2 py-1.5">
-        {linked ? (
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-0.5">
+      <div className="relative z-20 flex min-w-0 shrink-0 items-start gap-1 border-b border-border/70 bg-popover px-2 py-1.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-1.5 py-0.5">
+          <div className="flex min-w-0 items-center gap-1.5">
             {loading ? (
               <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
             ) : (
               <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
             )}
-            <span className="max-w-[9rem] shrink-0 truncate text-[13px] font-medium">
-              {snap?.branch || "—"}
-            </span>
-            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
-              · {projectName} · worktree
-            </span>
+            {linked ? (
+              <span className="min-w-0 truncate text-[13px] font-medium">
+                {snap?.branch || "—"}
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="min-w-0 truncate text-left text-[13px] font-medium hover:underline"
+                onClick={() => setView("branches")}
+              >
+                {snap?.branch || "—"}
+              </button>
+            )}
           </div>
-        ) : (
-          <button
-            type="button"
-            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left hover:bg-accent/50"
-            onClick={() => setView("branches")}
-          >
-            {loading ? (
-              <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
-            ) : (
-              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-            )}
-            <span className="max-w-[9rem] shrink-0 truncate text-[13px] font-medium">
-              {snap?.branch || "—"}
-            </span>
-            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
-              · {projectName}
-            </span>
-          </button>
-        )}
+          <p className="min-w-0 truncate pl-5 text-[11px] text-muted-foreground">
+            {linked ? `${projectName} · worktree` : projectName}
+          </p>
+        </div>
         <GitActionRow
           ahead={snap?.ahead ?? 0}
           behind={snap?.behind ?? 0}

@@ -96,11 +96,12 @@ export function OpenProjectSection({
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group relative flex h-8 min-w-0 items-center rounded-md px-1",
+                "group relative flex min-w-0 flex-col rounded-md px-1",
                 "hover:bg-accent/40",
                 menuOpen && "bg-accent/40"
               )}
             >
+              <div className="relative flex h-8 min-w-0 items-center">
               <WithTooltip label={collapsed ? "Expand" : "Collapse"}>
                 <button
                   type="button"
@@ -132,8 +133,8 @@ export function OpenProjectSection({
               </button>
               <div
                 className={cn(
-                  "hidden shrink-0 items-center justify-end gap-0.5 group-hover:flex",
-                  menuOpen && "flex"
+                  "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-background opacity-0 group-hover:bg-accent/40 group-hover:opacity-100",
+                  menuOpen && "bg-accent/40 opacity-100"
                 )}
               >
                 <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
@@ -222,14 +223,20 @@ export function OpenProjectSection({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <GitChip
-                projectId={id}
-                path={path}
-                projectName={name}
-                paneId={`open-project:${id}`}
-                listenToShortcut={false}
-                variant="open"
-              />
+              </div>
+              {git?.isRepo ? (
+                <div className="min-w-0 pb-1 pl-7">
+                  <GitChip
+                    projectId={id}
+                    path={path}
+                    projectName={name}
+                    paneId={`open-project:${id}`}
+                    listenToShortcut={false}
+                    variant="meta"
+                    side="bottom"
+                  />
+                </div>
+              ) : null}
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="min-w-[14rem]">

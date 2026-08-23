@@ -24,7 +24,7 @@ export function PopoverContent({
       >
         <PortalZoom
           className={cn(
-            "w-[22.5rem] max-h-[min(70vh,34rem)] overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-xl",
+            "w-[26rem] max-h-[min(70vh,34rem)] overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-xl",
             className
           )}
         >

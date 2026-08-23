@@ -102,7 +102,7 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group relative flex min-h-10 w-full min-w-0 items-center rounded-lg bg-accent/20 px-2.5 py-2 text-left",
+            "group relative flex min-h-10 w-full min-w-0 flex-col justify-center rounded-lg bg-accent/20 px-2.5 py-2 text-left",
             "transition-colors hover:bg-accent/45",
             menuOpen && "bg-accent/45",
             needsInput && "session-needs-input",
@@ -110,6 +110,7 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
             complete && "session-complete"
           )}
         >
+          <div className="relative flex min-w-0 items-center gap-2">
           <button
             type="button"
             className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -179,13 +180,12 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
             )}
           </button>
 
-          <div className="relative ml-auto flex shrink-0 items-center">
-            <div
-              className={cn(
-                "pointer-events-none absolute right-full top-1/2 z-10 flex -translate-y-1/2 items-center opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
-                menuOpen && "pointer-events-auto opacity-100"
-              )}
-            >
+          <div
+            className={cn(
+              "pointer-events-none absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
+              menuOpen && "pointer-events-auto opacity-100"
+            )}
+          >
               <DropdownMenu modal={false} open={menuOpen} onOpenChange={onMenuOpenChange}>
                 <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>
                   <DropdownMenuTrigger asChild>
@@ -231,18 +231,22 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-            {showWorktreeChip && project ? (
+          </div>
+          </div>
+          {showWorktreeChip && project ? (
+            <div className="min-w-0 pl-6">
               <GitChip
                 projectId={session.projectId}
                 path={session.cwd}
                 projectName={project.name}
                 paneId={`open-session:${session.id}`}
                 listenToShortcut={false}
-                variant="session"
+                variant="meta"
+                side="bottom"
+                worktree
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="min-w-[12rem]" onCloseAutoFocus={onMenuCloseAutoFocus}>

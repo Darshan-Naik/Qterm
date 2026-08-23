@@ -106,10 +106,11 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group relative flex w-full min-w-0 items-center rounded-lg pr-1 hover:bg-sidebar-accent/50",
+                "group relative flex w-full min-w-0 flex-col rounded-lg py-0.5 pr-1 hover:bg-sidebar-accent/50",
                 menuOpen && "bg-sidebar-accent/50"
               )}
             >
+            <div className="relative flex min-w-0 items-center">
             <WithTooltip label={collapsed ? "Expand" : "Collapse"} side="right">
               <button
                 type="button"
@@ -130,7 +131,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </WithTooltip>
             <button
               type="button"
-              className="min-w-0 flex-1 overflow-hidden rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground"
+              className="min-w-0 flex-1 overflow-hidden rounded-lg px-1.5 py-1 text-left text-[13px] leading-snug text-sidebar-foreground"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void setActiveScope(id);
@@ -143,8 +144,8 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </button>
             <div
               className={cn(
-                "hidden shrink-0 items-center justify-end gap-0.5 group-hover:flex",
-                menuOpen && "flex"
+                "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-sidebar opacity-0 group-hover:bg-sidebar-accent/50 group-hover:opacity-100",
+                menuOpen && "bg-sidebar-accent/50 opacity-100"
               )}
             >
               <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
@@ -237,13 +238,19 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <GitChip
-              projectId={id}
-              path={path}
-              projectName={name}
-              paneId={null}
-              variant="sidebar"
-            />
+            </div>
+            {git?.isRepo ? (
+              <div className="min-w-0 pl-7 pr-1">
+                <GitChip
+                  projectId={id}
+                  path={path}
+                  projectName={name}
+                  paneId={null}
+                  variant="meta"
+                  side="right"
+                />
+              </div>
+            ) : null}
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="min-w-[14rem]">
