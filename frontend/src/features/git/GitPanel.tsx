@@ -127,6 +127,7 @@ export function GitPanel({
         current={snap?.branch || ""}
         dirty={!!snap?.dirty}
         busy={busy}
+        error={!error?.ok ? error?.stderr : undefined}
         onBack={() => setView("main")}
         onCheckout={async (name) => {
           const ok = await run(`checkout:${name}`, () => GitCheckout(path, name));
@@ -136,6 +137,7 @@ export function GitPanel({
           const ok = await run("create", () => GitCreateBranch(path, name));
           if (ok) setView("main");
         }}
+        onClearError={() => setError(null)}
       />
     );
   }
