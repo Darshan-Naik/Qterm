@@ -30,6 +30,8 @@ export function GitCommit(arg1:string,arg2:string):Promise<git.Result>;
 
 export function GitCreateBranch(arg1:string,arg2:string):Promise<git.Result>;
 
+export function GitDeleteBranch(arg1:string,arg2:string,arg3:boolean):Promise<git.Result>;
+
 export function GitDiscard(arg1:string,arg2:string):Promise<git.Result>;
 
 export function GitFetch(arg1:string):Promise<git.Result>;

@@ -84,6 +84,18 @@ func TestProbeAndSnapshot(t *testing.T) {
 	if Probe(dir).Branch != "main" {
 		t.Fatalf("want main, got %s", Probe(dir).Branch)
 	}
+
+	r = DeleteBranch(dir, "feature", false)
+	if !r.OK {
+		t.Fatalf("delete: %+v", r)
+	}
+	if len(ListBranches(dir)) != 1 {
+		t.Fatalf("branches after delete %+v", ListBranches(dir))
+	}
+	r = DeleteBranch(dir, "main", false)
+	if r.OK {
+		t.Fatal("should not delete current")
+	}
 }
 
 func TestStashAndPop(t *testing.T) {

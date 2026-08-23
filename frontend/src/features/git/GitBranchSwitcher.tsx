@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
-import { Check, ChevronLeft, Loader2, Plus } from "lucide-react";
+import { Check, ChevronLeft, Loader2, Plus, Trash2 } from "lucide-react";
 import { confirm } from "@/lib/confirm";
 import { cn } from "@/lib/utils";
 import { normalizeBranchName, sanitizeBranchInput, validBranchName } from "./branchName";
@@ -15,6 +15,7 @@ export function GitBranchSwitcher({
   onBack,
   onCheckout,
   onCreate,
+  onDelete,
   onClearError,
 }: {
   branches: GitBranch[];
@@ -25,6 +26,7 @@ export function GitBranchSwitcher({
   onBack: () => void;
   onCheckout: (name: string) => void;
   onCreate: (name: string) => void;
+  onDelete: (name: string) => void;
   onClearError?: () => void;
 }) {
   const [q, setQ] = useState("");
@@ -65,6 +67,17 @@ export function GitBranchSwitcher({
       if (!ok) return;
     }
     onCreate(candidate);
+  };
+
+  const remove = async (name: string) => {
+    if (name === current) return;
+    const ok = await confirm({
+      title: "Delete branch?",
+      description: `${name} will be removed locally.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (ok) onDelete(name);
   };
 
   return (
@@ -123,26 +136,52 @@ export function GitBranchSwitcher({
               Invalid name — use letters, numbers, - and /
             </p>
           ) : null}
-          {branches.map((b) => (
-            <Command.Item
-              key={b.name}
-              value={b.name}
-              onSelect={() => void switchTo(b.name)}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] aria-selected:bg-accent",
-                b.current && "text-foreground"
-              )}
-            >
-              <span className="flex size-3.5 shrink-0 items-center justify-center">
-                {busy === `checkout:${b.name}` ? (
-                  <Loader2 className="size-3 animate-spin opacity-70" />
-                ) : b.current ? (
-                  <Check className="size-3.5 opacity-80" />
+          {branches.map((b) => {
+            const deleting = busy === `delete:${b.name}`;
+            return (
+              <Command.Item
+                key={b.name}
+                value={b.name}
+                onSelect={() => void switchTo(b.name)}
+                className={cn(
+                  "group/branch relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] aria-selected:bg-accent",
+                  b.current && "text-foreground"
+                )}
+              >
+                <span className="flex size-3.5 shrink-0 items-center justify-center">
+                  {busy === `checkout:${b.name}` || deleting ? (
+                    <Loader2 className="size-3 animate-spin opacity-70" />
+                  ) : b.current ? (
+                    <Check className="size-3.5 opacity-80" />
+                  ) : null}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{b.name}</span>
+                {!b.current ? (
+                  <button
+                    type="button"
+                    title="Delete branch"
+                    disabled={!!busy}
+                    className={cn(
+                      "absolute right-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
+                      "opacity-0 hover:bg-accent hover:text-destructive group-hover/branch:opacity-100",
+                      "disabled:opacity-0"
+                    )}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void remove(b.name);
+                    }}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
                 ) : null}
-              </span>
-              <span className="min-w-0 truncate">{b.name}</span>
-            </Command.Item>
-          ))}
+              </Command.Item>
+            );
+          })}
         </Command.List>
       </Command>
     </div>

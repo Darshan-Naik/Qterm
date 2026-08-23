@@ -98,6 +98,30 @@ func CreateBranch(path, name string) Result {
 	})
 }
 
+func DeleteBranch(path, name string, force bool) Result {
+	name = strings.TrimSpace(name)
+	if !ValidBranchName(name) {
+		return Result{Stderr: invalidBranchMsg, Cmd: "git branch -d"}
+	}
+	return withRoot(path, func(root string) Result {
+		st, _, _ := inspect(root)
+		if st.Branch == name {
+			return Result{Stderr: "Cannot delete the current branch", Cmd: "git branch -d " + name}
+		}
+		flag := "-d"
+		if force {
+			flag = "-D"
+		}
+		args := []string{"branch", flag, name}
+		out, errb, err := run(root, timeoutMutate, args...)
+		r := resultFrom(err, out, errb, args...)
+		if !r.OK && isNotMerged(r.Stderr) {
+			r.Stderr = "Branch is not fully merged"
+		}
+		return r
+	})
+}
+
 func Discard(path, file string) Result {
 	file = strings.TrimSpace(file)
 	if file == "" {
@@ -172,4 +196,9 @@ func isInvalidBranchErr(stderr string) bool {
 	s := strings.ToLower(stderr)
 	return strings.Contains(s, "not a valid branch name") ||
 		strings.Contains(s, "check-ref-format")
+}
+
+func isNotMerged(stderr string) bool {
+	s := strings.ToLower(stderr)
+	return strings.Contains(s, "not fully merged")
 }

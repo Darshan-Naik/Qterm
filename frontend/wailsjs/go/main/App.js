@@ -50,6 +50,10 @@ export function GitCreateBranch(arg1, arg2) {
   return window['go']['main']['App']['GitCreateBranch'](arg1, arg2);
 }
 
+export function GitDeleteBranch(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GitDeleteBranch'](arg1, arg2, arg3);
+}
+
 export function GitDiscard(arg1, arg2) {
   return window['go']['main']['App']['GitDiscard'](arg1, arg2);
 }

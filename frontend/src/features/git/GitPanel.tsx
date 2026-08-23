@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { GitBranch, Loader2 } from "lucide-react";
+import { confirm } from "@/lib/confirm";
 import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes } from "@/queries";
 import { useUI } from "@/store/ui";
 import {
   GitCheckout,
   GitCommit,
   GitCreateBranch,
+  GitDeleteBranch,
   GitDiscard,
   GitFetch,
   GitPull,
@@ -136,6 +138,42 @@ export function GitPanel({
         onCreate={async (name) => {
           const ok = await run("create", () => GitCreateBranch(path, name));
           if (ok) setView("main");
+        }}
+        onDelete={async (name) => {
+          setBusy(`delete:${name}`);
+          setError(null);
+          try {
+            let result = asResult(await GitDeleteBranch(path, name, false));
+            if (!result.ok && result.stderr.toLowerCase().includes("not fully merged")) {
+              setBusy(null);
+              const force = await confirm({
+                title: "Not fully merged",
+                description: `${name} has commits that aren’t on this branch. Delete anyway?`,
+                confirmLabel: "Delete anyway",
+                destructive: true,
+              });
+              if (!force) {
+                setError(result);
+                return;
+              }
+              setBusy(`delete:${name}`);
+              result = asResult(await GitDeleteBranch(path, name, true));
+            }
+            if (!result.ok) {
+              setError(result);
+              return;
+            }
+            invalidateGit(path);
+          } catch (err) {
+            setError({
+              ok: false,
+              stdout: "",
+              stderr: err instanceof Error ? err.message : String(err),
+              cmd: "",
+            });
+          } finally {
+            setBusy(null);
+          }
         }}
         onClearError={() => setError(null)}
       />
