@@ -72,8 +72,8 @@ func Commit(path, message string) Result {
 
 func Checkout(path, branch string) Result {
 	branch = strings.TrimSpace(branch)
-	if branch == "" {
-		return Result{Stderr: "empty branch name", Cmd: "git checkout"}
+	if !ValidBranchName(branch) {
+		return Result{Stderr: invalidBranchMsg, Cmd: "git checkout"}
 	}
 	return withRoot(path, func(root string) Result {
 		args := []string{"checkout", branch}
@@ -83,14 +83,18 @@ func Checkout(path, branch string) Result {
 }
 
 func CreateBranch(path, name string) Result {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return Result{Stderr: "empty branch name", Cmd: "git checkout -b"}
+	name = NormalizeBranchName(name)
+	if !ValidBranchName(name) {
+		return Result{Stderr: invalidBranchMsg, Cmd: "git checkout -b"}
 	}
 	return withRoot(path, func(root string) Result {
 		args := []string{"checkout", "-b", name}
 		out, errb, err := run(root, timeoutMutate, args...)
-		return resultFrom(err, out, errb, args...)
+		r := resultFrom(err, out, errb, args...)
+		if !r.OK && isInvalidBranchErr(r.Stderr) {
+			r.Stderr = invalidBranchMsg
+		}
+		return r
 	})
 }
 
@@ -162,4 +166,10 @@ func needsUpstream(stderr string) bool {
 	return strings.Contains(s, "no upstream") ||
 		strings.Contains(s, "has no upstream branch") ||
 		strings.Contains(s, "the current branch") && strings.Contains(s, "has no upstream")
+}
+
+func isInvalidBranchErr(stderr string) bool {
+	s := strings.ToLower(stderr)
+	return strings.Contains(s, "not a valid branch name") ||
+		strings.Contains(s, "check-ref-format")
 }
