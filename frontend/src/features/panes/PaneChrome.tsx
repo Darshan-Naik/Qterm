@@ -67,6 +67,7 @@ export function PaneChrome({
           paneId={paneId}
           variant="pane"
           always={gitAlways}
+          worktree={worktree}
         />
       ) : null}
       <PaneOpenInIde path={idePath} always={actionsAlways} />

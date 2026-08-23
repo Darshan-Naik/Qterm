@@ -54,16 +54,52 @@ export function gitProjectForSession(sessionId: string | null): ProjectInfo | nu
 }
 
 export function resolveGitTarget(view: GitPanelView = "main"): GitPanelTarget | null {
-  const { focusedSessionId, focusedPaneId } = uiStore.get();
+  const { focusedSessionId, focusedPaneId, splitTree } = uiStore.get();
   const fromSession = gitProjectForSession(focusedSessionId);
-  if (fromSession) {
+  if (fromSession && focusedPaneId) {
     return { projectId: fromSession.id, paneId: focusedPaneId, view };
   }
   const scope = currentScope();
   if (!isUnbound(scope) && projectById(scope)) {
-    return { projectId: scope, paneId: null, view };
+    return {
+      projectId: scope,
+      paneId: splitTree ? `project:${scope}` : `open-project:${scope}`,
+      view,
+    };
   }
   return null;
+}
+
+export async function openGitToolkitAt(
+  target: GitPanelTarget,
+  sessionId: string | null = uiStore.get().focusedSessionId
+): Promise<GitPanelTarget | null> {
+  const project = projectById(target.projectId);
+  const working = gitWorkingPath(target.projectId, sessionId);
+  if (!project?.path || !working) {
+    toast.error("No git project");
+    return null;
+  }
+  const linked = isSessionWorktree(working, project.path);
+  const path = linked && isRootGitView(target.view) ? project.path : working;
+  const st = asStatus(await GetGitStatus(path));
+  if (!st?.isRepo) {
+    toast.error("Not a git repository");
+    return null;
+  }
+  const next: GitPanelTarget = {
+    projectId: target.projectId,
+    paneId: target.paneId,
+    view: target.view,
+  };
+  uiStore.set({
+    gitPanel: next,
+    paletteOpen: false,
+    quickOpen: false,
+    agentSessionsOpen: false,
+    terminalFindOpen: false,
+  });
+  return next;
 }
 
 export async function openGitToolkit(view: GitPanelView = "main"): Promise<GitPanelTarget | null> {
@@ -72,30 +108,7 @@ export async function openGitToolkit(view: GitPanelView = "main"): Promise<GitPa
     toast.error("No git project");
     return null;
   }
-  const project = projectById(target.projectId);
-  const working = gitWorkingPath(target.projectId, uiStore.get().focusedSessionId);
-  if (!project?.path || !working) {
-    toast.error("No git project");
-    return null;
-  }
-  const linked = isSessionWorktree(working, project.path);
-  const paneId = linked && isRootGitView(view) ? null : target.paneId;
-  const path = paneId === null && linked ? project.path : working;
-  const st = asStatus(await GetGitStatus(path));
-  if (!st?.isRepo) {
-    toast.error("Not a git repository");
-    return null;
-  }
-  const next: GitPanelTarget = { projectId: target.projectId, paneId, view };
-  uiStore.set({
-    gitPanel: next,
-    paletteOpen: false,
-    quickOpen: false,
-    agentSessionsOpen: false,
-    terminalFindOpen: false,
-    ...(paneId === null && linked ? { sidebarOpen: true } : null),
-  });
-  return next;
+  return openGitToolkitAt(target);
 }
 
 export function closeGitToolkit() {
