@@ -103,14 +103,14 @@ func unquoteGit(s string) string {
 	return inner
 }
 
-func parseStashList(out string) []Stash {
-	list := make([]Stash, 0)
+func parseStashList(out string) []StashEntry {
+	list := make([]StashEntry, 0)
 	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
 		if line == "" {
 			continue
 		}
 		parts := strings.Split(line, "\x00")
-		s := Stash{Ref: strings.TrimSpace(parts[0])}
+		s := StashEntry{Ref: strings.TrimSpace(parts[0])}
 		if s.Ref == "" {
 			continue
 		}

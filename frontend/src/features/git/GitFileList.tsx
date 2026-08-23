@@ -97,7 +97,7 @@ function FileGroup({
 }) {
   return (
     <div>
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-popover px-3 pb-1 pt-1.5">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-popover px-3 py-2">
         <span className="text-[11px] text-muted-foreground">
           {label}
           <span className="tabular-nums"> {files.length}</span>
@@ -124,11 +124,11 @@ function FileGroup({
         return (
           <div
             key={`${label}:${file.path}`}
-            className="group/file flex min-w-0 items-center gap-1 px-2.5 py-1 hover:bg-accent/60"
+            className="group/file relative flex min-w-0 items-center gap-2 px-3 py-2 hover:bg-accent/60"
           >
             <span
               className={cn(
-                "w-3.5 shrink-0 text-center font-mono text-[10px] font-medium",
+                "w-4 shrink-0 text-center font-mono text-[11px] font-medium",
                 statusTone(letter)
               )}
             >
@@ -138,27 +138,36 @@ function FileGroup({
               <span className="text-foreground">{name}</span>
               {dir ? <span className="text-muted-foreground"> {dir}</span> : null}
             </span>
-            {spinning ? (
-              <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
-            ) : (
-              <>
-                <IconButton
-                  label={action === "stage" ? "Stage" : "Unstage"}
-                  disabled={!!busy}
-                  onClick={toggle}
-                >
-                  {action === "stage" ? <Plus className="size-3.5" /> : <Minus className="size-3.5" />}
-                </IconButton>
-                <IconButton
-                  label="Discard"
-                  disabled={!!busy}
-                  danger
-                  onClick={() => void onDiscard(file)}
-                >
-                  <Undo2 className="size-3.5" />
-                </IconButton>
-              </>
-            )}
+            <div
+              className={cn(
+                "absolute inset-y-0 right-1 flex items-center bg-gradient-to-l from-popover from-60% to-transparent pl-5 group-hover/file:from-accent",
+                spinning
+                  ? "opacity-100"
+                  : "pointer-events-none opacity-0 group-hover/file:pointer-events-auto group-hover/file:opacity-100"
+              )}
+            >
+              {spinning ? (
+                <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <IconButton
+                    label={action === "stage" ? "Stage" : "Unstage"}
+                    disabled={!!busy}
+                    onClick={toggle}
+                  >
+                    {action === "stage" ? <Plus className="size-3.5" /> : <Minus className="size-3.5" />}
+                  </IconButton>
+                  <IconButton
+                    label="Discard"
+                    disabled={!!busy}
+                    danger
+                    onClick={() => void onDiscard(file)}
+                  >
+                    <Undo2 className="size-3.5" />
+                  </IconButton>
+                </>
+              )}
+            </div>
           </div>
         );
       })}
@@ -185,10 +194,10 @@ function IconButton({
       disabled={disabled}
       title={label}
       className={cn(
-        "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
-        "opacity-0 hover:bg-accent hover:text-foreground group-hover/file:opacity-100",
+        "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
+        "hover:bg-accent hover:text-foreground",
         danger && "hover:text-destructive",
-        "disabled:opacity-0"
+        "disabled:opacity-40"
       )}
       onClick={onClick}
     >

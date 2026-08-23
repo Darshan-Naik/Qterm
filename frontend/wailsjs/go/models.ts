@@ -420,15 +420,15 @@ export namespace git {
 		    return a;
 		}
 	}
-	export class Stash {
+	export class StashEntry {
 	    ref: string;
 	    message: string;
 	    age: string;
-
+	
 	    static createFrom(source: any = {}) {
-	        return new Stash(source);
+	        return new StashEntry(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ref = source["ref"];

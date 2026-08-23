@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, GitBranch, Loader2 } from "lucide-react";
+import { GitBranch, Loader2 } from "lucide-react";
 import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes } from "@/queries";
 import { useUI } from "@/store/ui";
 import {
@@ -21,11 +21,11 @@ import {
 import { GitActionRow } from "./GitActionRow";
 import { GitBranchSwitcher } from "./GitBranchSwitcher";
 import { GitCommitBox } from "./GitCommitBox";
+import { GitEmptyState } from "./GitEmptyState";
 import { GitFileList } from "./GitFileList";
 import { GitOverflowMenu } from "./GitOverflowMenu";
 import { GitStashList } from "./GitStashList";
 import { runGitInTerminal } from "./gitScope";
-import { cn } from "@/lib/utils";
 import { asSnapshot, type GitFile, type GitResult } from "./types";
 
 function asResult(raw: unknown): GitResult {
@@ -173,15 +173,10 @@ export function GitPanel({
 
   return (
     <div className="flex max-h-[min(70vh,34rem)] min-h-0 flex-col">
-      <div
-        className={cn(
-          "flex min-w-0 shrink-0 items-center gap-0.5 px-1.5 pt-1",
-          dirty && "border-b border-border/70"
-        )}
-      >
+      <div className="flex min-w-0 shrink-0 items-center gap-1 border-b border-border/70 px-2 py-1.5">
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left hover:bg-accent/50"
+          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left hover:bg-accent/50"
           onClick={() => setView("branches")}
         >
           {loading ? (
@@ -189,13 +184,12 @@ export function GitPanel({
           ) : (
             <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
           )}
-          <span className="max-w-[8.5rem] shrink-0 truncate text-[13px] font-medium">
+          <span className="max-w-[9rem] shrink-0 truncate text-[13px] font-medium">
             {snap?.branch || "—"}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">
+          <span className="min-w-0 truncate text-[12px] text-muted-foreground">
             · {projectName}
           </span>
-          <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
         </button>
         <GitActionRow
           ahead={snap?.ahead ?? 0}
@@ -206,9 +200,11 @@ export function GitPanel({
           onPush={() => void run("push", () => GitPush(path))}
         />
         <GitOverflowMenu
+          branch={snap?.branch || ""}
           dirty={dirty}
           stashCount={snap?.stashCount ?? 0}
           busy={busy}
+          onSwitchBranch={() => setView("branches")}
           onFetch={() => void run("fetch", () => GitFetch(path))}
           onStash={async () => {
             const ok = await run("stash", () => GitStash(path, message.trim()));
@@ -263,7 +259,13 @@ export function GitPanel({
             onCommitPush={() => void commit(true)}
           />
         </>
-      ) : null}
+      ) : (
+        <GitEmptyState
+          loading={loading}
+          ahead={snap?.ahead ?? 0}
+          behind={snap?.behind ?? 0}
+        />
+      )}
     </div>
   );
 }

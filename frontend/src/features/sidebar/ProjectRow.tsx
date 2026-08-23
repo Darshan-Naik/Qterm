@@ -105,7 +105,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group relative flex w-full min-w-0 items-center rounded-lg hover:bg-sidebar-accent/50",
+                "group relative flex w-full min-w-0 items-center rounded-lg pr-1 hover:bg-sidebar-accent/50",
                 menuOpen && "bg-sidebar-accent/50"
               )}
             >
@@ -129,7 +129,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </WithTooltip>
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground"
+              className="min-w-0 flex-1 overflow-hidden rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-snug text-sidebar-foreground"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void setActiveScope(id);
@@ -137,20 +137,13 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               onDoubleClick={() => toggleProjectCollapsed(id)}
             >
               <WithTooltip label={name} side="right">
-                <span className="min-w-0 shrink truncate font-normal">{name}</span>
+                <span className="block min-w-0 truncate font-normal">{name}</span>
               </WithTooltip>
             </button>
-            <GitChip
-              projectId={id}
-              path={path}
-              projectName={name}
-              paneId={null}
-              variant="sidebar"
-            />
             <div
               className={cn(
-                "flex w-14 shrink-0 items-center justify-end gap-0.5 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100",
-                menuOpen && "pointer-events-auto opacity-100"
+                "hidden shrink-0 items-center justify-end gap-0.5 group-hover:flex",
+                menuOpen && "flex"
               )}
             >
               <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
@@ -232,6 +225,13 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+            <GitChip
+              projectId={id}
+              path={path}
+              projectName={name}
+              paneId={null}
+              variant="sidebar"
+            />
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="min-w-[14rem]">

@@ -634,7 +634,7 @@ func (a *App) GitDiscard(path, file string) git.Result {
 	return git.Discard(path, file)
 }
 
-func (a *App) ListGitStashes(path string) []git.Stash {
+func (a *App) ListGitStashes(path string) []git.StashEntry {
 	return git.ListStashes(path)
 }
 

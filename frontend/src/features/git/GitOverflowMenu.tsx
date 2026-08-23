@@ -1,4 +1,4 @@
-import { Archive, Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Archive, GitBranch, Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,17 +9,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function GitOverflowMenu({
+  branch,
   dirty,
   stashCount,
   busy,
+  onSwitchBranch,
   onFetch,
   onStash,
   onPop,
   onOpenStashes,
 }: {
+  branch: string;
   dirty: boolean;
   stashCount: number;
   busy: string | null;
+  onSwitchBranch: () => void;
   onFetch: () => void;
   onStash: () => void;
   onPop: () => void;
@@ -51,9 +55,14 @@ export function GitOverflowMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="min-w-[11.5rem]"
+        className="min-w-[12rem]"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
+        <DropdownMenuItem disabled={!!busy} onClick={onSwitchBranch} shortcut={branch || undefined}>
+          <GitBranch className="size-3.5 opacity-70" />
+          Switch branch
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!!busy} onClick={onFetch}>
           <RefreshCw className="size-3.5 opacity-70" />
           Fetch
