@@ -1,10 +1,10 @@
 import { PanelLeft } from "lucide-react";
-import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
+import { listLeaves, persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { isUnbound } from "@/lib/sessions";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
-import { GitChip } from "@/features/git";
+import { GitChip, isSessionWorktree } from "@/features/git";
 import { PaneMenu } from "./PaneMenu";
 import { PaneOpenInIde } from "./PaneOpenInIde";
 import { PaneTitle } from "./PaneTitle";
@@ -23,11 +23,19 @@ export function PaneChrome({
   const [menuOpen, setMenuOpen] = useExclusiveMenu(`pane:${paneId}`);
   const sessions = useUI((s) => s.sessions);
   const projects = useUI((s) => s.projects);
+  const focusedPaneId = useUI((s) => s.focusedPaneId);
+  const splitTree = useUI((s) => s.splitTree);
   const session = sessions.find((x) => x.id === sessionId);
   const project =
     session && !isUnbound(session.projectId)
       ? projects.find((p) => p.id === session.projectId)
       : undefined;
+  const focused = focusedPaneId === paneId;
+  const split = listLeaves(splitTree).length > 1;
+  const worktree = !!project && !!session && isSessionWorktree(session.cwd, project.path);
+  const actionsAlways = !split || focused;
+  const gitAlways = actionsAlways || worktree;
+  const idePath = session?.cwd || project?.path || "";
 
   return (
     <div
@@ -58,10 +66,17 @@ export function PaneChrome({
           projectName={project.name}
           paneId={paneId}
           variant="pane"
+          always={gitAlways}
         />
       ) : null}
-      <PaneOpenInIde path={session?.cwd || project?.path || ""} />
-      <PaneMenu paneId={paneId} sessionId={sessionId} open={menuOpen} onOpenChange={setMenuOpen} />
+      <PaneOpenInIde path={idePath} always={actionsAlways} />
+      <PaneMenu
+        paneId={paneId}
+        sessionId={sessionId}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        always={actionsAlways}
+      />
     </div>
   );
 }

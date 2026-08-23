@@ -18,7 +18,7 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
   return (
     <span
       className={cn(
-        "min-w-0 flex-1 select-none truncate px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground opacity-45 transition-opacity group-hover/chrome:opacity-100",
+        "min-w-0 flex-1 truncate px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground opacity-45 transition-opacity group-hover/chrome:opacity-100",
         active && "opacity-100"
       )}
     >

@@ -16,17 +16,20 @@ import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { requestSessionRename } from "./PaneTitle";
+import { chromeReveal } from "./chromeReveal";
 
 export function PaneMenu({
   paneId,
   sessionId,
   open,
   onOpenChange,
+  always = false,
 }: {
   paneId: string;
   sessionId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  always?: boolean;
 }) {
   const pinned = useUI((s) => !!s.sessions.find((x) => x.id === sessionId)?.pinned);
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
@@ -55,9 +58,9 @@ export function PaneMenu({
             size="icon"
             variant="ghost"
             className={cn(
-              "size-6 shrink-0 text-muted-foreground opacity-0 titlebar-no-drag transition-[opacity,background-color,color]",
-              "group-hover/pane:opacity-45 group-hover/chrome:!opacity-100",
+              "size-6 shrink-0 text-muted-foreground titlebar-no-drag transition-[opacity,background-color,color]",
               "hover:bg-accent hover:text-foreground",
+              chromeReveal(always),
               open && "!opacity-100 bg-accent text-foreground"
             )}
             {...tipTriggerProps}
