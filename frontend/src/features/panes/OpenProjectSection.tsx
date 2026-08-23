@@ -83,7 +83,7 @@ export function OpenProjectSection({
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group relative flex h-8 min-w-0 items-center gap-2 rounded-md px-1",
+                "group relative flex h-8 min-w-0 items-center rounded-md px-1",
                 "hover:bg-accent/40",
                 menuOpen && "bg-accent/40"
               )}
@@ -93,20 +93,13 @@ export function OpenProjectSection({
                   <ProjectIcon className="size-3.5" />
                 </span>
               </WithTooltip>
-              <h2 className="min-w-0 shrink truncate text-[13px] font-medium text-foreground">
+              <h2 className="min-w-0 flex-1 truncate px-1.5 text-[13px] font-medium text-foreground">
                 {name}
               </h2>
-              <GitChip
-                projectId={id}
-                path={path}
-                projectName={name}
-                listenToShortcut={false}
-                variant="open"
-              />
               <div
                 className={cn(
-                  "ml-auto flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100",
-                  menuOpen && "opacity-100"
+                  "hidden shrink-0 items-center justify-end gap-0.5 group-hover:flex",
+                  menuOpen && "flex"
                 )}
               >
                 <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
@@ -189,6 +182,14 @@ export function OpenProjectSection({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              <GitChip
+                projectId={id}
+                path={path}
+                projectName={name}
+                paneId={`open-project:${id}`}
+                listenToShortcut={false}
+                variant="open"
+              />
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="min-w-[14rem]">

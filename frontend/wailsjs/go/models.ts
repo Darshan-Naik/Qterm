@@ -319,6 +319,109 @@ export namespace core {
 	        this.match = source["match"];
 	    }
 	}
+	export class ToolPart {
+	    name: string;
+	    description?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolPart(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.description = source["description"];
+	    }
+	}
+	export class ToolItem {
+	    id: string;
+	    name: string;
+	    kind: string;
+	    version?: string;
+	    source?: string;
+	    description?: string;
+	    enabled: boolean;
+	    scope?: string;
+	    system?: boolean;
+	    available?: boolean;
+	    installCount?: number;
+	    managedBy?: string;
+	    skills?: ToolPart[];
+	    hooks?: ToolPart[];
+	    agents?: ToolPart[];
+	    mcpServers?: ToolPart[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.kind = source["kind"];
+	        this.version = source["version"];
+	        this.source = source["source"];
+	        this.description = source["description"];
+	        this.enabled = source["enabled"];
+	        this.scope = source["scope"];
+	        this.system = source["system"];
+	        this.available = source["available"];
+	        this.installCount = source["installCount"];
+	        this.managedBy = source["managedBy"];
+	        this.skills = this.convertValues(source["skills"], ToolPart);
+	        this.hooks = this.convertValues(source["hooks"], ToolPart);
+	        this.agents = this.convertValues(source["agents"], ToolPart);
+	        this.mcpServers = this.convertValues(source["mcpServers"], ToolPart);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class ToolsCaps {
+	    list: boolean;
+	    install: boolean;
+	    uninstall: boolean;
+	    enable: boolean;
+	    update: boolean;
+	    browse: boolean;
+	    kinds: string[];
+	    installPlaceholder?: string;
+	    hint?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolsCaps(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.list = source["list"];
+	        this.install = source["install"];
+	        this.uninstall = source["uninstall"];
+	        this.enable = source["enable"];
+	        this.update = source["update"];
+	        this.browse = source["browse"];
+	        this.kinds = source["kinds"];
+	        this.installPlaceholder = source["installPlaceholder"];
+	        this.hint = source["hint"];
+	    }
+	}
 
 }
 

@@ -112,6 +112,30 @@ func (a *App) UninstallAgentCLI(id string) error {
 	return nil
 }
 
+func (a *App) GetAgentToolsCaps(cliID string) (agentcli.ToolsCaps, error) {
+	return agentcli.GetToolsCaps(cliID)
+}
+
+func (a *App) ListAgentTools(cliID string) ([]agentcli.ToolItem, error) {
+	return agentcli.ListTools(cliID)
+}
+
+func (a *App) InstallAgentTool(cliID, kind, source string) error {
+	return agentcli.InstallTool(cliID, agentcli.ToolKind(kind), source)
+}
+
+func (a *App) UninstallAgentTool(cliID, kind, toolID string) error {
+	return agentcli.UninstallTool(cliID, agentcli.ToolKind(kind), toolID)
+}
+
+func (a *App) SetAgentToolEnabled(cliID, kind, toolID string, enabled bool) error {
+	return agentcli.SetToolEnabled(cliID, agentcli.ToolKind(kind), toolID, enabled)
+}
+
+func (a *App) UpdateAgentTool(cliID, kind, toolID string) error {
+	return agentcli.UpdateTool(cliID, agentcli.ToolKind(kind), toolID)
+}
+
 func (a *App) upgradeOutdatedAgentCLIs() {
 	for _, cli := range a.ListAgentCLIs() {
 		if !cli.Installed || !cli.Outdated {

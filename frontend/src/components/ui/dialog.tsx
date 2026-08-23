@@ -21,12 +21,15 @@ export function DialogContent({
   children,
   position = "center",
   showClose = true,
+  size = "md",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   /** `top` = Spotlight-style (command / quick open). */
   position?: "center" | "top";
   /** Hide the default top-right close control. */
   showClose?: boolean;
+  /** Content max width. */
+  size?: "md" | "lg" | "xl";
 }) {
   return (
     <DialogPrimitive.Portal>
@@ -40,7 +43,10 @@ export function DialogContent({
       />
       <DialogPrimitive.Content
         className={cn(
-          "fixed z-50 w-[calc(100%-2rem)] max-w-lg bg-transparent p-0 shadow-none outline-none",
+          "fixed z-50 w-[calc(100%-2rem)] bg-transparent p-0 shadow-none outline-none",
+          size === "md" && "max-w-lg",
+          size === "lg" && "max-w-2xl",
+          size === "xl" && "max-w-3xl",
           position === "center" &&
             "motion-dialog-content inset-0 m-auto h-fit max-h-[calc(100%-2rem)]",
           position === "top" &&

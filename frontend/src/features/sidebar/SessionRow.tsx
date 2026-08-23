@@ -145,7 +145,7 @@ export function SessionRow({
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group relative flex w-full items-center gap-0.5 rounded-lg text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/35 hover:text-sidebar-foreground",
+            "group relative flex w-full items-center gap-0.5 rounded-lg pr-1 text-[13px] leading-snug text-muted-foreground hover:bg-sidebar-accent/35 hover:text-sidebar-foreground",
             openInPane &&
               !focused &&
               "bg-sidebar-accent/80 text-sidebar-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-primary/55",
@@ -241,6 +241,59 @@ export function SessionRow({
             </span>
           </div>
 
+          <div
+            className={cn(
+              "hidden shrink-0 items-center justify-end group-hover:flex",
+              menuOpen && "flex"
+            )}
+          >
+            <DropdownMenu modal={false} open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
+              <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className={cn("size-7 shrink-0", menuOpen && "bg-accent text-foreground")}
+                    onClick={(e) => e.stopPropagation()}
+                    {...tipTriggerProps}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </WithTooltip>
+              <DropdownMenuContent
+                align="end"
+                className="min-w-[12rem]"
+                onCloseAutoFocus={onMenuCloseAutoFocus}
+              >
+                <DropdownMenuItem shortcut={TerminalShortcuts.rename.label} onSelect={queueRename}>
+                  Rename…
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void toggleSessionPin(session.id)}>
+                  <Pin className={cn("size-3.5 opacity-70", pinned && "fill-current")} />
+                  {pinned ? "Unpin terminal" : "Pin terminal"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  shortcut={TerminalShortcuts.close.label}
+                  onClick={() => void closeSessionPanes(session.id)}
+                >
+                  <X className="size-3.5 opacity-70" />
+                  Close
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  shortcut={TerminalShortcuts.delete.label}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  onClick={() => requestDeleteSession(session.id)}
+                >
+                  <Trash2 className="size-3.5 opacity-70" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           {showWorktreeChip && project ? (
             <GitChip
               projectId={session.projectId}
@@ -251,55 +304,6 @@ export function SessionRow({
               variant="session"
             />
           ) : null}
-
-          <DropdownMenu modal={false} open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
-            <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className={cn(
-                    "mr-1 size-7 shrink-0 opacity-0 group-hover:opacity-100",
-                    menuOpen && "!opacity-100 bg-accent text-foreground"
-                  )}
-                  onClick={(e) => e.stopPropagation()}
-                  {...tipTriggerProps}
-                >
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-            </WithTooltip>
-            <DropdownMenuContent
-              align="end"
-              className="min-w-[12rem]"
-              onCloseAutoFocus={onMenuCloseAutoFocus}
-            >
-              <DropdownMenuItem shortcut={TerminalShortcuts.rename.label} onSelect={queueRename}>
-                Rename…
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void toggleSessionPin(session.id)}>
-                <Pin className={cn("size-3.5 opacity-70", pinned && "fill-current")} />
-                {pinned ? "Unpin terminal" : "Pin terminal"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                shortcut={TerminalShortcuts.close.label}
-                onClick={() => void closeSessionPanes(session.id)}
-              >
-                <X className="size-3.5 opacity-70" />
-                Close
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                shortcut={TerminalShortcuts.delete.label}
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                onClick={() => requestDeleteSession(session.id)}
-              >
-                <Trash2 className="size-3.5 opacity-70" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="min-w-[12rem]" onCloseAutoFocus={onMenuCloseAutoFocus}>
