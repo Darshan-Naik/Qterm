@@ -630,6 +630,10 @@ func (a *App) GitCreateBranch(path, name string) git.Result {
 	return git.CreateBranch(path, name)
 }
 
+func (a *App) GitDeleteBranch(path, name string, force bool) git.Result {
+	return git.DeleteBranch(path, name, force)
+}
+
 func (a *App) GitDiscard(path, file string) git.Result {
 	return git.Discard(path, file)
 }
