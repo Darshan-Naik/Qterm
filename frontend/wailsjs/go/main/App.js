@@ -18,6 +18,10 @@ export function CreateSession(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSession'](arg1, arg2, arg3);
 }
 
+export function GetAgentToolsCaps(arg1) {
+  return window['go']['main']['App']['GetAgentToolsCaps'](arg1);
+}
+
 export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
@@ -122,6 +126,10 @@ export function InstallAgentCLI(arg1) {
   return window['go']['main']['App']['InstallAgentCLI'](arg1);
 }
 
+export function InstallAgentTool(arg1, arg2, arg3) {
+  return window['go']['main']['App']['InstallAgentTool'](arg1, arg2, arg3);
+}
+
 export function KillSession(arg1) {
   return window['go']['main']['App']['KillSession'](arg1);
 }
@@ -132,6 +140,10 @@ export function ListAgentCLIs() {
 
 export function ListAgentSessions(arg1, arg2) {
   return window['go']['main']['App']['ListAgentSessions'](arg1, arg2);
+}
+
+export function ListAgentTools(arg1) {
+  return window['go']['main']['App']['ListAgentTools'](arg1);
 }
 
 export function ListGitBranches(arg1) {
@@ -226,6 +238,10 @@ export function SearchScrollback(arg1, arg2) {
   return window['go']['main']['App']['SearchScrollback'](arg1, arg2);
 }
 
+export function SetAgentToolEnabled(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SetAgentToolEnabled'](arg1, arg2, arg3, arg4);
+}
+
 export function SetFocusedSession(arg1) {
   return window['go']['main']['App']['SetFocusedSession'](arg1);
 }
@@ -240,6 +256,14 @@ export function SetSessionPinned(arg1, arg2) {
 
 export function UninstallAgentCLI(arg1) {
   return window['go']['main']['App']['UninstallAgentCLI'](arg1);
+}
+
+export function UninstallAgentTool(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UninstallAgentTool'](arg1, arg2, arg3);
+}
+
+export function UpdateAgentTool(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdateAgentTool'](arg1, arg2, arg3);
 }
 
 export function WriteSession(arg1, arg2) {

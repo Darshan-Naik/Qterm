@@ -3,8 +3,8 @@
 import {appmode} from '../models';
 import {config} from '../models';
 import {main} from '../models';
-import {git} from '../models';
 import {core} from '../models';
+import {git} from '../models';
 
 export function AboutInfo():Promise<appmode.AboutInfo>;
 
@@ -13,6 +13,8 @@ export function ActiveAgentBinds():Promise<Record<string, string>>;
 export function AddProject(arg1:string,arg2:string):Promise<config.ProjectMeta>;
 
 export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
+
+export function GetAgentToolsCaps(arg1:string):Promise<core.ToolsCaps>;
 
 export function GetConfig():Promise<config.AppConfig>;
 
@@ -66,11 +68,15 @@ export function GitUnstageAll(arg1:string):Promise<git.Result>;
 
 export function InstallAgentCLI(arg1:string):Promise<core.InstallResult>;
 
+export function InstallAgentTool(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function KillSession(arg1:string):Promise<void>;
 
 export function ListAgentCLIs():Promise<Array<core.CLIInfo>>;
 
 export function ListAgentSessions(arg1:string,arg2:string):Promise<Array<core.Session>>;
+
+export function ListAgentTools(arg1:string):Promise<Array<core.ToolItem>>;
 
 export function ListGitBranches(arg1:string):Promise<Array<git.Branch>>;
 
@@ -118,6 +124,8 @@ export function SaveUIPrefs(arg1:config.UIPrefs):Promise<void>;
 
 export function SearchScrollback(arg1:string,arg2:Array<string>):Promise<Array<Record<string, any>>>;
 
+export function SetAgentToolEnabled(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<void>;
+
 export function SetFocusedSession(arg1:string):Promise<void>;
 
 export function SetSessionName(arg1:string,arg2:string):Promise<boolean>;
@@ -125,6 +133,10 @@ export function SetSessionName(arg1:string,arg2:string):Promise<boolean>;
 export function SetSessionPinned(arg1:string,arg2:boolean):Promise<boolean>;
 
 export function UninstallAgentCLI(arg1:string):Promise<void>;
+
+export function UninstallAgentTool(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function UpdateAgentTool(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function WriteSession(arg1:string,arg2:string):Promise<void>;
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"qterm/internal/agentcli/cli/agy"
 	"qterm/internal/agentcli/cli/claude"
@@ -25,6 +26,17 @@ type (
 	SessionQuery  = core.SessionQuery
 	ResumeSpec    = core.ResumeSpec
 	Intent        = core.Intent
+	ToolKind      = core.ToolKind
+	ToolItem      = core.ToolItem
+	ToolsCaps     = core.ToolsCaps
+)
+
+const (
+	ToolKindPlugin      = core.ToolKindPlugin
+	ToolKindSkill       = core.ToolKindSkill
+	ToolKindMarketplace = core.ToolKindMarketplace
+	ToolKindMCP         = core.ToolKindMCP
+	ToolKindExtension   = core.ToolKindExtension
 )
 
 const (
@@ -186,6 +198,127 @@ func Resume(cliID, sessionID string) (core.ResumeSpec, error) {
 		return core.ResumeSpec{}, fmt.Errorf("missing session id")
 	}
 	return a.Resume(sessionID)
+}
+
+func asTooling(id string) (core.Tooling, core.Adapter, error) {
+	a, ok := Find(id)
+	if !ok {
+		return nil, nil, fmt.Errorf("unknown agent CLI %q", id)
+	}
+	t, ok := a.(core.Tooling)
+	if !ok {
+		return nil, a, core.ErrToolsUnsupported
+	}
+	return t, a, nil
+}
+
+// GetToolsCaps returns management capabilities for a CLI (empty caps if unsupported).
+func GetToolsCaps(id string) (core.ToolsCaps, error) {
+	t, _, err := asTooling(id)
+	if err != nil {
+		if err == core.ErrToolsUnsupported {
+			return core.ToolsCaps{}, nil
+		}
+		return core.ToolsCaps{}, err
+	}
+	return t.ToolsCaps(), nil
+}
+
+// ListTools returns installed/registered tools for a connected CLI.
+func ListTools(id string) ([]core.ToolItem, error) {
+	t, a, err := asTooling(id)
+	if err != nil {
+		if err == core.ErrToolsUnsupported {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if !a.Installed() {
+		return nil, fmt.Errorf("%s is not connected — connect it in Settings first", a.Name())
+	}
+	return t.ListTools()
+}
+
+// InstallTool installs a plugin/skill/marketplace from a source string.
+func InstallTool(id string, kind core.ToolKind, source string) error {
+	t, a, err := asTooling(id)
+	if err != nil {
+		return err
+	}
+	if !a.Installed() {
+		return fmt.Errorf("%s is not connected — connect it in Settings first", a.Name())
+	}
+	if _, ok := a.Available(); !ok {
+		return fmt.Errorf("%s CLI not found on PATH", a.Name())
+	}
+	source = strings.TrimSpace(source)
+	if source == "" {
+		return fmt.Errorf("missing install source")
+	}
+	caps := t.ToolsCaps()
+	if !caps.Install {
+		return fmt.Errorf("%s: install not supported", a.Name())
+	}
+	return t.InstallTool(kind, source)
+}
+
+// UninstallTool removes a plugin/skill/marketplace (not the qterm bridge).
+func UninstallTool(id string, kind core.ToolKind, toolID string) error {
+	t, a, err := asTooling(id)
+	if err != nil {
+		return err
+	}
+	if !a.Installed() {
+		return fmt.Errorf("%s is not connected — connect it in Settings first", a.Name())
+	}
+	if err := core.GuardQtermSystem(toolID); err != nil {
+		return err
+	}
+	caps := t.ToolsCaps()
+	if !caps.Uninstall {
+		return fmt.Errorf("%s: uninstall not supported", a.Name())
+	}
+	return t.UninstallTool(kind, toolID)
+}
+
+// SetToolEnabled enables or disables a tool (not the qterm bridge).
+func SetToolEnabled(id string, kind core.ToolKind, toolID string, enabled bool) error {
+	t, a, err := asTooling(id)
+	if err != nil {
+		return err
+	}
+	if !a.Installed() {
+		return fmt.Errorf("%s is not connected — connect it in Settings first", a.Name())
+	}
+	if !enabled {
+		if err := core.GuardQtermSystem(toolID); err != nil {
+			return err
+		}
+	}
+	caps := t.ToolsCaps()
+	if !caps.Enable {
+		return fmt.Errorf("%s: enable/disable not supported", a.Name())
+	}
+	return t.SetToolEnabled(kind, toolID, enabled)
+}
+
+// UpdateTool updates a plugin/extension/marketplace (not the qterm bridge).
+func UpdateTool(id string, kind core.ToolKind, toolID string) error {
+	t, a, err := asTooling(id)
+	if err != nil {
+		return err
+	}
+	if !a.Installed() {
+		return fmt.Errorf("%s is not connected — connect it in Settings first", a.Name())
+	}
+	if err := core.GuardQtermSystem(toolID); err != nil {
+		return err
+	}
+	caps := t.ToolsCaps()
+	if !caps.Update {
+		return fmt.Errorf("%s: update not supported", a.Name())
+	}
+	return t.UpdateTool(kind, toolID)
 }
 
 func writeSharedRelay(dataDir, token string) (string, error) {
