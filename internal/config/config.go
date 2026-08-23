@@ -27,6 +27,9 @@ const (
 	UiZoomStep    = 10
 )
 
+// DefaultSidebarFooter is agent + settings. Nil in config means this default; empty hides the footer.
+var DefaultSidebarFooter = []string{"agent", "settings"}
+
 func ClampSidebarWidth(width int) int {
 	if width < MinSidebarWidth {
 		return MinSidebarWidth
@@ -102,6 +105,8 @@ type AppConfig struct {
 	SidebarWidth      int             `json:"sidebarWidth,omitempty"`
 	UiZoom            int             `json:"uiZoom,omitempty"`
 	CollapsedProjects map[string]bool `json:"collapsedProjects,omitempty"`
+	// SidebarFooter is enabled footer icon ids. nil = defaults; empty = hide footer.
+	SidebarFooter []string `json:"sidebarFooter"`
 	// AgentCLIs maps connected CLI plugin id → qterm plugin version at connect/update time.
 	// Compared to the app's current plugin version to detect stale installs.
 	AgentCLIs map[string]string `json:"agentCLIs,omitempty"`
@@ -115,6 +120,7 @@ type UIPrefs struct {
 	SidebarWidth      int             `json:"sidebarWidth"`
 	UiZoom            int             `json:"uiZoom"`
 	CollapsedProjects map[string]bool `json:"collapsedProjects"`
+	SidebarFooter     []string        `json:"sidebarFooter"`
 }
 
 type Store struct {

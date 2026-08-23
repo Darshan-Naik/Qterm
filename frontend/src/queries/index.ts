@@ -107,9 +107,10 @@ export function useAppConfig() {
   });
 }
 
-export function useAgentCLIs() {
+export function useAgentCLIs(enabled = true) {
   return useQuery(["agent-clis"], {
     fetcher: () => ListAgentCLIs(),
+    enabled,
     staleTime: 10_000,
     persist: false,
   });

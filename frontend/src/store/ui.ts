@@ -11,6 +11,7 @@ export type {
   SplitNode,
   ThemeMode,
   UIState,
+  SidebarFooterId,
 } from "./types";
 
 export {
@@ -19,6 +20,8 @@ export {
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
   SIDEBAR_DEFAULT,
+  SIDEBAR_FOOTER_DEFAULT,
+  SIDEBAR_FOOTER_IDS,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
   UI_ZOOM_DEFAULT,
@@ -28,6 +31,7 @@ export {
   clampFontSize,
   clampSidebarWidth,
   clampUiZoom,
+  sanitizeSidebarFooter,
   closeAbout,
   closeSettings,
   openAbout,
@@ -46,6 +50,7 @@ export {
   resetKeybinding,
   sanitizeKeybindings,
   setKeybinding,
+  setSidebarFooterItem,
   setUiZoom,
   toggleProjectCollapsed,
 } from "./prefs";
