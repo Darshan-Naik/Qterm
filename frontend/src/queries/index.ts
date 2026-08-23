@@ -3,6 +3,7 @@ import { invalidateQuery, useQuery } from "qortex-query-react";
 import {
   ListProjects,
   ListSessions,
+  ListAgentCLIs,
   GetGitStatus,
   GetGitSnapshot,
   ListGitBranches,
@@ -104,4 +105,16 @@ export function useAppConfig() {
     fetcher: () => GetConfig(),
     staleTime: 10_000,
   });
+}
+
+export function useAgentCLIs() {
+  return useQuery(["agent-clis"], {
+    fetcher: () => ListAgentCLIs(),
+    staleTime: 10_000,
+    persist: false,
+  });
+}
+
+export function invalidateAgentCLIs() {
+  invalidateQuery(["agent-clis"]);
 }

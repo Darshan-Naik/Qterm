@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { InstallAgentCLI, ListAgentCLIs, UninstallAgentCLI } from "../../../../wailsjs/go/main/App";
 import { connectSuccessToast } from "@/lib/agentConnect";
+import { invalidateAgentCLIs } from "@/queries";
 import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
 import { SettingCard } from "../ui/SettingCard";
@@ -98,6 +99,7 @@ export function AgentPage() {
     setBusy(id);
     try {
       await InstallAgentCLI(id);
+      invalidateAgentCLIs();
       await refresh();
       const name = clis.find((c) => c.id === id)?.name || id;
       const msg = connectSuccessToast(name);
@@ -113,6 +115,7 @@ export function AgentPage() {
     setBusy(id);
     try {
       await InstallAgentCLI(id);
+      invalidateAgentCLIs();
       toast.success("Plugin updated");
       await refresh();
     } catch (e: any) {
@@ -126,6 +129,7 @@ export function AgentPage() {
     setBusy(id);
     try {
       await UninstallAgentCLI(id);
+      invalidateAgentCLIs();
       await refresh();
     } catch (e: any) {
       toast.error(String(e?.message || e || "Disconnect failed"));
