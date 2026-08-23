@@ -157,7 +157,7 @@ export const SHORTCUT_META: ShortcutMeta[] = [
   },
   {
     id: "gitToolkit",
-    label: "Git toolkit",
+    label: "Git",
     description: "Pull, push, stage, commit, and switch branches",
     group: "Project",
     whenSettings: "block",

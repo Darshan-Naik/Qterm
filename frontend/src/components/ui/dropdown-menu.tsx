@@ -15,14 +15,11 @@ export function DropdownMenuContent({
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
-        className="z-50 bg-transparent p-0 shadow-none outline-none"
+        className={cn("z-50 min-w-[11rem] bg-transparent p-0 shadow-none outline-none", className)}
         {...props}
       >
         <PortalZoom
-          className={cn(
-            "min-w-[11rem] overflow-hidden rounded-md bg-popover p-1.5 text-popover-foreground shadow-xl",
-            className
-          )}
+          className="overflow-hidden rounded-md bg-popover p-1.5 text-popover-foreground shadow-xl"
         >
           {children}
         </PortalZoom>

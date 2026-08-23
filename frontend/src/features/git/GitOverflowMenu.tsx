@@ -1,4 +1,4 @@
-import { Archive, GitBranch, Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Archive, FolderTree, GitBranch, Loader2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -94,6 +94,7 @@ export function GitOverflowMenu({
         </DropdownMenuItem>
         {root ? (
           <DropdownMenuItem disabled={!!busy} onClick={onOpenWorktrees}>
+            <FolderTree className="size-3.5 opacity-70" />
             Worktrees…
           </DropdownMenuItem>
         ) : null}

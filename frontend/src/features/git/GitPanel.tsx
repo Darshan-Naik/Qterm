@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GitBranch, Loader2 } from "lucide-react";
+import { FolderTree, GitBranch, Loader2 } from "lucide-react";
 import { confirm } from "@/lib/confirm";
 import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes, useGitWorktrees } from "@/queries";
 import { useUI, type GitPanelView } from "@/store/ui";
@@ -286,6 +286,8 @@ export function GitPanel({
           <div className="flex min-w-0 items-center gap-1.5">
             {loading ? (
               <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+            ) : linked ? (
+              <FolderTree className="size-3.5 shrink-0 text-muted-foreground" />
             ) : (
               <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
             )}

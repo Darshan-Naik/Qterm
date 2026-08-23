@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Circle, FolderGit2, GitBranch } from "lucide-react";
+import { Circle, FolderTree, GitBranch } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
@@ -121,9 +121,9 @@ export function GitChip({
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            {variant === "meta" ? (
-              worktree ? (
-                <FolderGit2 className="size-3 shrink-0 opacity-70" />
+            {variant === "pane" || variant === "meta" ? (
+              worktree || scope === "worktree" ? (
+                <FolderTree className="size-3 shrink-0 opacity-70" />
               ) : (
                 <GitBranch className="size-3 shrink-0 opacity-70" />
               )

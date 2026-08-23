@@ -29,7 +29,7 @@ import { collectSessionIds, toggleProjectCollapsed, useUI, type SessionInfo } fr
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
-import { GitChip, GitWorktreePicker } from "@/features/git";
+import { GitDirtyDot, GitMenuLabel, GitToolkitPopover, GitWorktreePicker, openGitToolkitAt } from "@/features/git";
 import { createTerminal, setActiveScope } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById, openPathInIDE } from "@/lib/menuActions";
@@ -71,6 +71,8 @@ export function OpenProjectSection({
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
   const [menuOpen, setMenuOpen] = useExclusiveMenu(`open-project:${id}`);
+  const gitOpen = useUI((s) => s.gitPanel?.paneId === `open-project:${id}`);
+  const rowActive = menuOpen || gitOpen;
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
 
@@ -96,12 +98,11 @@ export function OpenProjectSection({
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group relative flex min-w-0 flex-col rounded-md px-1",
+                "group relative flex h-8 min-w-0 items-center rounded-md px-1",
                 "hover:bg-accent/40",
-                menuOpen && "bg-accent/40"
+                rowActive && "bg-accent/40"
               )}
             >
-              <div className="relative flex h-8 min-w-0 items-center">
               <WithTooltip label={collapsed ? "Expand" : "Collapse"}>
                 <button
                   type="button"
@@ -122,19 +123,20 @@ export function OpenProjectSection({
               </WithTooltip>
               <button
                 type="button"
-                className="min-w-0 flex-1 truncate px-1.5 text-left text-[13px] font-medium text-foreground"
+                className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 text-left text-[13px] font-medium text-foreground"
                 onClick={() => {
                   if (collapsed) toggleProjectCollapsed(id);
                   void setActiveScope(id);
                 }}
                 onDoubleClick={() => toggleProjectCollapsed(id)}
               >
-                {name}
+                <span className="min-w-0 truncate">{name}</span>
+                {git?.dirty ? <GitDirtyDot /> : null}
               </button>
               <div
                 className={cn(
                   "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-background opacity-0 group-hover:bg-accent/40 group-hover:opacity-100",
-                  menuOpen && "bg-accent/40 opacity-100"
+                  rowActive && "bg-accent/40 opacity-100"
                 )}
               >
                 <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
@@ -166,7 +168,7 @@ export function OpenProjectSection({
                       </Button>
                     </DropdownMenuTrigger>
                   </WithTooltip>
-                  <DropdownMenuContent align="end" className="min-w-[14rem]">
+                  <DropdownMenuContent side="bottom" align="start" collisionPadding={8} className="min-w-[18rem]">
                     <DropdownMenuItem
                       shortcut={ProjectShortcuts.newTerminal.label}
                       onClick={() => void createTerminal(id)}
@@ -174,8 +176,21 @@ export function OpenProjectSection({
                       New terminal
                     </DropdownMenuItem>
                     {git?.isRepo ? (
+                      <DropdownMenuItem
+                        shortcut={ProjectShortcuts.gitToolkit.label}
+                        onClick={() =>
+                          void openGitToolkitAt(
+                            { projectId: id, paneId: `open-project:${id}`, view: "main" },
+                            null
+                          )
+                        }
+                      >
+                        <GitMenuLabel branch={git?.branch} />
+                      </DropdownMenuItem>
+                    ) : null}
+                    {git?.isRepo ? (
                       <DropdownMenuItem onClick={() => setWorktreeOpen(true)}>
-                        New worktree terminal…
+                        New worktree terminal
                       </DropdownMenuItem>
                     ) : null}
                     <DropdownMenuItem
@@ -223,23 +238,18 @@ export function OpenProjectSection({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              </div>
               {git?.isRepo ? (
-                <div className="min-w-0 pb-1 pl-7">
-                  <GitChip
-                    projectId={id}
-                    path={path}
-                    projectName={name}
-                    paneId={`open-project:${id}`}
-                    listenToShortcut={false}
-                    variant="meta"
-                    side="bottom"
-                  />
-                </div>
+                <GitToolkitPopover
+                  projectId={id}
+                  path={path}
+                  projectName={name}
+                  paneId={`open-project:${id}`}
+                  side="bottom"
+                />
               ) : null}
             </div>
           </ContextMenuTrigger>
-          <ContextMenuContent className="min-w-[14rem]">
+          <ContextMenuContent className="min-w-[18rem]">
             <ContextMenuItem
               shortcut={ProjectShortcuts.newTerminal.label}
               onClick={() => void createTerminal(id)}
@@ -247,8 +257,21 @@ export function OpenProjectSection({
               New terminal
             </ContextMenuItem>
             {git?.isRepo ? (
+              <ContextMenuItem
+                shortcut={ProjectShortcuts.gitToolkit.label}
+                onClick={() =>
+                  void openGitToolkitAt(
+                    { projectId: id, paneId: `open-project:${id}`, view: "main" },
+                    null
+                  )
+                }
+              >
+                <GitMenuLabel branch={git?.branch} />
+              </ContextMenuItem>
+            ) : null}
+            {git?.isRepo ? (
               <ContextMenuItem onClick={() => setWorktreeOpen(true)}>
-                New worktree terminal…
+                New worktree terminal
               </ContextMenuItem>
             ) : null}
             <ContextMenuItem

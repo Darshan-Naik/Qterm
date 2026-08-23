@@ -91,7 +91,7 @@ export type GitPanelView = "main" | "branches" | "stashes" | "worktrees";
 
 export type GitPanelTarget = {
   projectId: string;
-  /** Pane chrome chip; `null` means the sidebar project chip. */
+  /** Title-bar pane id, or a list host (`project:`, `open-project:`, `session:`, `open-session:`). */
   paneId: string | null;
   view: GitPanelView;
 };

@@ -29,7 +29,7 @@ import { collectSessionIds, toggleProjectCollapsed, useUI, type SessionInfo } fr
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
-import { GitChip, GitWorktreePicker } from "@/features/git";
+import { GitDirtyDot, GitMenuLabel, GitToolkitPopover, GitWorktreePicker, openGitToolkitAt } from "@/features/git";
 import { createTerminal, setActiveScope } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById, openPathInIDE } from "@/lib/menuActions";
@@ -81,6 +81,8 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
   const [menuOpen, setMenuOpen] = useExclusiveMenu(`project:${id}`);
+  const gitOpen = useUI((s) => s.gitPanel?.paneId === `project:${id}`);
+  const rowActive = menuOpen || gitOpen;
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
 
@@ -106,11 +108,10 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group relative flex w-full min-w-0 flex-col rounded-lg py-0.5 pr-1 hover:bg-sidebar-accent/50",
-                menuOpen && "bg-sidebar-accent/50"
+                "group relative flex w-full min-w-0 items-center rounded-lg py-0.5 pr-1 hover:bg-sidebar-accent/50",
+                rowActive && "bg-sidebar-accent/50"
               )}
             >
-            <div className="relative flex min-w-0 items-center">
             <WithTooltip label={collapsed ? "Expand" : "Collapse"} side="right">
               <button
                 type="button"
@@ -139,13 +140,16 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               onDoubleClick={() => toggleProjectCollapsed(id)}
             >
               <WithTooltip label={name} side="right">
-                <span className="block min-w-0 truncate font-normal">{name}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="min-w-0 truncate font-normal">{name}</span>
+                  {git?.dirty ? <GitDirtyDot /> : null}
+                </span>
               </WithTooltip>
             </button>
             <div
               className={cn(
                 "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-sidebar opacity-0 group-hover:bg-sidebar-accent/50 group-hover:opacity-100",
-                menuOpen && "bg-sidebar-accent/50 opacity-100"
+                rowActive && "bg-sidebar-accent/50 opacity-100"
               )}
             >
               <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
@@ -178,8 +182,10 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   </DropdownMenuTrigger>
                 </WithTooltip>
                 <DropdownMenuContent
-                  align="end"
-                  className="min-w-[14rem]"
+                  side="bottom"
+                  align="start"
+                  collisionPadding={8}
+                  className="min-w-[18rem]"
                   onCloseAutoFocus={(e) => e.preventDefault()}
                 >
                   <DropdownMenuItem
@@ -189,8 +195,18 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                     New terminal
                   </DropdownMenuItem>
                   {git?.isRepo ? (
+                    <DropdownMenuItem
+                      shortcut={ProjectShortcuts.gitToolkit.label}
+                      onClick={() =>
+                        void openGitToolkitAt({ projectId: id, paneId: `project:${id}`, view: "main" }, null)
+                      }
+                    >
+                      <GitMenuLabel branch={git?.branch} />
+                    </DropdownMenuItem>
+                  ) : null}
+                  {git?.isRepo ? (
                     <DropdownMenuItem onClick={() => setWorktreeOpen(true)}>
-                      New worktree terminal…
+                      New worktree terminal
                     </DropdownMenuItem>
                   ) : null}
                   <DropdownMenuItem
@@ -238,22 +254,18 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            </div>
             {git?.isRepo ? (
-              <div className="min-w-0 pl-7 pr-1">
-                <GitChip
-                  projectId={id}
-                  path={path}
-                  projectName={name}
-                  paneId={null}
-                  variant="meta"
-                  side="right"
-                />
-              </div>
+              <GitToolkitPopover
+                projectId={id}
+                path={path}
+                projectName={name}
+                paneId={`project:${id}`}
+                side="right"
+              />
             ) : null}
             </div>
           </ContextMenuTrigger>
-          <ContextMenuContent className="min-w-[14rem]">
+          <ContextMenuContent className="min-w-[18rem]">
             <ContextMenuItem
               shortcut={ProjectShortcuts.newTerminal.label}
               onClick={() => void createTerminal(id)}
@@ -261,8 +273,18 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               New terminal
             </ContextMenuItem>
             {git?.isRepo ? (
+              <ContextMenuItem
+                shortcut={ProjectShortcuts.gitToolkit.label}
+                onClick={() =>
+                  void openGitToolkitAt({ projectId: id, paneId: `project:${id}`, view: "main" }, null)
+                }
+              >
+                <GitMenuLabel branch={git?.branch} />
+              </ContextMenuItem>
+            ) : null}
+            {git?.isRepo ? (
               <ContextMenuItem onClick={() => setWorktreeOpen(true)}>
-                New worktree terminal…
+                New worktree terminal
               </ContextMenuItem>
             ) : null}
             <ContextMenuItem

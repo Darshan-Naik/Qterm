@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MoreHorizontal, Pin, Trash2, X } from "lucide-react";
+import { FolderTree, MoreHorizontal, Pin, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import {
@@ -21,8 +21,9 @@ import { cn } from "@/lib/utils";
 import { focusSession } from "@/lib/sessions";
 import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
-import { TerminalShortcuts } from "@/lib/menuShortcuts";
-import { GitChip, isSessionWorktree } from "@/features/git";
+import { GitDirtyDot, GitMenuLabel, GitToolkitPopover, isSessionWorktree, openGitToolkitAt } from "@/features/git";
+import { useGitStatus } from "@/queries";
+import { ProjectShortcuts, TerminalShortcuts } from "@/lib/menuShortcuts";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
@@ -35,10 +36,14 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
   const projects = useUI((s) => s.projects);
   const pinned = !!session.pinned;
   const project = projects.find((p) => p.id === session.projectId);
-  const showWorktreeChip = !!project && isSessionWorktree(session.cwd, project.path);
+  const showWorktree = !!project && isSessionWorktree(session.cwd, project.path);
+  const { data: gitData } = useGitStatus(showWorktree ? session.cwd : "");
+  const git = gitData as { isRepo?: boolean; dirty?: boolean; branch?: string } | undefined;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.name);
   const [menuOpen, setMenuOpen] = useExclusiveMenu(`open-session:${session.id}`);
+  const gitOpen = useUI((s) => s.gitPanel?.paneId === `open-session:${session.id}`);
+  const rowActive = menuOpen || gitOpen;
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
   const pendingRename = useRef(false);
 
@@ -102,15 +107,14 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "group relative flex min-h-10 w-full min-w-0 flex-col justify-center rounded-lg bg-accent/20 px-2.5 py-2 text-left",
+            "group relative flex min-h-10 w-full min-w-0 items-center rounded-lg bg-accent/20 px-2.5 py-2 text-left",
             "transition-colors hover:bg-accent/45",
-            menuOpen && "bg-accent/45",
+            rowActive && "bg-accent/45",
             needsInput && "session-needs-input",
             thinking && "session-thinking",
             complete && "session-complete"
           )}
         >
-          <div className="relative flex min-w-0 items-center gap-2">
           <button
             type="button"
             className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -178,12 +182,36 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
                 {session.name}
               </span>
             )}
+            {git?.dirty ? <GitDirtyDot /> : null}
           </button>
+
+          {showWorktree ? (
+            <WithTooltip label="Worktree">
+              <button
+                type="button"
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center text-muted-foreground group-hover:pointer-events-none group-hover:opacity-0",
+                  rowActive && "pointer-events-none opacity-0"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!project) return;
+                  void openGitToolkitAt(
+                    { projectId: project.id, paneId: `open-session:${session.id}`, view: "main" },
+                    session.id
+                  );
+                }}
+                aria-label="Worktree"
+              >
+                <FolderTree className="size-3.5 opacity-70" />
+              </button>
+            </WithTooltip>
+          ) : null}
 
           <div
             className={cn(
-              "pointer-events-none absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
-              menuOpen && "pointer-events-auto opacity-100"
+              "pointer-events-none absolute right-2.5 top-1/2 z-10 flex -translate-y-1/2 items-center opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
+              rowActive && "pointer-events-auto opacity-100"
             )}
           >
               <DropdownMenu modal={false} open={menuOpen} onOpenChange={onMenuOpenChange}>
@@ -202,13 +230,28 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
                   </DropdownMenuTrigger>
                 </WithTooltip>
                 <DropdownMenuContent
-                  align="end"
-                  className="min-w-[12rem]"
+                  side="bottom"
+                  align="start"
+                  collisionPadding={8}
+                  className="min-w-[16rem]"
                   onCloseAutoFocus={onMenuCloseAutoFocus}
                 >
                   <DropdownMenuItem shortcut={TerminalShortcuts.rename.label} onSelect={queueRename}>
                     Rename…
                   </DropdownMenuItem>
+                  {showWorktree && project ? (
+                    <DropdownMenuItem
+                      shortcut={ProjectShortcuts.gitToolkit.label}
+                      onClick={() =>
+                        void openGitToolkitAt(
+                          { projectId: project.id, paneId: `open-session:${session.id}`, view: "main" },
+                          session.id
+                        )
+                      }
+                    >
+                      <GitMenuLabel branch={git?.branch} />
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem onClick={() => void toggleSessionPin(session.id)}>
                     <Pin className={cn("size-3.5 opacity-70", pinned && "fill-current")} />
                     {pinned ? "Unpin terminal" : "Pin terminal"}
@@ -232,27 +275,34 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
                 </DropdownMenuContent>
               </DropdownMenu>
           </div>
-          </div>
-          {showWorktreeChip && project ? (
-            <div className="min-w-0 pl-6">
-              <GitChip
-                projectId={session.projectId}
-                path={session.cwd}
-                projectName={project.name}
-                paneId={`open-session:${session.id}`}
-                listenToShortcut={false}
-                variant="meta"
-                side="bottom"
-                worktree
-              />
-            </div>
+          {showWorktree && project ? (
+            <GitToolkitPopover
+              projectId={project.id}
+              path={session.cwd}
+              projectName={project.name}
+              paneId={`open-session:${session.id}`}
+              side="bottom"
+            />
           ) : null}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="min-w-[12rem]" onCloseAutoFocus={onMenuCloseAutoFocus}>
+      <ContextMenuContent className="min-w-[16rem]" onCloseAutoFocus={onMenuCloseAutoFocus}>
         <ContextMenuItem shortcut={TerminalShortcuts.rename.label} onSelect={queueRename}>
           Rename…
         </ContextMenuItem>
+        {showWorktree && project ? (
+          <ContextMenuItem
+            shortcut={ProjectShortcuts.gitToolkit.label}
+            onClick={() =>
+              void openGitToolkitAt(
+                { projectId: project.id, paneId: `open-session:${session.id}`, view: "main" },
+                session.id
+              )
+            }
+          >
+            <GitMenuLabel branch={git?.branch} />
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem onClick={() => void toggleSessionPin(session.id)}>
           {pinned ? "Unpin terminal" : "Pin terminal"}
         </ContextMenuItem>
