@@ -1,4 +1,5 @@
 import {
+  ChevronRight,
   Folder,
   FolderGit2,
   MoreHorizontal,
@@ -23,12 +24,13 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { collectSessionIds, useUI, type SessionInfo } from "@/store/ui";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { collectSessionIds, toggleProjectCollapsed, useUI, type SessionInfo } from "@/store/ui";
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
 import { GitChip, GitWorktreePicker } from "@/features/git";
-import { createTerminal } from "@/lib/sessions";
+import { createTerminal, setActiveScope } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
@@ -49,10 +51,21 @@ export function OpenProjectSection({
   sessions: SessionInfo[];
 }) {
   const splitTree = useUI((s) => s.splitTree);
-  const layoutOpenCount = useMemo(() => {
-    const ids = new Set(sessions.map((s) => s.id));
-    return collectSessionIds(splitTree).filter((sid) => ids.has(sid)).length;
-  }, [sessions, splitTree]);
+  const collapsed = useUI((s) => !!s.collapsedProjects[id]);
+  const layoutIds = useMemo(() => new Set(collectSessionIds(splitTree)), [splitTree]);
+  const layoutOpenCount = useMemo(
+    () => sessions.filter((s) => layoutIds.has(s.id)).length,
+    [sessions, layoutIds]
+  );
+  const peekSessions = useMemo(
+    () => sessions.filter((s) => layoutIds.has(s.id) || s.pinned),
+    [sessions, layoutIds]
+  );
+  const peekIds = useMemo(() => new Set(peekSessions.map((s) => s.id)), [peekSessions]);
+  const extraSessions = useMemo(
+    () => sessions.filter((s) => !peekIds.has(s.id)),
+    [sessions, peekIds]
+  );
 
   const { data: gitData } = useGitStatus(path);
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
@@ -88,14 +101,35 @@ export function OpenProjectSection({
                 menuOpen && "bg-accent/40"
               )}
             >
-              <WithTooltip label={path || name}>
-                <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
-                  <ProjectIcon className="size-3.5" />
-                </span>
+              <WithTooltip label={collapsed ? "Expand" : "Collapse"}>
+                <button
+                  type="button"
+                  className="relative flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleProjectCollapsed(id);
+                  }}
+                >
+                  <ProjectIcon className="size-3.5 opacity-70 transition-opacity duration-200 ease-[var(--motion-ease-out)] group-hover:opacity-0" />
+                  <ChevronRight
+                    className={cn(
+                      "absolute size-3.5 opacity-0 transition-[transform,opacity] duration-200 ease-[var(--motion-ease-out)] group-hover:opacity-100",
+                      !collapsed && "rotate-90"
+                    )}
+                  />
+                </button>
               </WithTooltip>
-              <h2 className="min-w-0 flex-1 truncate px-1.5 text-[13px] font-medium text-foreground">
+              <button
+                type="button"
+                className="min-w-0 flex-1 truncate px-1.5 text-left text-[13px] font-medium text-foreground"
+                onClick={() => {
+                  if (collapsed) toggleProjectCollapsed(id);
+                  void setActiveScope(id);
+                }}
+                onDoubleClick={() => toggleProjectCollapsed(id)}
+              >
                 {name}
-              </h2>
+              </button>
               <div
                 className={cn(
                   "hidden shrink-0 items-center justify-end gap-0.5 group-hover:flex",
@@ -240,13 +274,14 @@ export function OpenProjectSection({
         </ContextMenu>
       </div>
 
-      {sessions.length > 0 ? (
+      {collapsed && peekSessions.length > 0 ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(15.5rem,1fr))] gap-2">
-          {sessions.map((s) => (
+          {peekSessions.map((s) => (
             <OpenSessionTile key={s.id} session={s} />
           ))}
         </div>
-      ) : (
+      ) : null}
+      {!collapsed && sessions.length === 0 ? (
         <button
           type="button"
           onClick={() => void createTerminal(id)}
@@ -255,7 +290,18 @@ export function OpenProjectSection({
           <Plus className="size-3.5" />
           New terminal
         </button>
-      )}
+      ) : null}
+      {(!collapsed ? sessions.length > 0 : extraSessions.length > 0) ? (
+        <Collapsible open={!collapsed}>
+          <CollapsibleContent>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(15.5rem,1fr))] gap-2">
+              {(collapsed ? extraSessions : sessions).map((s) => (
+                <OpenSessionTile key={s.id} session={s} />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      ) : null}
       {git?.isRepo ? (
         <GitWorktreePicker
           open={worktreeOpen}
