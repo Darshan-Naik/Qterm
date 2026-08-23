@@ -163,14 +163,8 @@ func findRoot(path string) (string, error) {
 }
 
 func inProgress(root string) string {
-	gitDir := filepath.Join(root, ".git")
-	info, err := os.Stat(gitDir)
-	if err != nil {
-		return ""
-	}
-	dir := gitDir
-	if !info.IsDir() {
-		// Worktree: .git is a file pointing at the real git dir.
+	dir := gitDir(root)
+	if dir == "" {
 		return ""
 	}
 	switch {
@@ -182,6 +176,34 @@ func inProgress(root string) string {
 		return "cherry-pick"
 	}
 	return ""
+}
+
+func gitDir(root string) string {
+	p := filepath.Join(root, ".git")
+	info, err := os.Stat(p)
+	if err != nil {
+		return ""
+	}
+	if info.IsDir() {
+		return p
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return ""
+	}
+	line := strings.TrimSpace(string(data))
+	const prefix = "gitdir:"
+	if len(line) < len(prefix) || !strings.EqualFold(line[:len(prefix)], prefix) {
+		return ""
+	}
+	dir := strings.TrimSpace(line[len(prefix):])
+	if dir == "" {
+		return ""
+	}
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(root, dir)
+	}
+	return filepath.Clean(dir)
 }
 
 func exists(path string) bool {

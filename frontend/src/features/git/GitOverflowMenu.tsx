@@ -7,8 +7,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { GitToolkitScope } from "./gitScope";
 
 export function GitOverflowMenu({
+  scope,
   branch,
   dirty,
   stashCount,
@@ -18,7 +20,9 @@ export function GitOverflowMenu({
   onStash,
   onPop,
   onOpenStashes,
+  onOpenWorktrees,
 }: {
+  scope: GitToolkitScope;
   branch: string;
   dirty: boolean;
   stashCount: number;
@@ -28,8 +32,10 @@ export function GitOverflowMenu({
   onStash: () => void;
   onPop: () => void;
   onOpenStashes: () => void;
+  onOpenWorktrees: () => void;
 }) {
   const spinning = busy === "fetch" || busy === "stash" || busy === "stash-pop";
+  const root = scope === "root";
 
   return (
     <DropdownMenu modal={false}>
@@ -58,16 +64,20 @@ export function GitOverflowMenu({
         className="min-w-[12rem]"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <DropdownMenuItem disabled={!!busy} onClick={onSwitchBranch} shortcut={branch || undefined}>
-          <GitBranch className="size-3.5 opacity-70" />
-          Switch branch
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={!!busy} onClick={onFetch}>
-          <RefreshCw className="size-3.5 opacity-70" />
-          Fetch
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {root ? (
+          <>
+            <DropdownMenuItem disabled={!!busy} onClick={onSwitchBranch} shortcut={branch || undefined}>
+              <GitBranch className="size-3.5 opacity-70" />
+              Switch branch
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={!!busy} onClick={onFetch}>
+              <RefreshCw className="size-3.5 opacity-70" />
+              Fetch
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuItem disabled={!!busy || !dirty} onClick={onStash}>
           <Archive className="size-3.5 opacity-70" />
           Stash changes
@@ -82,6 +92,11 @@ export function GitOverflowMenu({
         <DropdownMenuItem disabled={!!busy} onClick={onOpenStashes}>
           Stashes…
         </DropdownMenuItem>
+        {root ? (
+          <DropdownMenuItem disabled={!!busy} onClick={onOpenWorktrees}>
+            Worktrees…
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -53,7 +53,7 @@ export function PaneChrome({
       {project ? (
         <GitChip
           projectId={project.id}
-          path={project.path}
+          path={session?.cwd || project.path}
           projectName={project.name}
           paneId={paneId}
           variant="pane"

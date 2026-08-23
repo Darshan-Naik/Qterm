@@ -1,4 +1,4 @@
-import { shortcutLabel } from "@/lib/shortcutLabel";
+import { formatShortcutKey, shortcutLabel } from "@/lib/shortcutLabel";
 import type { KeyChord } from "./types";
 
 const MODIFIER_KEYS = new Set(["Meta", "Control", "Alt", "Shift", "Hyper", "Super"]);
@@ -139,14 +139,23 @@ function displayKey(key: string): string {
   }
 }
 
-export function formatChord(c: KeyChord): string {
+function chordTokens(c: KeyChord): string[] {
   const parts: string[] = [];
   if (c.ctrlOnly) parts.push("ctrl");
   else if (c.metaOrCtrl) parts.push("mod");
   if (c.alt) parts.push("alt");
   if (c.shift) parts.push("shift");
   parts.push(displayKey(c.key));
-  return shortcutLabel(...parts);
+  return parts;
+}
+
+/** Display labels for each key in a chord, in modifier → key order. */
+export function chordKeys(c: KeyChord): string[] {
+  return chordTokens(c).map(formatShortcutKey);
+}
+
+export function formatChord(c: KeyChord): string {
+  return shortcutLabel(...chordTokens(c));
 }
 
 export function formatChords(chords: KeyChord[]): string {

@@ -458,6 +458,46 @@ export namespace git {
 	        this.behind = source["behind"];
 	    }
 	}
+	export class Worktree {
+	    path: string;
+	    branch: string;
+	    bare: boolean;
+	    locked: boolean;
+	    main: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Worktree(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.branch = source["branch"];
+	        this.bare = source["bare"];
+	        this.locked = source["locked"];
+	        this.main = source["main"];
+	    }
+	}
+	export class WorktreeAddResult {
+	    ok: boolean;
+	    path: string;
+	    stdout: string;
+	    stderr: string;
+	    cmd: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new WorktreeAddResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.path = source["path"];
+	        this.stdout = source["stdout"];
+	        this.stderr = source["stderr"];
+	        this.cmd = source["cmd"];
+	    }
+	}
 
 }
 

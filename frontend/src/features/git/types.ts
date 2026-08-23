@@ -40,6 +40,32 @@ export type GitResult = {
   cmd: string;
 };
 
+export type GitWorktree = {
+  path: string;
+  branch: string;
+  bare: boolean;
+  locked: boolean;
+  main: boolean;
+};
+
+export function asWorktrees(raw: unknown): GitWorktree[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    const w = (item || {}) as Record<string, unknown>;
+    return {
+      path: String(w.path || w.Path || ""),
+      branch: String(w.branch || w.Branch || ""),
+      bare: !!(w.bare ?? w.Bare),
+      locked: !!(w.locked ?? w.Locked),
+      main: !!(w.main ?? w.Main),
+    };
+  });
+}
+
+export type GitWorktreeAdd = GitResult & {
+  path: string;
+};
+
 export function asStatus(raw: unknown): GitStatus | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const s = raw as Partial<GitStatus>;

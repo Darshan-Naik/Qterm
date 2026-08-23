@@ -125,6 +125,54 @@ func parseStashList(out string) []StashEntry {
 	return list
 }
 
+func parseWorktreeList(out string) []Worktree {
+	list := make([]Worktree, 0)
+	var cur Worktree
+	flush := func() {
+		if cur.Path == "" {
+			return
+		}
+		if cur.Branch == "" {
+			cur.Branch = "HEAD"
+		}
+		if len(list) == 0 {
+			cur.Main = true
+		}
+		list = append(list, cur)
+		cur = Worktree{}
+	}
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			flush()
+			continue
+		}
+		key, val, ok := strings.Cut(line, " ")
+		if !ok {
+			switch line {
+			case "bare":
+				cur.Bare = true
+			case "locked":
+				cur.Locked = true
+			case "detached":
+				cur.Branch = "HEAD"
+			}
+			continue
+		}
+		switch key {
+		case "worktree":
+			flush()
+			cur.Path = val
+		case "branch":
+			cur.Branch = strings.TrimPrefix(val, "refs/heads/")
+		case "HEAD":
+			// sha; unused
+		}
+	}
+	flush()
+	return list
+}
+
 func stashRef(ref string) (string, bool) {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {

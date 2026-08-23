@@ -9,6 +9,7 @@ export type {
 export {
   chordFromEvent,
   chordId,
+  chordKeys,
   chordsEqual,
   eventMatchesChord,
   formatChord,

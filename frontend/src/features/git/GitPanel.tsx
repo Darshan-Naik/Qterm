@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { GitBranch, Loader2 } from "lucide-react";
 import { confirm } from "@/lib/confirm";
-import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes } from "@/queries";
-import { useUI } from "@/store/ui";
+import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes, useGitWorktrees } from "@/queries";
+import { useUI, type GitPanelView } from "@/store/ui";
 import {
   GitCheckout,
   GitCommit,
   GitCreateBranch,
   GitDeleteBranch,
   GitDiscard,
+  GitDiscardAll,
   GitFetch,
   GitPull,
   GitPush,
+  GitPruneWorktrees,
+  GitRemoveWorktree,
   GitStage,
   GitStageAll,
   GitStash,
@@ -19,6 +22,7 @@ import {
   GitStashDrop,
   GitStashPop,
   GitUnstage,
+  GitUnstageAll,
 } from "../../../wailsjs/go/main/App";
 import { GitActionRow } from "./GitActionRow";
 import { GitBranchSwitcher } from "./GitBranchSwitcher";
@@ -27,8 +31,9 @@ import { GitEmptyState } from "./GitEmptyState";
 import { GitFileList } from "./GitFileList";
 import { GitOverflowMenu } from "./GitOverflowMenu";
 import { GitStashList } from "./GitStashList";
-import { runGitInTerminal } from "./gitScope";
-import { asSnapshot, type GitFile, type GitResult } from "./types";
+import { GitWorktreeList } from "./GitWorktreeList";
+import { runGitInTerminal, type GitToolkitScope } from "./gitScope";
+import { asSnapshot, asWorktrees, type GitFile, type GitResult } from "./types";
 
 function asResult(raw: unknown): GitResult {
   const r = (raw || {}) as Partial<GitResult>;
@@ -42,15 +47,19 @@ function asResult(raw: unknown): GitResult {
 
 export function GitPanel({
   path,
+  rootPath,
   projectName,
   open,
+  scope = "root",
 }: {
   path: string;
+  rootPath?: string;
   projectName: string;
   open: boolean;
+  scope?: GitToolkitScope;
 }) {
   const requestedView = useUI((s) => s.gitPanel?.view ?? "main");
-  const [view, setView] = useState<"main" | "branches" | "stashes">(requestedView);
+  const [view, setView] = useState<GitPanelView>(requestedView);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<GitResult | null>(null);
   const [message, setMessage] = useState("");
@@ -58,6 +67,7 @@ export function GitPanel({
   const snapQuery = useGitSnapshot(path, open);
   const branchQuery = useGitBranches(path, open && view === "branches");
   const stashQuery = useGitStashes(path, open && view === "stashes");
+  const worktreeQuery = useGitWorktrees(path, open && view === "worktrees");
   const snap = asSnapshot(snapQuery.data);
   const branches = (branchQuery.data || []) as Array<{
     name?: string;
@@ -65,9 +75,16 @@ export function GitPanel({
     date?: number;
   }>;
 
+  const linked = scope === "worktree";
+
   useEffect(() => {
-    if (open) setView(requestedView);
-  }, [open, requestedView]);
+    if (!open) return;
+    if (linked && (requestedView === "branches" || requestedView === "worktrees")) {
+      setView("main");
+    } else {
+      setView(requestedView);
+    }
+  }, [open, requestedView, linked]);
 
   useEffect(() => {
     if (!open || busy) return;
@@ -87,6 +104,7 @@ export function GitPanel({
         return false;
       }
       invalidateGit(path);
+      if (rootPath && rootPath !== path) invalidateGit(rootPath);
       return true;
     } catch (err) {
       setError({
@@ -118,7 +136,7 @@ export function GitPanel({
     snap?.inProgress === "rebase" ||
     (error?.stderr || "").toLowerCase().includes("conflict");
 
-  if (view === "branches") {
+  if (view === "branches" && !linked) {
     return (
       <GitBranchSwitcher
         branches={branches.map((b) => ({
@@ -206,31 +224,97 @@ export function GitPanel({
     );
   }
 
+  if (view === "worktrees" && !linked) {
+    const worktrees = asWorktrees(worktreeQuery.data);
+    return (
+      <GitWorktreeList
+        worktrees={worktrees}
+        busy={busy}
+        error={!error?.ok ? error?.stderr : undefined}
+        onBack={() => setView("main")}
+        onRemove={async (wtPath) => {
+          setBusy(`worktree-remove:${wtPath}`);
+          setError(null);
+          try {
+            let result = asResult(await GitRemoveWorktree(path, wtPath, false));
+            if (!result.ok && result.stderr.toLowerCase().includes("local changes")) {
+              setBusy(null);
+              const force = await confirm({
+                title: "Worktree has local changes",
+                description: "Remove it anyway? Uncommitted work in that folder will be lost.",
+                confirmLabel: "Remove anyway",
+                destructive: true,
+              });
+              if (!force) {
+                setError(result);
+                return;
+              }
+              setBusy(`worktree-remove:${wtPath}`);
+              result = asResult(await GitRemoveWorktree(path, wtPath, true));
+            }
+            if (!result.ok) {
+              setError(result);
+              return;
+            }
+            invalidateGit(path);
+            void worktreeQuery.refetch();
+          } catch (err) {
+            setError({
+              ok: false,
+              stdout: "",
+              stderr: err instanceof Error ? err.message : String(err),
+              cmd: "",
+            });
+          } finally {
+            setBusy(null);
+          }
+        }}
+        onPrune={() => void run("prune", () => GitPruneWorktrees(path))}
+      />
+    );
+  }
+
   const canPush = !!snap && (snap.ahead > 0 || !snap.upstream);
   const stagedCount = snap?.files.filter((f) => f.staged).length ?? 0;
   const dirty = !!snap?.dirty;
   const loading = snapQuery.isLoading && !snap;
 
   return (
-    <div className="flex max-h-[min(70vh,34rem)] min-h-0 flex-col">
-      <div className="flex min-w-0 shrink-0 items-center gap-1 border-b border-border/70 px-2 py-1.5">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left hover:bg-accent/50"
-          onClick={() => setView("branches")}
-        >
-          {loading ? (
-            <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
-          ) : (
-            <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-          )}
-          <span className="max-w-[9rem] shrink-0 truncate text-[13px] font-medium">
-            {snap?.branch || "—"}
-          </span>
-          <span className="min-w-0 truncate text-[12px] text-muted-foreground">
-            · {projectName}
-          </span>
-        </button>
+    <div className="flex max-h-[min(70vh,34rem)] min-h-0 flex-col overflow-hidden">
+      <div className="relative z-20 flex min-w-0 shrink-0 items-center gap-1 border-b border-border/70 bg-popover px-2 py-1.5">
+        {linked ? (
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-0.5">
+            {loading ? (
+              <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <span className="max-w-[9rem] shrink-0 truncate text-[13px] font-medium">
+              {snap?.branch || "—"}
+            </span>
+            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
+              · {projectName} · worktree
+            </span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left hover:bg-accent/50"
+            onClick={() => setView("branches")}
+          >
+            {loading ? (
+              <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <span className="max-w-[9rem] shrink-0 truncate text-[13px] font-medium">
+              {snap?.branch || "—"}
+            </span>
+            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
+              · {projectName}
+            </span>
+          </button>
+        )}
         <GitActionRow
           ahead={snap?.ahead ?? 0}
           behind={snap?.behind ?? 0}
@@ -240,6 +324,7 @@ export function GitPanel({
           onPush={() => void run("push", () => GitPush(path))}
         />
         <GitOverflowMenu
+          scope={scope}
           branch={snap?.branch || ""}
           dirty={dirty}
           stashCount={snap?.stashCount ?? 0}
@@ -255,6 +340,7 @@ export function GitPanel({
             if (ok) setMessage("");
           }}
           onOpenStashes={() => setView("stashes")}
+          onOpenWorktrees={() => setView("worktrees")}
         />
       </div>
 
@@ -282,13 +368,15 @@ export function GitPanel({
       ) : null}
 
       {dirty ? (
-        <>
+        <div className="flex min-h-0 flex-auto flex-col overflow-hidden">
           <GitFileList
             files={snap?.files ?? []}
             busy={busy}
             onToggle={toggleFile}
             onStageAll={() => void run("stage-all", () => GitStageAll(path))}
+            onUnstageAll={() => void run("unstage-all", () => GitUnstageAll(path))}
             onDiscard={(file) => void run(`discard:${file.path}`, () => GitDiscard(path, file.path))}
+            onDiscardAll={() => void run("discard-all", () => GitDiscardAll(path))}
           />
           <GitCommitBox
             message={message}
@@ -298,7 +386,7 @@ export function GitPanel({
             onCommit={() => void commit(false)}
             onCommitPush={() => void commit(true)}
           />
-        </>
+        </div>
       ) : (
         <GitEmptyState
           loading={loading}

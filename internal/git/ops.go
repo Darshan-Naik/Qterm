@@ -58,6 +58,14 @@ func StageAll(path string) Result {
 	})
 }
 
+func UnstageAll(path string) Result {
+	return withRoot(path, func(root string) Result {
+		args := []string{"restore", "--staged", "."}
+		out, errb, err := run(root, timeoutMutate, args...)
+		return resultFrom(err, out, errb, args...)
+	})
+}
+
 func Commit(path, message string) Result {
 	msg := strings.TrimSpace(message)
 	if msg == "" {
@@ -147,6 +155,20 @@ func Discard(path, file string) Result {
 		}
 		out, errb, err := run(root, timeoutMutate, args...)
 		return resultFrom(err, out, errb, args...)
+	})
+}
+
+func DiscardAll(path string) Result {
+	return withRoot(path, func(root string) Result {
+		args := []string{"restore", "--worktree", "--source=HEAD", "."}
+		out, errb, err := run(root, timeoutMutate, args...)
+		r := resultFrom(err, out, errb, args...)
+		if !r.OK && !strings.Contains(strings.ToLower(r.Stderr), "did not match") {
+			return r
+		}
+		clean := []string{"clean", "-fd"}
+		out, errb, err = run(root, timeoutMutate, clean...)
+		return resultFrom(err, out, errb, clean...)
 	})
 }
 

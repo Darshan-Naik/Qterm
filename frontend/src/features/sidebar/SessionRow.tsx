@@ -23,6 +23,8 @@ import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { SESSION_DRAG_MIME, beginSessionDrag, finishSessionDragFromPoint } from "@/lib/sessionDrag";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
+import { GitChip } from "@/features/git";
+import { isSessionWorktree } from "@/features/git/gitScope";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
@@ -38,10 +40,13 @@ export function SessionRow({
 }) {
   const focusedSessionId = useUI((s) => s.focusedSessionId);
   const splitTree = useUI((s) => s.splitTree);
+  const projects = useUI((s) => s.projects);
   const anim = useUI((s) => s.paneAnimations[session.id] || "none");
   const agent = useUI((s) => s.sessionAgents[session.id] || "");
   const focused = focusedSessionId === session.id;
   const pinned = !!session.pinned;
+  const project = projects.find((p) => p.id === session.projectId);
+  const showWorktreeChip = !!project && isSessionWorktree(session.cwd, project.path);
 
   const openInPane = useMemo(() => {
     if (openInPaneProp != null) return openInPaneProp;
@@ -235,6 +240,17 @@ export function SessionRow({
               )}
             </span>
           </div>
+
+          {showWorktreeChip && project ? (
+            <GitChip
+              projectId={session.projectId}
+              path={session.cwd}
+              projectName={project.name}
+              paneId={`session:${session.id}`}
+              listenToShortcut={false}
+              variant="session"
+            />
+          ) : null}
 
           <DropdownMenu modal={false} open={menuOpen} onOpenChange={onSessionMenuOpenChange}>
             <WithTooltip label="Session menu" disabled={menuOpen || suppressTip}>

@@ -73,13 +73,13 @@ export async function focusScope(scope: string) {
  * Create a terminal in a project (or home). Replaces the focused pane’s
  * session (sidebar “New” / project +). Use split actions or drag to split.
  */
-export async function createTerminal(projectId: string, name?: string) {
+export async function createTerminal(projectId: string, name?: string, cwd?: string) {
   const unbound = isUnbound(projectId);
   const project = uiStore.get().projects.find((p) => p.id === projectId);
-  const cwd = unbound ? "" : project?.path || "";
+  const dir = unbound ? "" : (cwd?.trim() || project?.path || "");
   const pid = unbound ? "" : projectId;
   const label = name || randomTerminalName(uiStore.get().sessions.map((s) => s.name));
-  const sess = await CreateSession(pid, label, cwd);
+  const sess = await CreateSession(pid, label, dir);
   const info: SessionInfo = {
     id: sess.id,
     name: sess.name,
