@@ -31,7 +31,7 @@ type Snapshot struct {
 	Files      []File `json:"files"`
 }
 
-type Stash struct {
+type StashEntry struct {
 	Ref     string `json:"ref"`
 	Message string `json:"message"`
 	Age     string `json:"age"`
@@ -74,14 +74,14 @@ func LoadSnapshot(path string) Snapshot {
 	return snap
 }
 
-func ListStashes(path string) []Stash {
+func ListStashes(path string) []StashEntry {
 	root, err := findRoot(path)
 	if err != nil || root == "" {
-		return []Stash{}
+		return []StashEntry{}
 	}
 	out, _, err := runRead(root, timeoutQuick, "stash", "list", "--format=%gd%x00%s%x00%cr")
 	if err != nil {
-		return []Stash{}
+		return []StashEntry{}
 	}
 	return parseStashList(out)
 }

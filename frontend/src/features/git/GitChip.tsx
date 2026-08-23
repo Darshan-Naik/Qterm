@@ -85,11 +85,11 @@ export function GitChip({
           <button
             type="button"
             className={cn(
-              "flex min-w-0 shrink items-center gap-1 titlebar-no-drag",
+              "flex min-w-0 items-center gap-1 titlebar-no-drag",
               variant === "sidebar" &&
-                "max-w-[46%] justify-end pl-1 text-[12px] text-muted-foreground hover:text-sidebar-foreground",
+                "max-w-[8rem] shrink-0 rounded-md px-1.5 py-0.5 text-[12px] text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
               variant === "open" &&
-                "max-w-[40%] text-[12px] text-muted-foreground hover:text-foreground",
+                "max-w-[8rem] shrink-0 px-1.5 text-[12px] text-muted-foreground hover:text-foreground",
               variant === "pane" &&
                 cn(
                   "max-w-[8.5rem] rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground",

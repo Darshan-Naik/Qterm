@@ -62,7 +62,7 @@ export function ListAgentSessions(arg1:string,arg2:string):Promise<Array<core.Se
 
 export function ListGitBranches(arg1:string):Promise<Array<git.Branch>>;
 
-export function ListGitStashes(arg1:string):Promise<Array<git.Stash>>;
+export function ListGitStashes(arg1:string):Promise<Array<git.StashEntry>>;
 
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 
