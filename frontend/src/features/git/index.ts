@@ -1,2 +1,10 @@
 export { GitChip } from "./GitChip";
-export { openGitToolkit, toggleGitToolkit, closeGitToolkit, runScopedGit } from "./gitScope";
+export { GitWorktreePicker } from "./GitWorktreePicker";
+export {
+  openGitToolkit,
+  toggleGitToolkit,
+  closeGitToolkit,
+  runScopedGit,
+  gitToolkitScope,
+  isSessionWorktree,
+} from "./gitScope";

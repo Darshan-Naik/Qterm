@@ -20,7 +20,7 @@ export function GitCommitBox({
   const blocked = empty || !!busy || !canCommit;
 
   return (
-    <div className="shrink-0 bg-popover px-2.5 pb-2.5 pt-1.5">
+    <div className="relative z-20 shrink-0 bg-popover px-2.5 pb-2.5 pt-1.5">
       <textarea
         value={message}
         onChange={(e) => onMessage(e.target.value)}

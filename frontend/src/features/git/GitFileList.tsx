@@ -9,13 +9,17 @@ export function GitFileList({
   busy,
   onToggle,
   onStageAll,
+  onUnstageAll,
   onDiscard,
+  onDiscardAll,
 }: {
   files: GitFile[];
   busy: string | null;
   onToggle: (file: GitFile) => void;
   onStageAll: () => void;
+  onUnstageAll: () => void;
   onDiscard: (file: GitFile) => void;
+  onDiscardAll: () => void;
 }) {
   const staged = files.filter((f) => f.staged);
   const unstaged = files.filter((f) => f.unstaged);
@@ -31,24 +35,52 @@ export function GitFileList({
     if (ok) onDiscard(file);
   };
 
+  const discardAll = async () => {
+    const ok = await confirm({
+      title: "Discard all changes?",
+      description: "Unstaged and untracked files will be restored or deleted. This cannot be undone.",
+      confirmLabel: "Discard all",
+      destructive: true,
+    });
+    if (ok) onDiscardAll();
+  };
+
   if (files.length === 0) return null;
 
+  const changeFiles = split ? unstaged : files;
+  const changeAction = unstaged.length > 0 || split ? "stage" : "unstage";
+  const changeLabel = unstaged.length > 0 || split ? "Changes" : "Staged";
+  const changeActions: HeaderAction[] =
+    changeAction === "stage"
+      ? [
+          { id: "stage-all", label: "Stage all", onClick: onStageAll },
+          { id: "discard-all", label: "Discard all", danger: true, onClick: () => void discardAll() },
+        ]
+      : [{ id: "unstage-all", label: "Unstage all", onClick: onUnstageAll }];
+
   return (
-    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+    <div className="min-h-0 min-w-0 flex-auto overflow-y-auto">
+      <div>
+        <FileGroupHeader label={changeLabel} count={changeFiles.length} busy={busy} sticky actions={changeActions} />
+        <FileRows
+          label={changeLabel}
+          files={changeFiles}
+          busy={busy}
+          action={changeAction}
+          onToggle={onToggle}
+          onDiscard={discard}
+        />
+      </div>
       {split ? (
-        <>
-          <FileGroup
-            label="Changes"
-            files={unstaged}
+        <div>
+          <FileGroupHeader
+            label="Staged"
+            count={staged.length}
             busy={busy}
-            action="stage"
-            actionLabel="Stage all"
-            onAction={onStageAll}
-            actionBusy={busy === "stage-all"}
-            onToggle={onToggle}
-            onDiscard={discard}
+            sticky
+            actions={[{ id: "unstage-all", label: "Unstage all", onClick: onUnstageAll }]}
           />
-          <FileGroup
+          <FileRows
             label="Staged"
             files={staged}
             busy={busy}
@@ -56,32 +88,70 @@ export function GitFileList({
             onToggle={onToggle}
             onDiscard={discard}
           />
-        </>
-      ) : (
-        <FileGroup
-          label={unstaged.length > 0 ? "Changes" : "Staged"}
-          files={files}
-          busy={busy}
-          action={unstaged.length > 0 ? "stage" : "unstage"}
-          actionLabel={unstaged.length > 0 ? "Stage all" : undefined}
-          onAction={unstaged.length > 0 ? onStageAll : undefined}
-          actionBusy={busy === "stage-all"}
-          onToggle={onToggle}
-          onDiscard={discard}
-        />
-      )}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function FileGroup({
+type HeaderAction = {
+  id: string;
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+};
+
+function FileGroupHeader({
+  label,
+  count,
+  busy,
+  actions = [],
+  sticky = false,
+}: {
+  label: string;
+  count: number;
+  busy: string | null;
+  actions?: HeaderAction[];
+  sticky?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-2 bg-popover px-3 py-2",
+        sticky && "sticky top-0 z-10"
+      )}
+    >
+      <span className="text-[11px] text-muted-foreground">
+        {label}
+        <span className="tabular-nums"> {count}</span>
+      </span>
+      {actions.length > 0 ? (
+        <div className="flex shrink-0 items-center gap-2.5">
+          {actions.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              disabled={!!busy}
+              className={cn(
+                "cursor-pointer text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50",
+                a.danger && "hover:text-destructive"
+              )}
+              onClick={a.onClick}
+            >
+              {busy === a.id ? <Loader2 className="inline size-3 animate-spin" /> : a.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FileRows({
   label,
   files,
   busy,
   action,
-  actionLabel,
-  onAction,
-  actionBusy,
   onToggle,
   onDiscard,
 }: {
@@ -89,30 +159,11 @@ function FileGroup({
   files: GitFile[];
   busy: string | null;
   action: "stage" | "unstage";
-  actionLabel?: string;
-  onAction?: () => void;
-  actionBusy?: boolean;
   onToggle: (file: GitFile) => void;
   onDiscard: (file: GitFile) => void;
 }) {
   return (
-    <div>
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-popover px-3 py-2">
-        <span className="text-[11px] text-muted-foreground">
-          {label}
-          <span className="tabular-nums"> {files.length}</span>
-        </span>
-        {onAction && actionLabel ? (
-          <button
-            type="button"
-            disabled={!!busy}
-            className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
-            onClick={onAction}
-          >
-            {actionBusy ? <Loader2 className="inline size-3 animate-spin" /> : actionLabel}
-          </button>
-        ) : null}
-      </div>
+    <>
       {files.map((file) => {
         const spinning = busy === `file:${file.path}` || busy === `discard:${file.path}`;
         const letter = statusLetter(file.code);
@@ -171,7 +222,7 @@ function FileGroup({
           </div>
         );
       })}
-    </div>
+    </>
   );
 }
 

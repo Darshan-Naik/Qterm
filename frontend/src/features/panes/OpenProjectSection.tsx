@@ -6,7 +6,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import {
@@ -27,7 +27,7 @@ import { collectSessionIds, useUI, type SessionInfo } from "@/store/ui";
 import { OpenInFinder } from "../../../wailsjs/go/main/App";
 import { cn } from "@/lib/utils";
 import { useGitStatus } from "@/queries";
-import { GitChip } from "@/features/git";
+import { GitChip, GitWorktreePicker } from "@/features/git";
 import { createTerminal } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
 import { removeProjectById, renameProjectById } from "@/lib/menuActions";
@@ -58,6 +58,7 @@ export function OpenProjectSection({
   const git = gitData as { isRepo?: boolean; branch?: string; dirty?: boolean } | undefined;
   const ProjectIcon = git?.isRepo ? FolderGit2 : Folder;
   const [menuOpen, setMenuOpen] = useExclusiveMenu(`open-project:${id}`);
+  const [worktreeOpen, setWorktreeOpen] = useState(false);
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
 
   const onMenuOpenChange = (next: boolean) => {
@@ -144,6 +145,11 @@ export function OpenProjectSection({
                     >
                       New terminal
                     </DropdownMenuItem>
+                    {git?.isRepo ? (
+                      <DropdownMenuItem onClick={() => setWorktreeOpen(true)}>
+                        New worktree terminal…
+                      </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuItem
                       shortcut={ProjectShortcuts.rename.label}
                       onClick={() => void renameProjectById(id, name)}
@@ -192,6 +198,11 @@ export function OpenProjectSection({
             >
               New terminal
             </ContextMenuItem>
+            {git?.isRepo ? (
+              <ContextMenuItem onClick={() => setWorktreeOpen(true)}>
+                New worktree terminal…
+              </ContextMenuItem>
+            ) : null}
             <ContextMenuItem
               shortcut={ProjectShortcuts.rename.label}
               onClick={() => void renameProjectById(id, name)}
@@ -244,6 +255,14 @@ export function OpenProjectSection({
           New terminal
         </button>
       )}
+      {git?.isRepo ? (
+        <GitWorktreePicker
+          open={worktreeOpen}
+          onOpenChange={setWorktreeOpen}
+          projectId={id}
+          path={path}
+        />
+      ) : null}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import {
   GetGitSnapshot,
   ListGitBranches,
   ListGitStashes,
+  ListGitWorktrees,
   GetConfig,
 } from "../../wailsjs/go/main/App";
 
@@ -80,12 +81,22 @@ export function useGitStashes(path: string | undefined, enabled: boolean) {
   });
 }
 
+export function useGitWorktrees(path: string | undefined, enabled: boolean) {
+  return useQuery(["git-worktrees", path || ""], {
+    fetcher: () => ListGitWorktrees(path || ""),
+    enabled: !!path && enabled,
+    staleTime: 5_000,
+    persist: false,
+  });
+}
+
 export function invalidateGit(path: string) {
   if (!path) return;
   invalidateQuery(["git", path]);
   invalidateQuery(["git-snapshot", path]);
   invalidateQuery(["git-branches", path]);
   invalidateQuery(["git-stashes", path]);
+  invalidateQuery(["git-worktrees", path]);
 }
 
 export function useAppConfig() {

@@ -24,6 +24,8 @@ export function GetLayout(arg1:string):Promise<config.SplitNode>;
 
 export function GetScrollback(arg1:string):Promise<Record<string, any>>;
 
+export function GitAddWorktree(arg1:string,arg2:string):Promise<git.WorktreeAddResult>;
+
 export function GitCheckout(arg1:string,arg2:string):Promise<git.Result>;
 
 export function GitCommit(arg1:string,arg2:string):Promise<git.Result>;
@@ -34,11 +36,17 @@ export function GitDeleteBranch(arg1:string,arg2:string,arg3:boolean):Promise<gi
 
 export function GitDiscard(arg1:string,arg2:string):Promise<git.Result>;
 
+export function GitDiscardAll(arg1:string):Promise<git.Result>;
+
 export function GitFetch(arg1:string):Promise<git.Result>;
+
+export function GitPruneWorktrees(arg1:string):Promise<git.Result>;
 
 export function GitPull(arg1:string):Promise<git.Result>;
 
 export function GitPush(arg1:string):Promise<git.Result>;
+
+export function GitRemoveWorktree(arg1:string,arg2:string,arg3:boolean):Promise<git.Result>;
 
 export function GitStage(arg1:string,arg2:string):Promise<git.Result>;
 
@@ -54,6 +62,8 @@ export function GitStashPop(arg1:string,arg2:string):Promise<git.Result>;
 
 export function GitUnstage(arg1:string,arg2:string):Promise<git.Result>;
 
+export function GitUnstageAll(arg1:string):Promise<git.Result>;
+
 export function InstallAgentCLI(arg1:string):Promise<core.InstallResult>;
 
 export function KillSession(arg1:string):Promise<void>;
@@ -65,6 +75,8 @@ export function ListAgentSessions(arg1:string,arg2:string):Promise<Array<core.Se
 export function ListGitBranches(arg1:string):Promise<Array<git.Branch>>;
 
 export function ListGitStashes(arg1:string):Promise<Array<git.StashEntry>>;
+
+export function ListGitWorktrees(arg1:string):Promise<Array<git.Worktree>>;
 
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 

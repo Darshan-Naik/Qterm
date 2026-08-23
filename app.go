@@ -618,6 +618,10 @@ func (a *App) GitStageAll(path string) git.Result {
 	return git.StageAll(path)
 }
 
+func (a *App) GitUnstageAll(path string) git.Result {
+	return git.UnstageAll(path)
+}
+
 func (a *App) GitCommit(path, message string) git.Result {
 	return git.Commit(path, message)
 }
@@ -638,6 +642,10 @@ func (a *App) GitDiscard(path, file string) git.Result {
 	return git.Discard(path, file)
 }
 
+func (a *App) GitDiscardAll(path string) git.Result {
+	return git.DiscardAll(path)
+}
+
 func (a *App) ListGitStashes(path string) []git.StashEntry {
 	return git.ListStashes(path)
 }
@@ -656,6 +664,22 @@ func (a *App) GitStashApply(path, ref string) git.Result {
 
 func (a *App) GitStashDrop(path, ref string) git.Result {
 	return git.StashDrop(path, ref)
+}
+
+func (a *App) ListGitWorktrees(path string) []git.Worktree {
+	return git.ListWorktrees(path)
+}
+
+func (a *App) GitAddWorktree(path, branch string) git.WorktreeAddResult {
+	return git.AddWorktree(path, branch)
+}
+
+func (a *App) GitRemoveWorktree(path, worktreePath string, force bool) git.Result {
+	return git.RemoveWorktree(path, worktreePath, force)
+}
+
+func (a *App) GitPruneWorktrees(path string) git.Result {
+	return git.PruneWorktrees(path)
 }
 
 // --- Sessions / PTY ---

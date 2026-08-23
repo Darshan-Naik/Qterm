@@ -18,6 +18,34 @@ export function projectById(id: string): ProjectInfo | undefined {
   return uiStore.get().projects.find((p) => p.id === id);
 }
 
+export function gitWorkingPath(projectId: string, sessionId: string | null): string | null {
+  const project = projectById(projectId);
+  if (!project?.path) return null;
+  if (!sessionId) return project.path;
+  const session = uiStore.get().sessions.find((s) => s.id === sessionId);
+  if (!session || session.projectId !== projectId) return project.path;
+  const cwd = (session.cwd || "").replace(/\/+$/, "");
+  return cwd || project.path;
+}
+
+export function isSessionWorktree(cwd: string, projectPath: string): boolean {
+  const a = (cwd || "").replace(/\/+$/, "");
+  const b = (projectPath || "").replace(/\/+$/, "");
+  return !!a && !!b && a !== b;
+}
+
+/** Main checkout vs a linked worktree folder. */
+export type GitToolkitScope = "root" | "worktree";
+
+export function gitToolkitScope(cwd: string, projectPath: string): GitToolkitScope {
+  return isSessionWorktree(cwd, projectPath) ? "worktree" : "root";
+}
+
+/** Branch switch + worktree admin always run on the main checkout. */
+export function isRootGitView(view: GitPanelView) {
+  return view === "branches" || view === "worktrees";
+}
+
 export function gitProjectForSession(sessionId: string | null): ProjectInfo | null {
   if (!sessionId) return null;
   const session = uiStore.get().sessions.find((s) => s.id === sessionId);
@@ -45,23 +73,29 @@ export async function openGitToolkit(view: GitPanelView = "main"): Promise<GitPa
     return null;
   }
   const project = projectById(target.projectId);
-  if (!project?.path) {
+  const working = gitWorkingPath(target.projectId, uiStore.get().focusedSessionId);
+  if (!project?.path || !working) {
     toast.error("No git project");
     return null;
   }
-  const st = asStatus(await GetGitStatus(project.path));
+  const linked = isSessionWorktree(working, project.path);
+  const paneId = linked && isRootGitView(view) ? null : target.paneId;
+  const path = paneId === null && linked ? project.path : working;
+  const st = asStatus(await GetGitStatus(path));
   if (!st?.isRepo) {
     toast.error("Not a git repository");
     return null;
   }
+  const next: GitPanelTarget = { projectId: target.projectId, paneId, view };
   uiStore.set({
-    gitPanel: target,
+    gitPanel: next,
     paletteOpen: false,
     quickOpen: false,
     agentSessionsOpen: false,
     terminalFindOpen: false,
+    ...(paneId === null && linked ? { sidebarOpen: true } : null),
   });
-  return target;
+  return next;
 }
 
 export function closeGitToolkit() {
@@ -94,11 +128,12 @@ export async function runScopedGit(kind: "fetch" | "pull" | "push" | "stash" | "
     return;
   }
   const project = projectById(target.projectId);
-  if (!project?.path) {
+  const path = gitWorkingPath(target.projectId, uiStore.get().focusedSessionId);
+  if (!project?.path || !path) {
     toast.error("No git project");
     return;
   }
-  const st = asStatus(await GetGitStatus(project.path));
+  const st = asStatus(await GetGitStatus(path));
   if (!st?.isRepo) {
     toast.error("Not a git repository");
     return;
@@ -113,7 +148,8 @@ export async function runScopedGit(kind: "fetch" | "pull" | "push" | "stash" | "
           : kind === "stash"
             ? (p: string) => GitStash(p, "")
             : (p: string) => GitStashPop(p, "");
-  const result = (await fn(project.path)) as GitResult;
+  const result = (await fn(path)) as GitResult;
+  invalidateGit(path);
   invalidateGit(project.path);
   if (result?.ok) toast.success(`git ${kind.replace("-", " ")}`);
   else toast.error(result?.stderr || `git ${kind} failed`);

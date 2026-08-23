@@ -38,6 +38,10 @@ export function GetScrollback(arg1) {
   return window['go']['main']['App']['GetScrollback'](arg1);
 }
 
+export function GitAddWorktree(arg1, arg2) {
+  return window['go']['main']['App']['GitAddWorktree'](arg1, arg2);
+}
+
 export function GitCheckout(arg1, arg2) {
   return window['go']['main']['App']['GitCheckout'](arg1, arg2);
 }
@@ -58,8 +62,16 @@ export function GitDiscard(arg1, arg2) {
   return window['go']['main']['App']['GitDiscard'](arg1, arg2);
 }
 
+export function GitDiscardAll(arg1) {
+  return window['go']['main']['App']['GitDiscardAll'](arg1);
+}
+
 export function GitFetch(arg1) {
   return window['go']['main']['App']['GitFetch'](arg1);
+}
+
+export function GitPruneWorktrees(arg1) {
+  return window['go']['main']['App']['GitPruneWorktrees'](arg1);
 }
 
 export function GitPull(arg1) {
@@ -68,6 +80,10 @@ export function GitPull(arg1) {
 
 export function GitPush(arg1) {
   return window['go']['main']['App']['GitPush'](arg1);
+}
+
+export function GitRemoveWorktree(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GitRemoveWorktree'](arg1, arg2, arg3);
 }
 
 export function GitStage(arg1, arg2) {
@@ -98,6 +114,10 @@ export function GitUnstage(arg1, arg2) {
   return window['go']['main']['App']['GitUnstage'](arg1, arg2);
 }
 
+export function GitUnstageAll(arg1) {
+  return window['go']['main']['App']['GitUnstageAll'](arg1);
+}
+
 export function InstallAgentCLI(arg1) {
   return window['go']['main']['App']['InstallAgentCLI'](arg1);
 }
@@ -120,6 +140,10 @@ export function ListGitBranches(arg1) {
 
 export function ListGitStashes(arg1) {
   return window['go']['main']['App']['ListGitStashes'](arg1);
+}
+
+export function ListGitWorktrees(arg1) {
+  return window['go']['main']['App']['ListGitWorktrees'](arg1);
 }
 
 export function ListProjects() {

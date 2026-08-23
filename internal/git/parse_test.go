@@ -96,6 +96,20 @@ func TestParseStashList(t *testing.T) {
 	}
 }
 
+func TestParseWorktreeList(t *testing.T) {
+	out := "worktree /repo\nHEAD abc\nbranch refs/heads/main\n\nworktree /repo-feat\nHEAD def\nbranch refs/heads/feat\nlocked\n"
+	got := parseWorktreeList(out)
+	if len(got) != 2 {
+		t.Fatalf("%+v", got)
+	}
+	if !got[0].Main || got[0].Branch != "main" || got[0].Path != "/repo" {
+		t.Fatalf("main %+v", got[0])
+	}
+	if got[1].Main || got[1].Branch != "feat" || !got[1].Locked {
+		t.Fatalf("linked %+v", got[1])
+	}
+}
+
 func TestStashRef(t *testing.T) {
 	r, ok := stashRef("")
 	if !ok || r != "stash@{0}" {

@@ -13,9 +13,12 @@ import {
 import { createTerminal, createDefaultTerminal, currentScope, DEFAULT_SCOPE } from "@/lib/sessions";
 import { randomTerminalName } from "@/lib/terminalNames";
 import { closePane, requestDeleteSession } from "@/lib/panes";
-import { openGitToolkit, runScopedGit } from "@/features/git";
+import { GitWorktreePicker, openGitToolkit, runScopedGit } from "@/features/git";
+import { asStatus } from "@/features/git/types";
+import { toast } from "sonner";
 import {
   CreateSession,
+  GetGitStatus,
   SaveLayout,
   SaveTheme,
 } from "../../../wailsjs/go/main/App";
@@ -24,6 +27,10 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 export function CommandPalette() {
   const open = useUI((s) => s.paletteOpen);
   const [q, setQ] = useState("");
+  const [worktreePick, setWorktreePick] = useState<{
+    id: string;
+    path: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) setQ("");
@@ -102,6 +109,13 @@ export function CommandPalette() {
         },
       },
       {
+        id: "git-worktrees",
+        label: "Git: Worktrees",
+        run: async () => {
+          await openGitToolkit("worktrees");
+        },
+      },
+      {
         id: "git-commit",
         label: "Git: Commit",
         run: async () => {
@@ -122,6 +136,24 @@ export function CommandPalette() {
           const scope = currentScope();
           if (scope === DEFAULT_SCOPE) await createDefaultTerminal();
           else await createTerminal(scope);
+        },
+      },
+      {
+        id: "new-worktree-term",
+        label: "New worktree terminal",
+        run: async () => {
+          const scope = currentScope();
+          const project = uiStore.get().projects.find((p) => p.id === scope);
+          if (!project) {
+            toast.error("Open a project first");
+            return;
+          }
+          const st = asStatus(await GetGitStatus(project.path));
+          if (!st?.isRepo) {
+            toast.error("Not a git repository");
+            return;
+          }
+          setWorktreePick({ id: project.id, path: project.path });
         },
       },
       {
@@ -221,40 +253,52 @@ export function CommandPalette() {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(v) => uiStore.set({ paletteOpen: v, quickOpen: v ? false : uiStore.get().quickOpen })}>
-      <DialogContent
-        position="top"
-        showClose={false}
-        className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl"
-        aria-describedby={undefined}
-      >
-        <Command className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover" label="Command palette">
-          <Command.Input
-            value={q}
-            onValueChange={setQ}
-            placeholder="Type a command…"
-            className="h-11 w-full shrink-0 bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
-          />
-          <div className="mx-3 h-px shrink-0 bg-secondary" />
-          <Command.List className="min-h-0 flex-1 overflow-auto p-2">
-            <Command.Empty className="px-2 py-4 text-[13px] text-muted-foreground">No results.</Command.Empty>
-            {actions.map((a) => (
-              <Command.Item
-                key={a.id}
-                value={a.label}
-                onSelect={() => {
-                  uiStore.set({ paletteOpen: false });
-                  void a.run();
-                }}
-                className="cursor-pointer rounded-md px-2.5 py-2 text-[13px] aria-selected:bg-accent"
-              >
-                {a.label}
-              </Command.Item>
-            ))}
-          </Command.List>
-        </Command>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={(v) => uiStore.set({ paletteOpen: v, quickOpen: v ? false : uiStore.get().quickOpen })}>
+        <DialogContent
+          position="top"
+          showClose={false}
+          className="flex max-w-2xl flex-col overflow-hidden rounded-lg p-0 shadow-xl"
+          aria-describedby={undefined}
+        >
+          <Command className="flex min-h-0 max-h-full flex-col overflow-hidden bg-popover" label="Command palette">
+            <Command.Input
+              value={q}
+              onValueChange={setQ}
+              placeholder="Type a command…"
+              className="h-11 w-full shrink-0 bg-transparent px-4 text-[13px] outline-none placeholder:text-muted-foreground"
+            />
+            <div className="mx-3 h-px shrink-0 bg-secondary" />
+            <Command.List className="min-h-0 flex-1 overflow-auto p-2">
+              <Command.Empty className="px-2 py-4 text-[13px] text-muted-foreground">No results.</Command.Empty>
+              {actions.map((a) => (
+                <Command.Item
+                  key={a.id}
+                  value={a.label}
+                  onSelect={() => {
+                    uiStore.set({ paletteOpen: false });
+                    void a.run();
+                  }}
+                  className="cursor-pointer rounded-md px-2.5 py-2 text-[13px] aria-selected:bg-accent"
+                >
+                  {a.label}
+                </Command.Item>
+              ))}
+            </Command.List>
+          </Command>
+        </DialogContent>
+      </Dialog>
+      {worktreePick ? (
+        <GitWorktreePicker
+          open
+          onOpenChange={(next) => {
+            if (!next) setWorktreePick(null);
+          }}
+          projectId={worktreePick.id}
+          path={worktreePick.path}
+        />
+      ) : null}
+    </>
   );
 }
 

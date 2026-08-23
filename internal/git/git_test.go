@@ -153,3 +153,107 @@ func TestProbeNonRepo(t *testing.T) {
 		t.Fatal("empty path")
 	}
 }
+
+func TestWorktreeAddListRemove(t *testing.T) {
+	gitAvail(t)
+	dir := t.TempDir()
+	gitCmd(t, dir, "init", "-b", "main")
+	gitCmd(t, dir, "config", "user.email", "t@t")
+	gitCmd(t, dir, "config", "user.name", "t")
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitCmd(t, dir, "add", "a.txt")
+	gitCmd(t, dir, "commit", "-m", "first")
+
+	list := ListWorktrees(dir)
+	if len(list) != 1 || !list[0].Main {
+		t.Fatalf("main %+v", list)
+	}
+
+	added := AddWorktree(dir, "feat wt")
+	if !added.OK || added.Path == "" {
+		t.Fatalf("add %+v", added)
+	}
+	list = ListWorktrees(dir)
+	if len(list) != 2 {
+		t.Fatalf("after add %+v", list)
+	}
+	var linked Worktree
+	for _, wt := range list {
+		if !wt.Main {
+			linked = wt
+		}
+	}
+	if linked.Branch != "feat-wt" {
+		t.Fatalf("branch %+v", linked)
+	}
+	if Probe(added.Path).Branch != "feat-wt" {
+		t.Fatalf("probe %s", Probe(added.Path).Branch)
+	}
+
+	r := RemoveWorktree(dir, list[0].Path, false)
+	if r.OK {
+		t.Fatal("should not remove main")
+	}
+	r = RemoveWorktree(dir, linked.Path, false)
+	if !r.OK {
+		t.Fatalf("remove %+v", r)
+	}
+	if len(ListWorktrees(dir)) != 1 {
+		t.Fatalf("after remove %+v", ListWorktrees(dir))
+	}
+
+	bad := AddWorktree(dir, "@")
+	if bad.OK {
+		t.Fatalf("invalid %+v", bad)
+	}
+
+	cased := AddWorktree(dir, "CasePath")
+	if !cased.OK {
+		t.Fatalf("add case %+v", cased)
+	}
+	if !samePath(worktreeSiblingPath(dir, "casepath"), cased.Path) {
+		return
+	}
+	again := AddWorktree(dir, "casepath")
+	if !again.OK || !samePath(again.Path, cased.Path) {
+		t.Fatalf("attach case-fold %+v vs %+v", again, cased)
+	}
+}
+
+func TestUnstageAllAndDiscardAll(t *testing.T) {
+	gitAvail(t)
+	dir := t.TempDir()
+	gitCmd(t, dir, "init", "-b", "main")
+	gitCmd(t, dir, "config", "user.email", "t@t")
+	gitCmd(t, dir, "config", "user.name", "t")
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitCmd(t, dir, "add", "a.txt")
+	gitCmd(t, dir, "commit", "-m", "first")
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("bye"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b.txt"), []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if r := StageAll(dir); !r.OK {
+		t.Fatalf("stage all %+v", r)
+	}
+	if r := UnstageAll(dir); !r.OK {
+		t.Fatalf("unstage all %+v", r)
+	}
+	snap := LoadSnapshot(dir)
+	if !snap.Dirty {
+		t.Fatal("expected dirty after unstage")
+	}
+	if r := DiscardAll(dir); !r.OK {
+		t.Fatalf("discard all %+v", r)
+	}
+	st := Probe(dir)
+	if st.Dirty {
+		t.Fatal("expected clean after discard all")
+	}
+}

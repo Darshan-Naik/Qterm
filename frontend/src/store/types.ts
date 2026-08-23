@@ -82,7 +82,7 @@ export type UIState = {
   gitPanel: GitPanelTarget | null;
 };
 
-export type GitPanelView = "main" | "branches" | "stashes";
+export type GitPanelView = "main" | "branches" | "stashes" | "worktrees";
 
 export type GitPanelTarget = {
   projectId: string;
