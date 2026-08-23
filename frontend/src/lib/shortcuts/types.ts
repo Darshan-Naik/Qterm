@@ -19,6 +19,7 @@ export type ShortcutId =
   | "newTerminalInProject"
   | "renameProject"
   | "revealProject"
+  | "openInIDE"
   | "removeProject"
   | "gitToolkit"
   | "toggleTheme"

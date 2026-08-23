@@ -40,6 +40,9 @@ export const ProjectShortcuts = {
   get reveal() {
     return { label: label("revealProject") };
   },
+  get openInIDE() {
+    return { label: label("openInIDE") };
+  },
   get remove() {
     return { label: label("removeProject") };
   },

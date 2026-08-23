@@ -6,6 +6,7 @@ import {
   removeActiveProject,
   renameActiveProject,
   renameFocusedTerminal,
+  openActiveInIDE,
   revealActiveProject,
 } from "@/lib/menuActions";
 import { matchShortcut, metaFor, type ShortcutId } from "@/lib/shortcuts";
@@ -82,6 +83,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   newTerminalInProject: () => void newTerminalInActiveProject(),
   renameProject: () => void renameActiveProject(),
   revealProject: () => void revealActiveProject(),
+  openInIDE: () => void openActiveInIDE(),
   removeProject: () => void removeActiveProject(),
   gitToolkit: () => toggleGitToolkit(),
 };

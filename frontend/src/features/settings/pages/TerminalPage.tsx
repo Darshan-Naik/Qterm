@@ -1,26 +1,39 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useInstalledIDEs } from "@/queries";
 import {
   clampFontSize,
+  DEFAULT_IDE,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
   uiStore,
   useUI,
 } from "@/store/ui";
-import { SaveFontSize, SaveShell } from "../../../../wailsjs/go/main/App";
+import { SaveDefaultIDE, SaveFontSize, SaveShell } from "../../../../wailsjs/go/main/App";
 import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
 import { SettingCard } from "../ui/SettingCard";
 import { SettingRow } from "../ui/SettingRow";
+import { PillSelect } from "../ui/PillSelect";
 
 export function TerminalPage() {
   const fontSize = useUI((s) => s.fontSize);
   const shell = useUI((s) => s.shell);
+  const defaultIDE = useUI((s) => s.defaultIDE);
+  const installed = useInstalledIDEs().data ?? [];
   const [shellDraft, setShellDraft] = useState(shell);
 
   useEffect(() => {
     setShellDraft(shell);
   }, [shell]);
+
+  const ideOptions = [
+    { value: DEFAULT_IDE, label: "Auto" },
+    ...installed.map((e) => ({ value: e.id, label: e.label })),
+  ];
+  if (defaultIDE && !ideOptions.some((o) => o.value === defaultIDE)) {
+    ideOptions.push({ value: defaultIDE, label: defaultIDE });
+  }
 
   return (
     <div>
@@ -42,6 +55,20 @@ export function TerminalPage() {
                 const n = clampFontSize(Number(e.target.value));
                 uiStore.set({ fontSize: n });
                 await SaveFontSize(n);
+              }}
+            />
+          }
+        />
+        <SettingRow
+          title="Default IDE"
+          description="Preferred editor for Open in IDE. Auto uses the first installed."
+          control={
+            <PillSelect
+              value={defaultIDE}
+              options={ideOptions}
+              onChange={async (v) => {
+                uiStore.set({ defaultIDE: v });
+                await SaveDefaultIDE(v);
               }}
             />
           }

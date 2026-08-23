@@ -11,7 +11,7 @@ import { closeSessionPanes, requestDeleteSession } from "@/lib/panes";
 import { confirm } from "@/lib/confirm";
 import { requestSessionRename } from "@/features/panes/PaneTitle";
 import { findLeafBySession, listLeaves, removePane, uiStore } from "@/store/ui";
-import { OpenInFinder, RemoveProject, RenameProject, SaveLayout } from "../../wailsjs/go/main/App";
+import { OpenInFinder, OpenInIDE, RemoveProject, RenameProject, SaveLayout } from "../../wailsjs/go/main/App";
 
 function focusedSessionId() {
   return uiStore.get().focusedSessionId;
@@ -72,6 +72,31 @@ export async function revealActiveProject() {
     return;
   }
   await OpenInFinder(project.path);
+}
+
+/** Open a folder in the IDE from Settings → Default IDE. */
+export async function openPathInIDE(path: string) {
+  if (!path) {
+    toast.message("Nothing to open");
+    return;
+  }
+  try {
+    await OpenInIDE(path);
+  } catch (e) {
+    toast.error(String((e as { message?: string })?.message || e || "Couldn't open in IDE"));
+  }
+}
+
+/** Open the focused terminal folder, or the active project. */
+export async function openActiveInIDE() {
+  const state = uiStore.get();
+  const session = state.sessions.find((s) => s.id === state.focusedSessionId);
+  const path = session?.cwd || activeProject()?.path || "";
+  if (!path) {
+    toast.message("Nothing to open");
+    return;
+  }
+  await openPathInIDE(path);
 }
 
 /** Project — remove active project from sidebar. */
