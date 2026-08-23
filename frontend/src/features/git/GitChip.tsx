@@ -18,6 +18,7 @@ export function GitChip({
   paneId = null,
   listenToShortcut = true,
   variant,
+  always = true,
 }: {
   projectId: string;
   path: string;
@@ -25,6 +26,7 @@ export function GitChip({
   paneId?: string | null;
   listenToShortcut?: boolean;
   variant: "sidebar" | "open" | "pane" | "session";
+  always?: boolean;
 }) {
   const { data } = useGitStatus(path);
   const git = asStatus(data);
@@ -96,10 +98,12 @@ export function GitChip({
                 "max-w-[7rem] shrink-0 rounded-md px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
               variant === "pane" &&
                 cn(
-                  "max-w-[8.5rem] rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground",
-                  "opacity-45 hover:bg-accent hover:text-foreground hover:opacity-100",
-                  "group-hover/chrome:opacity-100",
-                  menuOpen && "bg-accent text-foreground opacity-100"
+                  "max-w-[8.5rem] shrink-0 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground",
+                  "hover:bg-accent hover:text-foreground",
+                  always
+                    ? "opacity-45 group-hover/chrome:opacity-100"
+                    : "opacity-0 group-hover/pane:opacity-45 group-hover/chrome:!opacity-100",
+                  menuOpen && "!opacity-100 bg-accent text-foreground"
                 )
             )}
             onClick={(e) => e.stopPropagation()}
