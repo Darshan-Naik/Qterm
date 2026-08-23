@@ -16,7 +16,7 @@ export function PillSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 cursor-pointer appearance-none rounded-lg border border-border/60 bg-secondary/50 py-0 pl-2.5 pr-7 text-[12.5px] text-foreground outline-none hover:bg-secondary/80 focus-visible:ring-1 focus-visible:ring-ring/40"
+        className="h-8 w-full cursor-pointer appearance-none rounded-lg border border-border/60 bg-secondary/50 py-0 pl-2.5 pr-7 text-[12.5px] text-foreground outline-none hover:bg-secondary/80 focus-visible:ring-1 focus-visible:ring-ring/40"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

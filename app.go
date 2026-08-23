@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -356,6 +355,12 @@ func (a *App) SaveFontSize(size int) error {
 	}
 	return a.store.Update(func(cfg *config.AppConfig) {
 		cfg.FontSize = size
+	})
+}
+
+func (a *App) SaveDefaultIDE(name string) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.DefaultIDE = strings.TrimSpace(name)
 	})
 }
 
@@ -823,9 +828,4 @@ func (a *App) ResolveHookIntent(intentID string, approved bool) (map[string]any,
 		}
 	}
 	return result, nil
-}
-
-func (a *App) OpenInFinder(path string) error {
-	cmd := exec.Command("open", path)
-	return cmd.Start()
 }

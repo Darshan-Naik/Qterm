@@ -32,7 +32,7 @@ import { useGitStatus } from "@/queries";
 import { GitChip, GitWorktreePicker } from "@/features/git";
 import { createTerminal, setActiveScope } from "@/lib/sessions";
 import { closeProjectPanes, requestDeleteProjectSessions } from "@/lib/panes";
-import { removeProjectById, renameProjectById } from "@/lib/menuActions";
+import { removeProjectById, renameProjectById, openPathInIDE } from "@/lib/menuActions";
 import { ProjectShortcuts } from "@/lib/menuShortcuts";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
@@ -204,6 +204,12 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
                   >
                     Reveal in Finder
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    shortcut={ProjectShortcuts.openInIDE.label}
+                    onClick={() => void openPathInIDE(path)}
+                  >
+                    Open in IDE
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     disabled={openSessionIds.size === 0}
@@ -263,6 +269,12 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               onClick={() => void OpenInFinder(path)}
             >
               Reveal in Finder
+            </ContextMenuItem>
+            <ContextMenuItem
+              shortcut={ProjectShortcuts.openInIDE.label}
+              onClick={() => void openPathInIDE(path)}
+            >
+              Open in IDE
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem

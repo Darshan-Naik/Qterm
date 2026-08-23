@@ -25,6 +25,9 @@ const (
 	MinUiZoom     = 80
 	MaxUiZoom     = 150
 	UiZoomStep    = 10
+
+	// DefaultIDE empty means first installed editor from the Open in IDE catalog.
+	DefaultIDE = ""
 )
 
 // DefaultSidebarFooter is agent + settings. Nil in config means this default; empty hides the footer.
@@ -65,7 +68,7 @@ type SessionMeta struct {
 	ProjectID  string    `json:"projectId"` // "" or "home" = unbound
 	Cwd        string    `json:"cwd"`
 	Pinned     bool      `json:"pinned"`
-	CreatedAt  time.Time `json:"createdAt,omitempty"` // when the terminal was started
+	CreatedAt  time.Time `json:"createdAt,omitempty"`  // when the terminal was started
 	NameLocked bool      `json:"nameLocked,omitempty"` // user renamed — skip auto title sync
 	AutoTitled bool      `json:"autoTitled,omitempty"` // first-prompt / agent title already applied
 }
@@ -100,6 +103,8 @@ type AppConfig struct {
 	Theme       string        `json:"theme"` // system | dark | light
 	Shell       string        `json:"shell"`
 	FontSize    int           `json:"fontSize"`
+	// DefaultIDE is an editor id (cursor, vscode, …). Empty = first installed.
+	DefaultIDE string `json:"defaultIDE,omitempty"`
 	// UI chrome (sidebar / zoom) — app-level, not browser storage.
 	SidebarOpen       *bool           `json:"sidebarOpen,omitempty"`
 	SidebarWidth      int             `json:"sidebarWidth,omitempty"`
@@ -141,6 +146,7 @@ func DefaultConfig() AppConfig {
 		Theme:             "system",
 		Shell:             "",
 		FontSize:          DefaultFontSize,
+		DefaultIDE:        DefaultIDE,
 		SidebarOpen:       &open,
 		SidebarWidth:      DefaultSidebarWidth,
 		UiZoom:            DefaultUiZoom,

@@ -84,11 +84,15 @@ export function ListGitStashes(arg1:string):Promise<Array<git.StashEntry>>;
 
 export function ListGitWorktrees(arg1:string):Promise<Array<git.Worktree>>;
 
+export function ListIDEs():Promise<Array<main.IDEInfo>>;
+
 export function ListProjects():Promise<Array<config.ProjectMeta>>;
 
 export function ListSessions():Promise<Array<main.SessionDTO>>;
 
 export function OpenInFinder(arg1:string):Promise<void>;
+
+export function OpenInIDE(arg1:string):Promise<void>;
 
 export function PickFolder():Promise<string>;
 
@@ -109,6 +113,8 @@ export function ResolveHookIntent(arg1:string,arg2:boolean):Promise<Record<strin
 export function ResumeAgentSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
 
 export function SaveActiveScope(arg1:string):Promise<void>;
+
+export function SaveDefaultIDE(arg1:string):Promise<void>;
 
 export function SaveFontSize(arg1:number):Promise<void>;
 

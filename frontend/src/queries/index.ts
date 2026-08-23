@@ -10,7 +10,10 @@ import {
   ListGitStashes,
   ListGitWorktrees,
   GetConfig,
+  ListIDEs,
 } from "../../wailsjs/go/main/App";
+
+export type IDEInfo = { id: string; label: string };
 
 const gitPaths = new Set<string>();
 let focusBound = false;
@@ -118,4 +121,12 @@ export function useAgentCLIs(enabled = true) {
 
 export function invalidateAgentCLIs() {
   invalidateQuery(["agent-clis"]);
+}
+
+export function useInstalledIDEs() {
+  return useQuery(["ides"], {
+    fetcher: () => ListIDEs() as Promise<IDEInfo[]>,
+    staleTime: 60_000,
+    persist: false,
+  });
 }

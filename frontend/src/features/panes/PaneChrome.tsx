@@ -6,6 +6,7 @@ import { WithTooltip } from "@/components/ui/tooltip";
 import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { GitChip } from "@/features/git";
 import { PaneMenu } from "./PaneMenu";
+import { PaneOpenInIde } from "./PaneOpenInIde";
 import { PaneTitle } from "./PaneTitle";
 
 export function PaneChrome({
@@ -59,6 +60,7 @@ export function PaneChrome({
           variant="pane"
         />
       ) : null}
+      <PaneOpenInIde path={session?.cwd || project?.path || ""} />
       <PaneMenu paneId={paneId} sessionId={sessionId} open={menuOpen} onOpenChange={setMenuOpen} />
     </div>
   );

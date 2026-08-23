@@ -158,6 +158,10 @@ export function ListGitWorktrees(arg1) {
   return window['go']['main']['App']['ListGitWorktrees'](arg1);
 }
 
+export function ListIDEs() {
+  return window['go']['main']['App']['ListIDEs']();
+}
+
 export function ListProjects() {
   return window['go']['main']['App']['ListProjects']();
 }
@@ -168,6 +172,10 @@ export function ListSessions() {
 
 export function OpenInFinder(arg1) {
   return window['go']['main']['App']['OpenInFinder'](arg1);
+}
+
+export function OpenInIDE(arg1) {
+  return window['go']['main']['App']['OpenInIDE'](arg1);
 }
 
 export function PickFolder() {
@@ -208,6 +216,10 @@ export function ResumeAgentSession(arg1, arg2, arg3) {
 
 export function SaveActiveScope(arg1) {
   return window['go']['main']['App']['SaveActiveScope'](arg1);
+}
+
+export function SaveDefaultIDE(arg1) {
+  return window['go']['main']['App']['SaveDefaultIDE'](arg1);
 }
 
 export function SaveFontSize(arg1) {

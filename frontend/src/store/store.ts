@@ -3,6 +3,7 @@ import type { SettingsPage, UIState } from "./types";
 import {
   DEFAULT_SCOPE,
   FONT_SIZE_DEFAULT,
+  DEFAULT_IDE,
   SIDEBAR_DEFAULT,
   SIDEBAR_FOOTER_DEFAULT,
   UI_ZOOM_DEFAULT,
@@ -13,6 +14,7 @@ export {
   FONT_SIZE_DEFAULT,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  DEFAULT_IDE,
   SIDEBAR_DEFAULT,
   SIDEBAR_FOOTER_DEFAULT,
   SIDEBAR_FOOTER_IDS,
@@ -36,6 +38,7 @@ export const uiStore = createStore<UIState>({
   focusedSessionId: null,
   theme: "dark",
   fontSize: FONT_SIZE_DEFAULT,
+  defaultIDE: DEFAULT_IDE,
   uiZoom: UI_ZOOM_DEFAULT,
   shell: "",
   paletteOpen: false,

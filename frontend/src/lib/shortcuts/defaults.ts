@@ -143,6 +143,13 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     whenSettings: "block",
   },
   {
+    id: "openInIDE",
+    label: "Open in IDE",
+    description: "Open the project or terminal folder in your default IDE",
+    group: "Project",
+    whenSettings: "block",
+  },
+  {
     id: "removeProject",
     label: "Remove project",
     group: "Project",
@@ -196,6 +203,7 @@ export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   newTerminalInProject: [modShift("t")],
   renameProject: [modShift("e")],
   revealProject: [modShift("o")],
+  openInIDE: [modShift("i")],
   removeProject: [modShift("Backspace", { codes: ["Backspace"], alt: true })],
   gitToolkit: [modShift("g")],
 };

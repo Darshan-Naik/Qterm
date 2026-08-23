@@ -54,6 +54,8 @@ export type UIState = {
   focusedSessionId: string | null;
   theme: ThemeMode;
   fontSize: number;
+  /** Empty = macOS default app for source files. */
+  defaultIDE: string;
   /** Whole-app UI zoom percent (80–150). */
   uiZoom: number;
   shell: string;

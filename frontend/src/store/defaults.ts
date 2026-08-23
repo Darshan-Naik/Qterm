@@ -20,6 +20,9 @@ export const FONT_SIZE_MIN = 10;
 export const FONT_SIZE_MAX = 24;
 export const FONT_SIZE_DEFAULT = 12;
 
+/** Empty = first installed editor from the Open in IDE catalog. */
+export const DEFAULT_IDE = "";
+
 export const UI_ZOOM_MIN = 80;
 export const UI_ZOOM_MAX = 150;
 export const UI_ZOOM_DEFAULT = 100;

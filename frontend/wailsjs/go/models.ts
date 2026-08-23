@@ -153,6 +153,7 @@ export namespace config {
 	    theme: string;
 	    shell: string;
 	    fontSize: number;
+	    defaultIDE?: string;
 	    sidebarOpen?: boolean;
 	    sidebarWidth?: number;
 	    uiZoom?: number;
@@ -174,6 +175,7 @@ export namespace config {
 	        this.theme = source["theme"];
 	        this.shell = source["shell"];
 	        this.fontSize = source["fontSize"];
+	        this.defaultIDE = source["defaultIDE"];
 	        this.sidebarOpen = source["sidebarOpen"];
 	        this.sidebarWidth = source["sidebarWidth"];
 	        this.uiZoom = source["uiZoom"];
@@ -610,6 +612,20 @@ export namespace git {
 
 export namespace main {
 	
+	export class IDEInfo {
+	    id: string;
+	    label: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IDEInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	    }
+	}
 	export class SessionDTO {
 	    id: string;
 	    name: string;
