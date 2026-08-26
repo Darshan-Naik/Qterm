@@ -1,5 +1,5 @@
 import { focusSession } from "@/lib/sessions";
-import { mapLiveSessions, sortSessionsByStart } from "@/lib/sessionTitles";
+import { agentsFromLiveSessions, mapLiveSessions, sortSessionsByStart } from "@/lib/sessionTitles";
 import { applyTheme, openAbout, openSettings, uiStore, type ThemeMode } from "@/store/ui";
 import { ListSessions } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
@@ -24,11 +24,13 @@ export function subscribeAppEvents(): () => void {
 
     on("sessions:changed", async () => {
       const sessions = await ListSessions();
-      const live = mapLiveSessions(sessions || [], uiStore.get().sessions);
+      const raw = sessions || [];
+      const live = mapLiveSessions(raw, uiStore.get().sessions);
       const alive = new Set(live.map((s) => s.id));
-      const agents = Object.fromEntries(
-        Object.entries(uiStore.get().sessionAgents).filter(([id]) => alive.has(id)),
-      );
+      const agents = agentsFromLiveSessions(raw);
+      for (const [id, v] of Object.entries(uiStore.get().sessionAgents)) {
+        if (alive.has(id)) agents[id] = v;
+      }
       const anims = Object.fromEntries(
         Object.entries(uiStore.get().paneAnimations).filter(([id]) => alive.has(id)),
       );

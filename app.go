@@ -176,8 +176,14 @@ func (a *App) shutdown(ctx context.Context) {
 func (a *App) restoreSessions() {
 	cfg := a.store.Get()
 	for i, meta := range cfg.Sessions {
+		resumeAgent := meta.AgentCLI != "" && meta.AgentSessionID != ""
 		if a.scrollback != nil {
-			a.scrollback.Load(meta.ID)
+			if resumeAgent {
+				// Dead TUI bytes would mix with the new shell / resume redraw.
+				a.scrollback.Remove(meta.ID)
+			} else {
+				a.scrollback.Load(meta.ID)
+			}
 		}
 		cwd := meta.Cwd
 		if cwd == "" && meta.ProjectID != "" && meta.ProjectID != project.HomeID {
@@ -200,6 +206,11 @@ func (a *App) restoreSessions() {
 		})
 		if err != nil {
 			println("restore session failed:", meta.ID, err.Error())
+			continue
+		}
+		if resumeAgent {
+			a.bindAgentSession(meta.AgentSessionID, meta.ID)
+			a.writeResumeCommand(meta.ID, meta.AgentCLI, meta.AgentSessionID)
 		}
 	}
 	// Tell the UI restore finished — bootstrap may have raced ListSessions.
@@ -520,7 +531,20 @@ func (a *App) ResumeAgentSession(cli, sessionID, projectID string) (SessionDTO, 
 		return SessionDTO{}, err
 	}
 	a.bindAgentSession(sessionID, dto.ID)
+	a.persistSessionAgent(dto.ID, cli, sessionID)
+	a.writeResumeCommand(dto.ID, cli, sessionID)
 
+	return dto, nil
+}
+
+func (a *App) writeResumeCommand(qtermID, cli, sessionID string) {
+	if qtermID == "" || cli == "" || sessionID == "" {
+		return
+	}
+	spec, err := agentcli.Resume(cli, sessionID)
+	if err != nil || strings.TrimSpace(spec.Command) == "" {
+		return
+	}
 	cmd := spec.Command
 	if !strings.HasSuffix(cmd, "\n") {
 		cmd += "\n"
@@ -528,9 +552,7 @@ func (a *App) ResumeAgentSession(cli, sessionID, projectID string) (SessionDTO, 
 	go func(id, payload string) {
 		time.Sleep(350 * time.Millisecond)
 		_ = a.WriteSession(id, payload)
-	}(dto.ID, cmd)
-
-	return dto, nil
+	}(qtermID, cmd)
 }
 
 // ActiveAgentBinds returns live agent conversation id → Qterm terminal id.
@@ -701,11 +723,13 @@ type SessionDTO struct {
 	Cwd       string    `json:"cwd"`
 	Pinned    bool      `json:"pinned"`
 	CreatedAt time.Time `json:"createdAt"`
+	AgentCLI  string    `json:"agentCli,omitempty"`
 }
 
-func sessionDTO(s *ptymgr.Session) SessionDTO {
+func (a *App) sessionDTO(s *ptymgr.Session) SessionDTO {
 	return SessionDTO{
 		ID: s.ID, Name: s.Name, ProjectID: s.ProjectID, Cwd: s.Cwd, Pinned: s.Pinned, CreatedAt: s.CreatedAt,
+		AgentCLI: a.sessionAgentCLI(s.ID),
 	}
 }
 
@@ -716,7 +740,7 @@ func (a *App) ListSessions() []SessionDTO {
 	live := a.pty.List()
 	out := make([]SessionDTO, 0, len(live))
 	for _, s := range live {
-		out = append(out, sessionDTO(s))
+		out = append(out, a.sessionDTO(s))
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return out[i].CreatedAt.Before(out[j].CreatedAt)
@@ -736,7 +760,7 @@ func (a *App) CreateSession(projectID, name, cwd string) (SessionDTO, error) {
 	if err != nil {
 		return SessionDTO{}, err
 	}
-	dto := sessionDTO(sess)
+	dto := a.sessionDTO(sess)
 	_ = a.store.Update(func(cfg *config.AppConfig) {
 		meta := config.SessionMeta{
 			ID: sess.ID, Name: sess.Name, ProjectID: sess.ProjectID, Cwd: sess.Cwd, Pinned: sess.Pinned, CreatedAt: sess.CreatedAt,

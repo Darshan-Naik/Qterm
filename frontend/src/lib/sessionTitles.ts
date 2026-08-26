@@ -14,6 +14,7 @@ type SessionInput = {
   cwd: string;
   pinned?: boolean;
   createdAt?: string;
+  agentCli?: string;
 };
 
 /** Map backend sessions (already start-time sorted). Fix shell OSC titles only. */
@@ -38,6 +39,15 @@ export function mapLiveSessions(live: SessionInput[], prev: SessionInfo[] = []):
       createdAt: s.createdAt || prior?.createdAt,
     };
   });
+}
+
+/** sessionId → agent CLI while that conversation is still live in the terminal. */
+export function agentsFromLiveSessions(live: Array<{ id?: string; agentCli?: string }>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const s of live) {
+    if (s.id && s.agentCli) out[s.id] = s.agentCli;
+  }
+  return out;
 }
 
 /** Seed from config.json — sort by createdAt when present. */
