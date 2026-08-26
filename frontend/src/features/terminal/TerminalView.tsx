@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ResizeSession, SetFocusedSession } from "../../../wailsjs/go/main/App";
 import { uiStore, useUI } from "@/store/ui";
+import { dismissSessionComplete } from "@/lib/sessionAnim";
 import {
   attachTerminal,
   detachTerminal,
@@ -64,6 +65,7 @@ export function TerminalView({ sessionId, paneId }: { sessionId: string; paneId:
       onMouseDown={() => {
         uiStore.set({ focusedPaneId: paneId, focusedSessionId: sessionId });
         void SetFocusedSession(sessionId);
+        dismissSessionComplete(sessionId);
       }}
     >
       {findOpen ? <TerminalFindBar sessionId={sessionId} /> : null}

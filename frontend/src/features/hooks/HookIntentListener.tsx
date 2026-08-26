@@ -1,27 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { uiStore, useUI, type AnimateState, type HookIntent } from "@/store/ui";
+import { dismissSessionComplete, dismissSessionFeedback, nextAnimateState } from "@/lib/sessionAnim";
 import { ResolveHookIntent } from "../../../wailsjs/go/main/App";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
+
+function isPromptKey(e: KeyboardEvent) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false;
+  if (e.key === "Enter" || e.key === "Backspace") return true;
+  return e.key.length === 1;
+}
 
 export function HookIntentListener() {
   const pending = useUI((s) => s.pendingIntent);
   const focusedSessionId = useUI((s) => s.focusedSessionId);
+  const prevFocused = useRef<string | null>(null);
 
-  // Clear needs-input pulse once the user focuses that terminal.
+  // Visit / leave → drop the green done highlight. Needs-input stays until they type.
   useEffect(() => {
-    if (!focusedSessionId) return;
-    const anim = uiStore.get().paneAnimations[focusedSessionId];
-    if (anim === "action_required") {
-      const next = { ...uiStore.get().paneAnimations, [focusedSessionId]: "none" as AnimateState };
-      uiStore.set({ paneAnimations: next });
-    }
+    const prev = prevFocused.current;
+    if (prev && prev !== focusedSessionId) dismissSessionComplete(prev);
+    prevFocused.current = focusedSessionId;
+    if (focusedSessionId) dismissSessionComplete(focusedSessionId);
   }, [focusedSessionId]);
 
   useEffect(() => {
-    const clearTimers = new Map<string, number>();
-
     const clearAnim = (sessionId: string) => {
       const cur = { ...uiStore.get().paneAnimations };
       if (cur[sessionId] && cur[sessionId] !== "none") {
@@ -30,27 +34,21 @@ export function HookIntentListener() {
       }
     };
 
-    const scheduleClear = (sessionId: string, state: AnimateState) => {
-      const prev = clearTimers.get(sessionId);
-      if (prev) window.clearTimeout(prev);
-      // thinking stays while the agent is working (cleared by complete / none / needs-input).
-      // action_required stays until the user focuses the session.
-      const ms = state === "task_complete" ? 2200 : 0;
-      if (!ms) {
-        if (state === "none") clearAnim(sessionId);
-        return;
-      }
-      clearTimers.set(
-        sessionId,
-        window.setTimeout(() => {
-          clearTimers.delete(sessionId);
-          const still = uiStore.get().paneAnimations[sessionId];
-          if (still === state) clearAnim(sessionId);
-        }, ms)
-      );
-    };
-
     uiStore.set({ paneAnimations: {} });
+
+    const onWindowBlur = () => {
+      const id = uiStore.get().focusedSessionId;
+      if (id) dismissSessionComplete(id);
+    };
+    const onPromptKey = (e: KeyboardEvent) => {
+      if (!isPromptKey(e)) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, [contenteditable]") && !t.closest(".xterm")) return;
+      const id = uiStore.get().focusedSessionId;
+      if (id) dismissSessionFeedback(id);
+    };
+    window.addEventListener("blur", onWindowBlur);
+    window.addEventListener("keydown", onPromptKey);
 
     const offIntent = (EventsOn as any)("hook:intent", (intent: HookIntent) => {
       // Never fall back to focused pane — that jumps status/rename when switching tabs.
@@ -77,14 +75,12 @@ export function HookIntentListener() {
           }
           return;
         }
-        // Don't downgrade action_required with a fleeting thinking pulse.
         const current = uiStore.get().paneAnimations[sessionId];
-        if (current === "action_required" && state === "thinking") {
-          return;
-        }
-        const map = { ...uiStore.get().paneAnimations, [sessionId]: state };
+        const focused = uiStore.get().focusedSessionId === sessionId;
+        const next = nextAnimateState(current, state, focused);
+        if (!next) return;
+        const map = { ...uiStore.get().paneAnimations, [sessionId]: next };
         uiStore.set({ paneAnimations: map });
-        scheduleClear(sessionId, state);
       }
 
       if (intent.type === "suggest") {
@@ -96,8 +92,9 @@ export function HookIntentListener() {
       // notify intents are intentionally ignored — sidebar animation only.
     });
     return () => {
+      window.removeEventListener("blur", onWindowBlur);
+      window.removeEventListener("keydown", onPromptKey);
       if (typeof offIntent === "function") offIntent();
-      for (const t of clearTimers.values()) window.clearTimeout(t);
     };
   }, []);
 
