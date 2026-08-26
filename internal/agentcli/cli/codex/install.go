@@ -185,6 +185,7 @@ func writePluginHooks(root string) error {
 	events := []string{
 		"SessionStart", "SessionEnd", "UserPromptSubmit", "Stop",
 		"Notification", "PermissionRequest", "PreToolUse", "PostToolUse",
+		"RequestUserInput",
 	}
 	hooks := map[string]any{}
 	for _, event := range events {

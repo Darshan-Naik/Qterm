@@ -50,20 +50,18 @@ export function AgentIcon({
   agent,
   className,
   thinking,
-  needsInput,
-  complete,
 }: {
   agent?: string;
   className?: string;
   thinking?: boolean;
-  needsInput?: boolean;
-  complete?: boolean;
 }) {
   const id = normalizeAgentId(agent || "");
   const src = id ? AGENT_ICONS[id] : undefined;
 
   if (!src) {
-    return <TerminalSquare className={cn("size-4 opacity-50", className)} />;
+    return (
+      <TerminalSquare className={cn("size-4 opacity-50", thinking && "session-logo-pulse", className)} />
+    );
   }
 
   return (
@@ -71,13 +69,7 @@ export function AgentIcon({
       src={src}
       alt=""
       draggable={false}
-      className={cn(
-        "size-4 shrink-0 rounded-[3px] object-contain",
-        thinking && "opacity-90",
-        needsInput && "ring-1 ring-amber-400/70",
-        complete && "ring-1 ring-emerald-400/60",
-        className
-      )}
+      className={cn("size-4 shrink-0 rounded-[3px] object-contain", thinking && "session-logo-pulse", className)}
     />
   );
 }

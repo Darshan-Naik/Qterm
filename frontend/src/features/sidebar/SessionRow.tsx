@@ -29,6 +29,8 @@ import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { AgentIcon, agentLabel } from "./AgentIcon";
+import { SessionFlowTitle } from "./SessionFlowTitle";
+import { SessionStatusDot } from "./SessionStatusDot";
 
 export function SessionRow({
   session,
@@ -158,7 +160,6 @@ export function SessionRow({
             rowActive && !focused && "bg-sidebar-accent/35 text-sidebar-foreground",
             dragging && "opacity-50",
             needsInput && "session-needs-input",
-            thinking && "session-thinking",
             complete && "session-complete"
           )}
         >
@@ -186,23 +187,13 @@ export function SessionRow({
               {agent ? (
                 <WithTooltip label={agentLabel(agent)} side="right">
                   <span className="inline-flex">
-                    <AgentIcon
-                      agent={agent}
-                      thinking={thinking}
-                      needsInput={needsInput}
-                      complete={complete}
-                    />
+                    <AgentIcon agent={agent} thinking={thinking} />
                   </span>
                 </WithTooltip>
               ) : (
                 <AgentIcon />
               )}
-              {needsInput ? (
-                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-amber-400" />
-                </span>
-              ) : null}
+              {needsInput || complete ? <SessionStatusDot /> : null}
             </span>
             <span className="flex h-5 min-w-0 flex-1 items-center gap-1.5">
               {pinned ? (
@@ -231,17 +222,16 @@ export function SessionRow({
                   className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] leading-5 text-sidebar-foreground outline-none"
                 />
               ) : (
-                <span
-                  className="min-w-0 flex-1 truncate leading-5"
+                <SessionFlowTitle
+                  name={session.name}
+                  thinking={thinking}
                   onDoubleClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     setDraft(session.name);
                     setEditing(true);
                   }}
-                >
-                  {session.name}
-                </span>
+                />
               )}
               {git?.dirty ? <GitDirtyDot /> : null}
             </span>
