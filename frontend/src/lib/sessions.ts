@@ -11,6 +11,7 @@ import {
   type SplitNode,
 } from "@/store/ui";
 import { randomTerminalName } from "@/lib/terminalNames";
+import { dismissSessionComplete } from "@/lib/sessionAnim";
 
 export { DEFAULT_SCOPE };
 
@@ -126,6 +127,10 @@ export async function focusSession(sessionId: string) {
   const state = uiStore.get();
   const session = state.sessions.find((s) => s.id === sessionId);
   if (!session) return;
+  // Always ack the green "done" highlight — even when this session is already focused
+  // (sidebar click / already-open pane does not change focusedSessionId).
+  // Needs-input stays until the user actually types in that terminal.
+  dismissSessionComplete(sessionId);
 
   const layoutScope = currentScope();
 
