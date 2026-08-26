@@ -235,6 +235,9 @@ func (s *Store) Load(id string) {
 		return
 	}
 	data = stripColorOSC(data)
+	// Load is restore-only (new PTY). Drop frozen TUI so a fresh shell is not
+	// seeded with Codex/vim alt-screen bytes mixed into the new prompt.
+	data = restoreFilter(data)
 	if len(data) > s.max {
 		data = trimFront(data, s.max)
 	}

@@ -16,6 +16,7 @@ func (a *App) startAgentBridge() {
 		cwd, _ := intent.Payload["cwd"].(string)
 		cliID := intent.SessionID
 		if sid := a.resolveSessionForAgent(cliID, cwd, intent.TerminalID); sid != "" {
+			a.syncPersistedAgent(sid, intent.HookID, cliID, intent.Type, intent.Payload)
 			intent.SessionID = sid
 			intent.TerminalID = sid
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"qterm/internal/config"
 	ptymgr "qterm/internal/pty"
 )
 
@@ -79,5 +80,29 @@ func TestSessionContainsPath(t *testing.T) {
 	}
 	if sessionContainsPath("/a/b", "/a/be") {
 		t.Fatal("should not match partial segment")
+	}
+}
+
+func TestPersistSessionAgent(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &App{store: store}
+	_ = store.Update(func(cfg *config.AppConfig) {
+		cfg.Sessions = []config.SessionMeta{{ID: "t1", Name: "One"}}
+	})
+
+	a.syncPersistedAgent("t1", "codex", "cli-abc", "animate", map[string]any{"state": "thinking"})
+	got := store.Get().Sessions[0]
+	if got.AgentCLI != "codex" || got.AgentSessionID != "cli-abc" {
+		t.Fatalf("persist %+v", got)
+	}
+
+	a.syncPersistedAgent("t1", "codex", "cli-abc", "animate", map[string]any{"state": "none"})
+	got = store.Get().Sessions[0]
+	if got.AgentCLI != "" || got.AgentSessionID != "" {
+		t.Fatalf("session_end should clear %+v", got)
 	}
 }

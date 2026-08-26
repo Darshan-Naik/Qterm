@@ -2,6 +2,7 @@ package scrollback
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 )
@@ -24,7 +25,6 @@ func TestExtractWindowTitles(t *testing.T) {
 		t.Fatal("expected nil")
 	}
 }
-
 
 func TestTrimFrontNewline(t *testing.T) {
 	// 10 bytes before newline, then 30 after → max 20 should cut at/after newline when possible.
@@ -68,5 +68,26 @@ func TestSearchPlain(t *testing.T) {
 	}
 	if !bytes.Contains([]byte(strings.ToLower(hits[0].Snippet)), []byte("world")) {
 		t.Fatalf("snippet %q", hits[0].Snippet)
+	}
+}
+
+func TestLoadStripsAltScreenTUI(t *testing.T) {
+	dir := t.TempDir()
+	s, err := NewStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	raw := []byte("prompt$\n\x1b[?1049hCodex TUI dump\x1b[?1049l")
+	if err := os.WriteFile(s.path("sess"), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.Load("sess")
+	data, _ := s.Snapshot("sess")
+	if bytes.Contains(data, []byte("Codex TUI")) {
+		t.Fatalf("restored TUI: %q", data)
+	}
+	if !bytes.Contains(data, []byte("prompt$")) {
+		t.Fatalf("lost shell history: %q", data)
 	}
 }

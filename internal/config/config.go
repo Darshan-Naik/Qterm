@@ -71,6 +71,10 @@ type SessionMeta struct {
 	CreatedAt  time.Time `json:"createdAt,omitempty"`  // when the terminal was started
 	NameLocked bool      `json:"nameLocked,omitempty"` // user renamed — skip auto title sync
 	AutoTitled bool      `json:"autoTitled,omitempty"` // first-prompt / agent title already applied
+	// AgentCLI / AgentSessionID are set while a CLI (codex, claude, …) is
+	// running in this terminal so relaunch can resume instead of replaying TUI.
+	AgentCLI       string `json:"agentCli,omitempty"`
+	AgentSessionID string `json:"agentSessionId,omitempty"`
 }
 
 type ProjectMeta struct {

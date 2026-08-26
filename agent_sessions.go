@@ -4,8 +4,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	ptymgr "qterm/internal/pty"
+	"qterm/internal/config"
 	"qterm/internal/project"
+	ptymgr "qterm/internal/pty"
 )
 
 func (a *App) ensureAgentMaps() {
@@ -62,6 +63,61 @@ func (a *App) lastAgentQtermSession() string {
 	a.agentMu.Lock()
 	defer a.agentMu.Unlock()
 	return a.agentLastQterm
+}
+
+// syncPersistedAgent records which CLI conversation is live in a terminal so
+// app relaunch can resume it. Session-end clears the record (shell is back).
+func (a *App) syncPersistedAgent(qtermID, cli, cliSessionID, intentType string, payload map[string]any) {
+	if qtermID == "" {
+		return
+	}
+	state := ""
+	if payload != nil {
+		state, _ = payload["state"].(string)
+	}
+	if intentType == "animate" && state == "none" {
+		a.clearAgentBind(cliSessionID)
+		a.persistSessionAgent(qtermID, "", "")
+		return
+	}
+	if cli == "" || cliSessionID == "" {
+		return
+	}
+	a.persistSessionAgent(qtermID, cli, cliSessionID)
+}
+
+func (a *App) persistSessionAgent(qtermID, cli, cliSessionID string) {
+	if a.store == nil || qtermID == "" {
+		return
+	}
+	cfg := a.store.Get()
+	for _, s := range cfg.Sessions {
+		if s.ID == qtermID && s.AgentCLI == cli && s.AgentSessionID == cliSessionID {
+			return
+		}
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		for i := range cfg.Sessions {
+			if cfg.Sessions[i].ID != qtermID {
+				continue
+			}
+			cfg.Sessions[i].AgentCLI = cli
+			cfg.Sessions[i].AgentSessionID = cliSessionID
+			return
+		}
+	})
+}
+
+func (a *App) sessionAgentCLI(qtermID string) string {
+	if a.store == nil || qtermID == "" {
+		return ""
+	}
+	for _, s := range a.store.Get().Sessions {
+		if s.ID == qtermID {
+			return s.AgentCLI
+		}
+	}
+	return ""
 }
 
 // resolveSessionForAgent maps an agent/CLI session to a Qterm pane.

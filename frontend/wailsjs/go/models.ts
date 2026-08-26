@@ -73,6 +73,8 @@ export namespace config {
 	    createdAt?: any;
 	    nameLocked?: boolean;
 	    autoTitled?: boolean;
+	    agentCli?: string;
+	    agentSessionId?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SessionMeta(source);
@@ -88,6 +90,8 @@ export namespace config {
 	        this.createdAt = this.convertValues(source["createdAt"], null);
 	        this.nameLocked = source["nameLocked"];
 	        this.autoTitled = source["autoTitled"];
+	        this.agentCli = source["agentCli"];
+	        this.agentSessionId = source["agentSessionId"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -634,6 +638,7 @@ export namespace main {
 	    pinned: boolean;
 	    // Go type: time
 	    createdAt: any;
+	    agentCli?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SessionDTO(source);
@@ -647,6 +652,7 @@ export namespace main {
 	        this.cwd = source["cwd"];
 	        this.pinned = source["pinned"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
+	        this.agentCli = source["agentCli"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

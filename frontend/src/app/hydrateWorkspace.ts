@@ -1,5 +1,5 @@
 import { DEFAULT_SCOPE, loadScopeLayout, isUnbound } from "@/lib/sessions";
-import { mapLiveSessions, sortProjectsByAdded, sortSessionsByStart } from "@/lib/sessionTitles";
+import { agentsFromLiveSessions, mapLiveSessions, sortProjectsByAdded, sortSessionsByStart } from "@/lib/sessionTitles";
 import {
   applyConfigChrome,
   applyTheme,
@@ -48,6 +48,7 @@ export async function hydrateWorkspace() {
   uiStore.set({
     projects: nextProjects,
     sessions: live,
+    sessionAgents: agentsFromLiveSessions(Array.isArray(sessions) ? sessions : []),
   });
 
   const scope = cfg.activeScope || DEFAULT_SCOPE;
