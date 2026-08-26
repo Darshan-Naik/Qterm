@@ -23,9 +23,11 @@ func ParseHook(in ParseInput) []Intent {
 	}
 	var out []Intent
 	switch normalizeEvent(in.Event) {
-	case "session_start", "before_agent", "pre_invocation":
+	case "session_start":
+		// CLI launched — show the agent icon, not “running”. Running starts on a prompt.
+		out = []Intent{anim("idle")}
+	case "before_agent", "pre_invocation":
 		out = []Intent{anim("thinking")}
-		// Some CLIs put the prompt on agent-start events.
 		if prompt := promptFromRaw(in.Raw); prompt != "" {
 			if title := TitleFromPrompt(prompt); title != "" {
 				out = append(out, autoTitleIntent(in.Source, in.SessionID, title, in.Cwd))
@@ -44,7 +46,8 @@ func ParseHook(in ParseInput) []Intent {
 	case "stop", "after_agent":
 		out = []Intent{anim("task_complete")}
 	case "stop_failure":
-		out = []Intent{anim("action_required")}
+		// Failed turn (rate limit, billing, …) — done, not waiting for a question.
+		out = []Intent{anim("task_complete")}
 	case "request_user_input":
 		out = []Intent{anim("action_required")}
 	case "notification":
@@ -52,11 +55,13 @@ func ParseHook(in ParseInput) []Intent {
 		if isNeedsInputNotification(nType) {
 			out = []Intent{anim("action_required")}
 		} else {
-			switch nType {
+			switch compactHookName(nType) {
 			case "agent_completed", "elicitation_complete":
 				out = []Intent{anim("task_complete")}
+			case "idle_prompt", "idle":
+				out = []Intent{anim("idle")}
 			default:
-				out = []Intent{anim("thinking")}
+				out = nil
 			}
 		}
 	case "permission", "elicitation":
@@ -71,11 +76,7 @@ func ParseHook(in ParseInput) []Intent {
 		out = []Intent{anim("thinking")}
 		// Do not adopt OSC titles from shell printf — those are process/cwd noise.
 	default:
-		if strings.TrimSpace(in.Event) == "" {
-			out = nil
-		} else {
-			out = []Intent{anim("thinking")}
-		}
+		out = nil
 	}
 	// Explicit CLI session title (/rename, customTitle) — not raw OSC process names.
 	if title := sessionTitleFromRaw(in.Raw); title != "" {
@@ -102,7 +103,7 @@ func compactHookName(s string) string {
 func isNeedsInputNotification(nType string) bool {
 	n := compactHookName(nType)
 	switch n {
-	case "permission_prompt", "agent_needs_input", "elicitation_dialog", "idle_prompt",
+	case "permission_prompt", "agent_needs_input", "elicitation_dialog",
 		"request_user_input", "tool_permission", "toolpermission":
 		return true
 	default:

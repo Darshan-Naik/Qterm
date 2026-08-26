@@ -118,7 +118,11 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
         >
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2 text-left",
+              !showWorktree && "group-hover:pr-8",
+              !showWorktree && rowActive && "pr-8"
+            )}
             onClick={() => {
               if (!editing) void focusSession(session.id);
             }}

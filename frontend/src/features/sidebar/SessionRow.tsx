@@ -171,6 +171,8 @@ export function SessionRow({
             onDragEnd={onDragEnd}
             className={cn(
               "flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 text-left",
+              !showWorktree && "group-hover:pr-8",
+              !showWorktree && rowActive && "pr-8",
               canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
             )}
             onClick={() => {
