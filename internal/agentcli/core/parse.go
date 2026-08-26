@@ -45,20 +45,28 @@ func ParseHook(in ParseInput) []Intent {
 		out = []Intent{anim("task_complete")}
 	case "stop_failure":
 		out = []Intent{anim("action_required")}
+	case "request_user_input":
+		out = []Intent{anim("action_required")}
 	case "notification":
 		nType := FirstString(in.Raw, "notification_type", "notificationType")
-		switch nType {
-		case "permission_prompt", "agent_needs_input", "elicitation_dialog", "idle_prompt":
+		if isNeedsInputNotification(nType) {
 			out = []Intent{anim("action_required")}
-		case "agent_completed", "elicitation_complete":
-			out = []Intent{anim("task_complete")}
-		default:
-			out = []Intent{anim("thinking")}
+		} else {
+			switch nType {
+			case "agent_completed", "elicitation_complete":
+				out = []Intent{anim("task_complete")}
+			default:
+				out = []Intent{anim("thinking")}
+			}
 		}
 	case "permission", "elicitation":
 		out = []Intent{anim("action_required")}
 	case "pre_tool", "before_tool":
-		out = []Intent{anim("thinking")}
+		if isRequestUserInputTool(in.Raw) {
+			out = []Intent{anim("action_required")}
+		} else {
+			out = []Intent{anim("thinking")}
+		}
 	case "post_tool", "after_tool", "post_invocation":
 		out = []Intent{anim("thinking")}
 		// Do not adopt OSC titles from shell printf — those are process/cwd noise.
@@ -76,6 +84,50 @@ func ParseHook(in ParseInput) []Intent {
 		out = append(out, ri)
 	}
 	return out
+}
+
+func toolNameFromRaw(raw map[string]any) string {
+	n := FirstString(raw, "tool_name", "toolName", "tool")
+	if n != "" {
+		return n
+	}
+	return NestedString(raw, "tool", "name")
+}
+
+func compactHookName(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	return strings.ReplaceAll(s, "-", "_")
+}
+
+func isNeedsInputNotification(nType string) bool {
+	n := compactHookName(nType)
+	switch n {
+	case "permission_prompt", "agent_needs_input", "elicitation_dialog", "idle_prompt",
+		"request_user_input", "tool_permission", "toolpermission":
+		return true
+	default:
+		return false
+	}
+}
+
+// isRequestUserInputTool is true for CLI tools that block on a human answer
+// (Codex request_user_input, Claude AskUserQuestion, Cursor AskQuestion).
+func isRequestUserInputTool(raw map[string]any) bool {
+	n := compactHookName(toolNameFromRaw(raw))
+	if n == "" {
+		return false
+	}
+	keys := []string{
+		"request_user_input", "requestuserinput",
+		"ask_user_question", "askuserquestion",
+		"ask_question", "askquestion",
+	}
+	for _, key := range keys {
+		if n == key || strings.Contains(n, key) {
+			return true
+		}
+	}
+	return false
 }
 
 func sessionTitleFromRaw(raw map[string]any) string {
@@ -114,6 +166,8 @@ func normalizeEvent(event string) string {
 		return "stop_failure"
 	case "permissionrequest":
 		return "permission"
+	case "requestuserinput", "request_user_input", "userinputrequest", "user_input_request":
+		return "request_user_input"
 	case "pretooluse", "beforetool", "beforeshellexecution", "beforemcpexecution":
 		return "pre_tool"
 	case "posttooluse", "aftertool", "aftershellexecution", "aftermcpexecution", "afterfileedit":

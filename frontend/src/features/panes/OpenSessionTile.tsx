@@ -28,6 +28,8 @@ import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
+import { SessionFlowTitle } from "@/features/sidebar/SessionFlowTitle";
+import { SessionStatusDot } from "@/features/sidebar/SessionStatusDot";
 
 /** Compact session tile for the open-workspace grid (sidebar menu + agent states). */
 export function OpenSessionTile({ session }: { session: SessionInfo }) {
@@ -111,7 +113,6 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
             "transition-colors hover:bg-accent/45",
             rowActive && "bg-accent/45",
             needsInput && "session-needs-input",
-            thinking && "session-thinking",
             complete && "session-complete"
           )}
         >
@@ -126,23 +127,13 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
               {agent ? (
                 <WithTooltip label={agentLabel(agent)}>
                   <span className="inline-flex">
-                    <AgentIcon
-                      agent={agent}
-                      thinking={thinking}
-                      needsInput={needsInput}
-                      complete={complete}
-                    />
+                    <AgentIcon agent={agent} thinking={thinking} />
                   </span>
                 </WithTooltip>
               ) : (
                 <AgentIcon />
               )}
-              {needsInput ? (
-                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-amber-400" />
-                </span>
-              ) : null}
+              {needsInput || complete ? <SessionStatusDot /> : null}
             </span>
             {pinned ? (
               <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
@@ -170,17 +161,17 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
                 className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] font-medium leading-5 text-muted-foreground outline-none"
               />
             ) : (
-              <span
-                className="min-w-0 flex-1 truncate text-[13px] font-medium text-muted-foreground"
+              <SessionFlowTitle
+                name={session.name}
+                thinking={thinking}
+                className="text-[13px] font-medium text-muted-foreground"
                 onDoubleClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setDraft(session.name);
                   setEditing(true);
                 }}
-              >
-                {session.name}
-              </span>
+              />
             )}
             {git?.dirty ? <GitDirtyDot /> : null}
           </button>

@@ -233,32 +233,87 @@ input[type="number"]::-webkit-outer-spin-button {
   position: absolute !important;
 }
 
-@keyframes session-row-breathe {
-  0%,
-  100% {
-    background-color: transparent;
+@keyframes session-title-shimmer {
+  0% {
+    background-position: 140% 0, 0 0;
   }
-  50% {
-    background-color: color-mix(in oklab, rgb(56 189 248) 10%, transparent);
+  100% {
+    background-position: -40% 0, 0 0;
   }
 }
-@keyframes session-row-alert {
+.session-flow-title {
+  color: inherit;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 40%,
+      rgb(0 0 0 / 0.55) 50%,
+      transparent 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      color-mix(in oklab, currentColor 42%, transparent),
+      color-mix(in oklab, currentColor 42%, transparent)
+    );
+  background-size: 180% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: session-title-shimmer 2.1s ease-in-out infinite;
+}
+.dark .session-flow-title {
+  background-image: linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 40%,
+      rgb(255 255 255 / 0.95) 50%,
+      transparent 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      color-mix(in oklab, currentColor 40%, transparent),
+      color-mix(in oklab, currentColor 40%, transparent)
+    );
+}
+@keyframes session-logo-pulse {
   0%,
   100% {
-    background-color: color-mix(in oklab, rgb(251 191 36) 8%, transparent);
+    opacity: 0.42;
   }
   50% {
-    background-color: color-mix(in oklab, rgb(251 191 36) 16%, transparent);
+    opacity: 1;
   }
 }
-.session-thinking {
-  animation: session-row-breathe 1.6s ease-in-out infinite;
+.session-logo-pulse {
+  animation: session-logo-pulse 2.1s ease-in-out infinite;
+}
+@keyframes session-amber-glow {
+  0%,
+  100% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 10%, transparent);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 22%, transparent);
+    box-shadow: 0 0 10px color-mix(in oklab, rgb(251 191 36) 32%, transparent);
+  }
+}
+@keyframes session-complete-flash {
+  0%,
+  100% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 10%, transparent);
+  }
+  50% {
+    background-color: color-mix(in oklab, rgb(56 189 248) 18%, transparent);
+  }
 }
 .session-needs-input {
-  animation: session-row-alert 1.4s ease-in-out infinite;
+  animation: session-amber-glow 1.2s ease-in-out infinite;
 }
 .session-complete {
-  animation: session-row-breathe 0.9s ease-in-out 2;
+  background-color: color-mix(in oklab, rgb(251 191 36) 10%, transparent);
+  animation: session-complete-flash 0.85s ease-in-out 2;
 }
 .titlebar-drag {
   -webkit-app-region: drag;
