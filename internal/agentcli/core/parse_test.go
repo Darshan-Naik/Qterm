@@ -102,6 +102,44 @@ func TestParseHookGeminiBeforeToolAskUser(t *testing.T) {
 	}
 }
 
+func TestParseHookSessionStartIsIdle(t *testing.T) {
+	out := ParseHook(ParseInput{Source: "codex", Event: "SessionStart", SessionID: "s1"})
+	if len(out) != 1 || payloadState(out[0]) != "idle" {
+		t.Fatalf("got %#v", out)
+	}
+}
+
+func TestParseHookIdlePromptIsNotNeedsInput(t *testing.T) {
+	out := ParseHook(ParseInput{
+		Source:    "claude",
+		Event:     "Notification",
+		SessionID: "s1",
+		Raw:       map[string]any{"notification_type": "idle_prompt"},
+	})
+	if len(out) != 1 || payloadState(out[0]) != "idle" {
+		t.Fatalf("got %#v", out)
+	}
+}
+
+func TestParseHookStopFailureIsCompleteNotNeedsInput(t *testing.T) {
+	out := ParseHook(ParseInput{Source: "claude", Event: "StopFailure", SessionID: "s1"})
+	if len(out) != 1 || payloadState(out[0]) != "task_complete" {
+		t.Fatalf("got %#v", out)
+	}
+}
+
+func TestParseHookUnknownNotificationSilent(t *testing.T) {
+	out := ParseHook(ParseInput{
+		Source:    "claude",
+		Event:     "Notification",
+		SessionID: "s1",
+		Raw:       map[string]any{"notification_type": "session_init"},
+	})
+	if len(out) != 0 {
+		t.Fatalf("got %#v", out)
+	}
+}
+
 func payloadState(in Intent) string {
 	s, _ := in.Payload["state"].(string)
 	return s

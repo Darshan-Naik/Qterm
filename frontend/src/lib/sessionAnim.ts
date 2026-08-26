@@ -36,6 +36,8 @@ export function nextAnimateState(
 ): AnimateState | null {
   // Unread needs-input: ignore thinking pulses until they visit and answer.
   if (current === "action_required" && incoming === "thinking" && !focused) return null;
+  // Idle (session start / back at prompt) must not wipe needs-input or the done flash.
+  if (incoming === "idle" && (current === "action_required" || current === "task_complete")) return null;
   if (current === incoming) return null;
   return incoming;
 }
