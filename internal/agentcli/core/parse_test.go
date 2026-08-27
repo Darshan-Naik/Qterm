@@ -144,3 +144,80 @@ func payloadState(in Intent) string {
 	s, _ := in.Payload["state"].(string)
 	return s
 }
+
+func payloadName(in Intent) string {
+	s, _ := in.Payload["name"].(string)
+	return s
+}
+
+func TestParseHookClaudeRenameSlash(t *testing.T) {
+	out := ParseHook(ParseInput{
+		Source:    "claude",
+		Event:     "UserPromptSubmit",
+		SessionID: "s1",
+		Raw:       map[string]any{"prompt": "/rename Fix login redirect"},
+	})
+	var renamed, source string
+	for _, in := range out {
+		if in.Type == IntentRename {
+			renamed = payloadName(in)
+			source, _ = in.Payload["source"].(string)
+		}
+	}
+	if renamed != "Fix login redirect" || source != "rename_slash" {
+		t.Fatalf("rename want Fix login redirect/rename_slash got %#v", out)
+	}
+}
+
+func TestParseHookClaudeRenameQuoted(t *testing.T) {
+	out := ParseHook(ParseInput{
+		Source:    "claude",
+		Event:     "UserPromptSubmit",
+		SessionID: "s1",
+		Raw:       map[string]any{"prompt": `/rename "auth"`},
+	})
+	var renamed string
+	for _, in := range out {
+		if in.Type == IntentRename {
+			renamed = payloadName(in)
+		}
+	}
+	if renamed != "auth" {
+		t.Fatalf("got %#v", out)
+	}
+}
+
+func TestParseHookRenameSlashWinsOverStaleCustomTitle(t *testing.T) {
+	out := ParseHook(ParseInput{
+		Source:    "claude",
+		Event:     "UserPromptSubmit",
+		SessionID: "s1",
+		Raw: map[string]any{
+			"prompt":       "/rename Auth flow",
+			"customTitle":  "Quasar",
+			"sessionTitle": "Quasar",
+		},
+	})
+	var renamed, source string
+	for _, in := range out {
+		if in.Type == IntentRename {
+			renamed = payloadName(in)
+			source, _ = in.Payload["source"].(string)
+		}
+	}
+	if renamed != "Auth flow" || source != "rename_slash" {
+		t.Fatalf("slash rename should win over stale customTitle, got %#v", out)
+	}
+}
+
+func TestTitleFromRenameSlashIgnoresBareAndOtherCommands(t *testing.T) {
+	if TitleFromRenameSlash("/rename") != "" {
+		t.Fatal("bare /rename should not rename")
+	}
+	if TitleFromRenameSlash("/compact") != "" {
+		t.Fatal("other slash commands should not rename")
+	}
+	if TitleFromRenameSlash("rename this tab") != "" {
+		t.Fatal("plain text should not parse as slash rename")
+	}
+}

@@ -51,8 +51,8 @@ func (a *App) applyFirstPromptTitle(id, name string) bool {
 	return true
 }
 
-// applyHookSessionTitle applies an explicit CLI session title from hooks
-// (/rename, customTitle). Respects nameLocked — unlike MCP rename_terminal.
+// applyHookSessionTitle applies a CLI customTitle/sessionTitle from a hook
+// payload. Respects nameLocked — unlike MCP rename_terminal and `/rename`.
 func (a *App) applyHookSessionTitle(id, name string) bool {
 	if looksLikeAgentStatusTitle(name) {
 		if sess, ok := a.pty.Get(id); ok && looksLikeAgentStatusTitle(sess.Name) {
@@ -80,6 +80,12 @@ func (a *App) applyHookSessionTitle(id, name string) bool {
 	}
 	a.markAutoTitled(id)
 	return true
+}
+
+// applySlashSessionTitle applies `/rename` / `/title` from a CLI hook payload.
+// This is explicit user intent — always apply, even if the tab was locked.
+func (a *App) applySlashSessionTitle(id, name string) bool {
+	return a.renameSession(id, name, renameUser)
 }
 
 // titleMatchesSessionContext is true when the title is just the project or cwd

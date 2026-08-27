@@ -78,8 +78,13 @@ func ParseHook(in ParseInput) []Intent {
 	default:
 		out = nil
 	}
-	// Explicit CLI session title (/rename, customTitle) — not raw OSC process names.
-	if title := sessionTitleFromRaw(in.Raw); title != "" {
+	// Explicit CLI session title from this hook payload — never PTY OSC scraping.
+	// `/rename` in the prompt wins over a stale customTitle echoed on the same event.
+	if title := TitleFromRenameSlash(promptFromRaw(in.Raw)); title != "" {
+		ri := renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd)
+		ri.Payload["source"] = "rename_slash"
+		out = append(out, ri)
+	} else if title := sessionTitleFromRaw(in.Raw); title != "" {
 		ri := renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd)
 		ri.Payload["source"] = "session_title"
 		out = append(out, ri)

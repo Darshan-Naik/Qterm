@@ -31,7 +31,12 @@ func (a *App) startAgentBridge() {
 		if intent.Type == agentcli.IntentRename {
 			name, _ := intent.Payload["name"].(string)
 			if intent.SessionID != "" && name != "" {
-				_ = a.applyHookSessionTitle(intent.SessionID, name)
+				source, _ := intent.Payload["source"].(string)
+				if source == "rename_slash" {
+					_ = a.applySlashSessionTitle(intent.SessionID, name)
+				} else {
+					_ = a.applyHookSessionTitle(intent.SessionID, name)
+				}
 			}
 			return
 		}

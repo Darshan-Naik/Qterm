@@ -165,3 +165,36 @@ func TestRejectAgentStatusTitles(t *testing.T) {
 		t.Fatalf("strip got %q", got)
 	}
 }
+
+func TestSlashRenameOverridesUserLock(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &App{
+		store: store,
+		pty:   ptymgr.NewManager("/bin/zsh", nil, nil),
+	}
+	sess, err := a.pty.Create(ptymgr.CreateOpts{ID: "t1", Name: "Quasar", Cwd: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = a.pty.Kill(sess.ID) }()
+	_ = store.Update(func(cfg *config.AppConfig) {
+		cfg.Sessions = []config.SessionMeta{{ID: sess.ID, Name: sess.Name, Cwd: sess.Cwd, AgentCLI: "claude"}}
+	})
+	if !a.RenameSession(sess.ID, "My Tab") {
+		t.Fatal("user rename failed")
+	}
+	if a.applyHookSessionTitle(sess.ID, "From customTitle") {
+		t.Fatal("generic hook title should still respect nameLocked")
+	}
+	if !a.applySlashSessionTitle(sess.ID, "Auth flow") {
+		t.Fatal("claude /rename hook should apply even when locked")
+	}
+	got, _ := a.pty.Get(sess.ID)
+	if got.Name != "Auth flow" {
+		t.Fatalf("got %q", got.Name)
+	}
+}
