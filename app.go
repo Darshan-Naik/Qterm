@@ -42,6 +42,7 @@ type App struct {
 	agentMu          sync.Mutex
 	agentBind        map[string]string // CLI session id → Qterm session id (sticky)
 	agentLastQterm   string            // last Qterm pane that received agent activity
+	pendingSlashAuto map[string]slashAutoPending
 	nudgeMu          sync.Mutex
 	nudgeSeen        map[string]struct{}      // sessionID\0cli — already nudged
 	nudgeTimers      map[string][]*time.Timer // sessionID → 10s/20s/50s checks

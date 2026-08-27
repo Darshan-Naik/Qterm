@@ -22,17 +22,17 @@ const (
 
 // ToolItem is one installed (or registered) tool/plugin/skill/marketplace/MCP entry.
 type ToolItem struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Kind         ToolKind `json:"kind"`
-	Version      string   `json:"version,omitempty"`
-	Source       string   `json:"source,omitempty"`
-	Description  string   `json:"description,omitempty"`
-	Enabled      bool     `json:"enabled"`
-	Scope        string   `json:"scope,omitempty"`
-	System       bool     `json:"system,omitempty"` // qterm bridge — manage via Connect/Disconnect
-	Available    bool     `json:"available,omitempty"` // marketplace catalog entry (not installed)
-	InstallCount int      `json:"installCount,omitempty"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	Kind         ToolKind   `json:"kind"`
+	Version      string     `json:"version,omitempty"`
+	Source       string     `json:"source,omitempty"`
+	Description  string     `json:"description,omitempty"`
+	Enabled      bool       `json:"enabled"`
+	Scope        string     `json:"scope,omitempty"`
+	System       bool       `json:"system,omitempty"`    // qterm bridge — manage via Connect/Disconnect
+	Available    bool       `json:"available,omitempty"` // marketplace catalog entry (not installed)
+	InstallCount int        `json:"installCount,omitempty"`
 	ManagedBy    string     `json:"managedBy,omitempty"` // parent plugin id when owned by a plugin
 	Skills       []ToolPart `json:"skills,omitempty"`
 	Hooks        []ToolPart `json:"hooks,omitempty"`

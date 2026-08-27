@@ -84,10 +84,26 @@ func TitleFromPrompt(prompt string) string {
 }
 
 // TitleFromRenameSlash extracts the name from `/rename <title>` or `/title <title>`.
+// Bare `/rename` (Claude generates a name from session context) returns "".
 func TitleFromRenameSlash(prompt string) string {
+	_, name, ok := parseRenameSlash(prompt)
+	if !ok {
+		return ""
+	}
+	return name
+}
+
+// IsBareRenameSlash is true for `/rename` / `/title` with no name — Claude then
+// writes a generated custom-title into the session transcript.
+func IsBareRenameSlash(prompt string) bool {
+	_, name, ok := parseRenameSlash(prompt)
+	return ok && name == ""
+}
+
+func parseRenameSlash(prompt string) (cmd, name string, ok bool) {
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" || prompt[0] != '/' {
-		return ""
+		return "", "", false
 	}
 	body := strings.TrimSpace(prompt[1:])
 	cmd, name, found := strings.Cut(body, " ")
@@ -95,16 +111,16 @@ func TitleFromRenameSlash(prompt string) string {
 		cmd, name, found = strings.Cut(body, "\t")
 	}
 	if !found {
-		return ""
+		cmd, name = body, ""
 	}
 	switch strings.ToLower(strings.TrimSpace(cmd)) {
 	case "rename", "title":
 	default:
-		return ""
+		return "", "", false
 	}
 	name = strings.TrimSpace(name)
 	name = strings.Trim(name, `"'`)
-	return strings.TrimSpace(name)
+	return strings.ToLower(strings.TrimSpace(cmd)), strings.TrimSpace(name), true
 }
 
 func autoTitleIntent(hookID, sessionID, name, cwd string) Intent {

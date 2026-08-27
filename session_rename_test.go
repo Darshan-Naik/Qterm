@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"qterm/internal/config"
@@ -195,6 +196,49 @@ func TestSlashRenameOverridesUserLock(t *testing.T) {
 	}
 	got, _ := a.pty.Get(sess.ID)
 	if got.Name != "Auth flow" {
+		t.Fatalf("got %q", got.Name)
+	}
+}
+
+func TestBareRenamePicksUpTranscriptCustomTitle(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &App{
+		store: store,
+		pty:   ptymgr.NewManager("/bin/zsh", nil, nil),
+	}
+	sess, err := a.pty.Create(ptymgr.CreateOpts{ID: "t1", Name: "Quasar", Cwd: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = a.pty.Kill(sess.ID) }()
+	_ = store.Update(func(cfg *config.AppConfig) {
+		cfg.Sessions = []config.SessionMeta{{ID: sess.ID, Name: sess.Name, Cwd: sess.Cwd, AgentCLI: "claude"}}
+	})
+
+	transcript := t.TempDir() + "/session.jsonl"
+	if err := os.WriteFile(transcript, []byte("{\"type\":\"user\"}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	a.armSlashAutoTitle(sess.ID, transcript)
+	a.trySlashAutoTitle(sess.ID)
+	got, _ := a.pty.Get(sess.ID)
+	if got.Name != "Quasar" {
+		t.Fatalf("should wait for generated title, got %q", got.Name)
+	}
+
+	if err := os.WriteFile(transcript, []byte(
+		"{\"type\":\"custom-title\",\"customTitle\":\"fix-auth-token-expiry\"}\n",
+	), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a.trySlashAutoTitle(sess.ID)
+	got, _ = a.pty.Get(sess.ID)
+	if got.Name != "fix-auth-token-expiry" {
 		t.Fatalf("got %q", got.Name)
 	}
 }

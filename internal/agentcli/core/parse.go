@@ -80,9 +80,19 @@ func ParseHook(in ParseInput) []Intent {
 	}
 	// Explicit CLI session title from this hook payload — never PTY OSC scraping.
 	// `/rename` in the prompt wins over a stale customTitle echoed on the same event.
-	if title := TitleFromRenameSlash(promptFromRaw(in.Raw)); title != "" {
+	prompt := promptFromRaw(in.Raw)
+	if title := TitleFromRenameSlash(prompt); title != "" {
 		ri := renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd)
 		ri.Payload["source"] = "rename_slash"
+		out = append(out, ri)
+	} else if IsBareRenameSlash(prompt) {
+		// Claude `/rename` with no args: Haiku names the session from context and
+		// appends a custom-title record to transcript_path (not present on this event).
+		ri := renameIntentWithCwd(in.Source, in.SessionID, "", in.Cwd)
+		ri.Payload["source"] = "rename_slash_auto"
+		if path := FirstString(in.Raw, "transcript_path", "transcriptPath"); path != "" {
+			ri.Payload["transcriptPath"] = path
+		}
 		out = append(out, ri)
 	} else if title := sessionTitleFromRaw(in.Raw); title != "" {
 		ri := renameIntentWithCwd(in.Source, in.SessionID, title, in.Cwd)
