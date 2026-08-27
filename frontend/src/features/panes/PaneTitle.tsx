@@ -22,7 +22,7 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
   return (
     <span
       className={cn(
-        "flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5 text-left text-[12.5px] leading-none text-foreground opacity-45 transition-opacity group-hover/chrome:opacity-100",
+        "flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5 text-left text-[12.5px] leading-5 text-foreground opacity-45 transition-opacity group-hover/chrome:opacity-100",
         active && "opacity-100"
       )}
     >
@@ -35,7 +35,7 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
       ) : (
         <AgentIcon thinking={thinking} className="size-3.5 shrink-0" />
       )}
-      <span className="min-w-0 truncate">{name}</span>
+      <span className="min-w-0 truncate leading-5">{name}</span>
     </span>
   );
 }

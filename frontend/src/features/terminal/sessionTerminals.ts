@@ -1,11 +1,13 @@
 /** Long-lived xterm instances so switching panes/scopes does not wipe content. */
 
-import { Terminal, type ITheme } from "@xterm/xterm";
+import { Terminal, type ILinkHandler, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon, type ISearchOptions } from "@xterm/addon-search";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
 import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsjs/go/main/App";
 import { isAppShortcut } from "@/app/appShortcuts";
+import { openTerminalLink } from "@/features/terminal/openTerminalLink";
 import {
   clearLeakingDecModes,
   forcePrimaryScreen,
@@ -78,12 +80,20 @@ type Entry = {
   term: Terminal;
   fit: FitAddon;
   search: SearchAddon;
+  links: WebLinksAddon;
   appliedSeq: number;
   seeding: boolean;
   pending: Pending[];
   dataDisposable: { dispose: () => void };
   binaryDisposable: { dispose: () => void };
   protocolGuard: { dispose: () => void };
+};
+
+const OSC8_LINK_HANDLER: ILinkHandler = {
+  activate(event, text) {
+    openTerminalLink(event, text);
+  },
+  allowNonHttpProtocols: true,
 };
 
 /** Forward xterm→PTY bytes only when the shell-protocol gate allows it. */
@@ -180,6 +190,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     theme: terminalThemeFromCss(),
     allowProposedApi: true,
     scrollback: 5000,
+    // OSC 8 hyperlinks (Claude/file URLs). window.open is a no-op in Wails.
+    linkHandler: OSC8_LINK_HANDLER,
     // Drives custom scrollbar width (defaults to 14px — looks bulky).
     overviewRuler: { width: 4 },
   });
@@ -187,6 +199,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   term.loadAddon(fit);
   const search = new SearchAddon();
   term.loadAddon(search);
+  const links = new WebLinksAddon(openTerminalLink);
+  term.loadAddon(links);
   // Let app chords (⌘K, ⌘P, …) skip xterm so the capture-phase window
   // handler can open palettes instead of feeding the PTY.
   term.attachCustomKeyEventHandler((ev) => {
@@ -201,6 +215,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     term,
     fit,
     search,
+    links,
     appliedSeq: 0,
     seeding: true,
     pending: [],
@@ -298,6 +313,7 @@ export function disposeSession(sessionId: string) {
   entry.binaryDisposable.dispose();
   entry.protocolGuard.dispose();
   entry.search.dispose();
+  entry.links.dispose();
   entry.term.dispose();
   entries.delete(sessionId);
 }

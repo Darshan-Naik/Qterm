@@ -110,7 +110,7 @@ export function GitChip({
                 "w-max max-w-full min-w-0 justify-start rounded-md px-1 py-0.5 text-left text-[11px] leading-4 text-muted-foreground hover:bg-accent/50 hover:text-foreground",
               variant === "pane" &&
                 cn(
-                  "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground",
+                  "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] leading-5 text-muted-foreground",
                   "hover:bg-accent hover:text-foreground",
                   always
                     ? "opacity-45 group-hover/chrome:opacity-100"
@@ -128,7 +128,7 @@ export function GitChip({
                 <GitBranch className="size-3 shrink-0 opacity-70" />
               )
             ) : null}
-            <span className={cn(variant === "pane" ? "whitespace-nowrap" : "min-w-0 truncate")}>
+            <span className={cn(variant === "pane" ? "whitespace-nowrap leading-5" : "min-w-0 truncate")}>
               {git.branch || "HEAD"}
             </span>
             {track ? <span className="shrink-0 tabular-nums">{track}</span> : null}

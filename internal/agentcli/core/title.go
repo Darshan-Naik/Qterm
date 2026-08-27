@@ -35,7 +35,7 @@ func TitleFromPrompt(prompt string) string {
 	if prompt == "" {
 		return ""
 	}
-	// Skip slash-commands and harness noise.
+	// Skip slash-commands and harness noise. `/rename` is handled separately.
 	if strings.HasPrefix(prompt, "/") {
 		return ""
 	}
@@ -81,6 +81,30 @@ func TitleFromPrompt(prompt string) string {
 		return ""
 	}
 	return title
+}
+
+// TitleFromRenameSlash extracts the name from `/rename <title>` or `/title <title>`.
+func TitleFromRenameSlash(prompt string) string {
+	prompt = strings.TrimSpace(prompt)
+	if prompt == "" || prompt[0] != '/' {
+		return ""
+	}
+	body := strings.TrimSpace(prompt[1:])
+	cmd, name, found := strings.Cut(body, " ")
+	if !found {
+		cmd, name, found = strings.Cut(body, "\t")
+	}
+	if !found {
+		return ""
+	}
+	switch strings.ToLower(strings.TrimSpace(cmd)) {
+	case "rename", "title":
+	default:
+		return ""
+	}
+	name = strings.TrimSpace(name)
+	name = strings.Trim(name, `"'`)
+	return strings.TrimSpace(name)
 }
 
 func autoTitleIntent(hookID, sessionID, name, cwd string) Intent {
