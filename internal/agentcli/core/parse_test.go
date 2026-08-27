@@ -210,6 +210,36 @@ func TestParseHookRenameSlashWinsOverStaleCustomTitle(t *testing.T) {
 	}
 }
 
+func TestParseHookBareRenameWaitsForTranscript(t *testing.T) {
+	out := ParseHook(ParseInput{
+		Source:    "claude",
+		Event:     "UserPromptSubmit",
+		SessionID: "s1",
+		Raw: map[string]any{
+			"prompt":          "/rename",
+			"transcript_path": "/tmp/session.jsonl",
+			"customTitle":     "Quasar",
+		},
+	})
+	var source, path, name string
+	for _, in := range out {
+		if in.Type == IntentRename {
+			source, _ = in.Payload["source"].(string)
+			path, _ = in.Payload["transcriptPath"].(string)
+			name = payloadName(in)
+		}
+	}
+	if source != "rename_slash_auto" || path != "/tmp/session.jsonl" {
+		t.Fatalf("bare /rename should arm transcript wait, got %#v", out)
+	}
+	if name != "" {
+		t.Fatalf("bare /rename must not use stale customTitle %q", name)
+	}
+	if !IsBareRenameSlash("/rename") || !IsBareRenameSlash("  /title  ") {
+		t.Fatal("expected bare rename/title")
+	}
+}
+
 func TestTitleFromRenameSlashIgnoresBareAndOtherCommands(t *testing.T) {
 	if TitleFromRenameSlash("/rename") != "" {
 		t.Fatal("bare /rename should not rename")

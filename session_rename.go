@@ -3,11 +3,21 @@ package main
 import (
 	"path/filepath"
 	"strings"
+	"time"
 
+	"qterm/internal/agentcli/core"
 	"qterm/internal/config"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+const slashAutoTitleWait = 90 * time.Second
+
+type slashAutoPending struct {
+	transcript string
+	before     string
+	deadline   time.Time
+}
 
 // Rename lanes (intentional — do not collapse):
 //
@@ -86,6 +96,58 @@ func (a *App) applyHookSessionTitle(id, name string) bool {
 // This is explicit user intent — always apply, even if the tab was locked.
 func (a *App) applySlashSessionTitle(id, name string) bool {
 	return a.renameSession(id, name, renameUser)
+}
+
+// armSlashAutoTitle starts waiting for Claude's generated custom-title after a
+// bare `/rename`. The title is written to transcript_path after Haiku returns —
+// not present on the UserPromptSubmit hook that armed this.
+func (a *App) armSlashAutoTitle(id, transcript string) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return
+	}
+	transcript = strings.TrimSpace(transcript)
+	before := core.LastCustomTitleFromJSONL(transcript)
+	a.agentMu.Lock()
+	defer a.agentMu.Unlock()
+	if a.pendingSlashAuto == nil {
+		a.pendingSlashAuto = map[string]slashAutoPending{}
+	}
+	a.pendingSlashAuto[id] = slashAutoPending{
+		transcript: transcript,
+		before:     before,
+		deadline:   time.Now().Add(slashAutoTitleWait),
+	}
+}
+
+func (a *App) trySlashAutoTitle(id string) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return
+	}
+	a.agentMu.Lock()
+	p, ok := a.pendingSlashAuto[id]
+	a.agentMu.Unlock()
+	if !ok {
+		return
+	}
+	if time.Now().After(p.deadline) {
+		a.clearSlashAutoTitle(id)
+		return
+	}
+	title := core.LastCustomTitleFromJSONL(p.transcript)
+	if title == "" || title == p.before {
+		return
+	}
+	if a.applySlashSessionTitle(id, title) {
+		a.clearSlashAutoTitle(id)
+	}
+}
+
+func (a *App) clearSlashAutoTitle(id string) {
+	a.agentMu.Lock()
+	defer a.agentMu.Unlock()
+	delete(a.pendingSlashAuto, id)
 }
 
 // titleMatchesSessionContext is true when the title is just the project or cwd

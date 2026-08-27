@@ -26,20 +26,28 @@ func (a *App) startAgentBridge() {
 			if intent.SessionID != "" && name != "" {
 				_ = a.applyFirstPromptTitle(intent.SessionID, name)
 			}
+			a.trySlashAutoTitle(intent.SessionID)
 			return
 		}
 		if intent.Type == agentcli.IntentRename {
+			source, _ := intent.Payload["source"].(string)
 			name, _ := intent.Payload["name"].(string)
+			if source == "rename_slash_auto" && intent.SessionID != "" {
+				path, _ := intent.Payload["transcriptPath"].(string)
+				a.armSlashAutoTitle(intent.SessionID, path)
+				return
+			}
 			if intent.SessionID != "" && name != "" {
-				source, _ := intent.Payload["source"].(string)
 				if source == "rename_slash" {
 					_ = a.applySlashSessionTitle(intent.SessionID, name)
 				} else {
 					_ = a.applyHookSessionTitle(intent.SessionID, name)
 				}
 			}
+			a.trySlashAutoTitle(intent.SessionID)
 			return
 		}
+		a.trySlashAutoTitle(intent.SessionID)
 		if a.ctx == nil {
 			return
 		}
