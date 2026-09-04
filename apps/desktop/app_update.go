@@ -8,6 +8,7 @@ import (
 
 	"qterm/internal/appmode"
 	"qterm/internal/config"
+	"qterm/internal/procs"
 	"qterm/internal/update"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -41,6 +42,68 @@ func (a *App) SkipAppUpdate(version string) error {
 	return a.store.Update(func(cfg *config.AppConfig) {
 		cfg.SkippedAppUpdate = version
 	})
+}
+
+// BusyTerminal is a live PTY with a non-shell child process.
+type BusyTerminal struct {
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Commands []string `json:"commands"`
+}
+
+// UpdateRisk describes open terminals that quitting to install would kill.
+type UpdateRisk struct {
+	SessionCount int            `json:"sessionCount"`
+	Busy         []BusyTerminal `json:"busy"`
+}
+
+// ListUpdateRisk reports live terminals and running child commands. Off the PTY path.
+func (a *App) ListUpdateRisk() UpdateRisk {
+	risk := UpdateRisk{Busy: []BusyTerminal{}}
+	if a == nil || a.pty == nil {
+		return risk
+	}
+	live := a.pty.List()
+	risk.SessionCount = len(live)
+	if risk.SessionCount == 0 {
+		return risk
+	}
+	all, err := procs.List()
+	if err != nil || len(all) == 0 {
+		return risk
+	}
+	for _, s := range live {
+		pid, ok := a.pty.ShellPID(s.ID)
+		cmds := []string{}
+		if ok {
+			cmds = append(cmds, procs.ActiveCommands(pid, all)...)
+		}
+		if cli := a.sessionAgentCLI(s.ID); cli != "" {
+			cmds = appendUniqueCmd(cmds, cli)
+		}
+		if len(cmds) == 0 {
+			continue
+		}
+		name := s.Name
+		if name == "" {
+			name = "Terminal"
+		}
+		risk.Busy = append(risk.Busy, BusyTerminal{ID: s.ID, Name: name, Commands: cmds})
+	}
+	return risk
+}
+
+func appendUniqueCmd(cmds []string, name string) []string {
+	key := strings.ToLower(strings.TrimSpace(name))
+	if key == "" {
+		return cmds
+	}
+	for _, c := range cmds {
+		if strings.ToLower(c) == key {
+			return cmds
+		}
+	}
+	return append(cmds, name)
 }
 
 func (a *App) notifyAppUpdate() {

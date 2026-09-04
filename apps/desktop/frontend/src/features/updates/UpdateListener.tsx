@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
-import { asStatus, runManualUpdateCheck, showUpdateAvailableToast } from "./checkAppUpdate";
+import { asStatus, rememberAppUpdate, runManualUpdateCheck } from "./checkAppUpdate";
 
 type Off = (() => void) | undefined;
 
@@ -13,7 +13,8 @@ export function UpdateListener() {
   useEffect(() => {
     const offAvail = on("app:update-available", (raw) => {
       const status = asStatus(raw);
-      if (status?.available && !status.skipped) showUpdateAvailableToast(status);
+      if (!status) return;
+      rememberAppUpdate(status);
     });
     const offCheck = on("app:check-updates", () => {
       void runManualUpdateCheck();
