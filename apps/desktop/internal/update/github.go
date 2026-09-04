@@ -16,7 +16,6 @@ const (
 	GitHubRepo  = "Qterm"
 
 	AssetARM64 = "Qterm-macos-arm64.dmg"
-	AssetAMD64 = "Qterm-macos-amd64.dmg"
 
 	defaultAPI  = "https://api.github.com/repos/" + GitHubOwner + "/" + GitHubRepo + "/releases/latest"
 	httpTimeout = 8 * time.Second
@@ -63,8 +62,8 @@ func Default() *Client {
 	}
 }
 
-// Check compares current to the latest GitHub Release for this Mac arch.
-func (c *Client) Check(ctx context.Context, current, skipped, arch string) (Status, error) {
+// Check compares current to the latest GitHub Release (Apple Silicon DMG).
+func (c *Client) Check(ctx context.Context, current, skipped string) (Status, error) {
 	current = Normalize(current)
 	st := Status{CurrentVersion: current}
 	rel, err := c.Latest(ctx)
@@ -74,7 +73,7 @@ func (c *Client) Check(ctx context.Context, current, skipped, arch string) (Stat
 		}
 		return st, err
 	}
-	return Evaluate(current, skipped, arch, rel), nil
+	return Evaluate(current, skipped, rel), nil
 }
 
 func (c *Client) Latest(ctx context.Context) (Release, error) {
@@ -122,30 +121,16 @@ func (c *Client) Latest(ctx context.Context) (Release, error) {
 
 var errNotFound = errors.New("github releases: not found")
 
-// AssetName is the DMG filename published by the Release workflow for arch.
-func AssetName(arch string) string {
-	switch arch {
-	case "amd64", "x86_64":
-		return AssetAMD64
-	default:
-		return AssetARM64
-	}
-}
-
-// PickAsset returns the browser download URL for this Mac arch, or "".
-func PickAsset(assets []Asset, arch string) string {
-	want := AssetName(arch)
+// PickAsset returns the Apple Silicon DMG download URL, or "".
+func PickAsset(assets []Asset) string {
 	for _, a := range assets {
-		if a.Name == want {
+		if a.Name == AssetARM64 {
 			return a.BrowserDownloadURL
 		}
 	}
-	suffix := "-arm64.dmg"
-	if arch == "amd64" || arch == "x86_64" {
-		suffix = "-amd64.dmg"
-	}
 	for _, a := range assets {
-		if strings.HasSuffix(strings.ToLower(a.Name), suffix) {
+		lower := strings.ToLower(a.Name)
+		if strings.HasSuffix(lower, "-arm64.dmg") {
 			return a.BrowserDownloadURL
 		}
 	}
@@ -153,7 +138,7 @@ func PickAsset(assets []Asset, arch string) string {
 }
 
 // Evaluate maps a GitHub release onto an in-app update status.
-func Evaluate(current, skipped, arch string, rel Release) Status {
+func Evaluate(current, skipped string, rel Release) Status {
 	current = Normalize(current)
 	st := Status{CurrentVersion: current}
 	if rel.Draft || rel.Prerelease {
@@ -165,7 +150,7 @@ func Evaluate(current, skipped, arch string, rel Release) Status {
 	}
 	st.LatestVersion = latest
 	st.ReleaseURL = rel.HTMLURL
-	if url := PickAsset(rel.Assets, arch); url != "" {
+	if url := PickAsset(rel.Assets); url != "" {
 		st.DownloadURL = url
 	} else {
 		st.DownloadURL = rel.HTMLURL

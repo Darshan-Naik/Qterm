@@ -60,10 +60,6 @@ jobs:
     needs: meta
     runs-on: macos-14
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [arm64, amd64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,15 +87,13 @@ jobs:
 
       - name: Build DMG
         working-directory: apps/desktop
-        run: ./scripts/build-dmg.sh ${{ matrix.arch }}
+        run: ./scripts/build-dmg.sh arm64
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
-          name: qterm-macos-${{ matrix.arch }}
-          path: |
-            apps/desktop/build/bin/Qterm-${{ needs.meta.outputs.version }}-${{ matrix.arch }}.dmg
-            apps/desktop/build/bin/Qterm-macos-${{ matrix.arch }}.dmg
+          name: qterm-macos-arm64
+          path: apps/desktop/build/bin/Qterm-macos-arm64.dmg
           if-no-files-found: error
 
   publish:
@@ -133,9 +127,9 @@ jobs:
         run: |
           set -euo pipefail
           NOTES="$(printf '%s\n' \
-            "Qterm ${VERSION} for macOS." \
+            "Qterm ${VERSION} for Mac (Apple Silicon)." \
             "" \
-            "Download Qterm-macos-arm64.dmg for Apple Silicon, or Qterm-macos-amd64.dmg for Intel." \
+            "Download Qterm-macos-arm64.dmg." \
             "If macOS blocks the app, open System Settings, Privacy and Security, and allow it.")"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.dmg dist/SHA256SUMS --clobber
