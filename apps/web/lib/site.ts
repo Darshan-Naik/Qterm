@@ -29,7 +29,7 @@ export const FEATURES = [
   },
   {
     title: "Splits that feel native",
-    body: "Split right or down and work side by side. Each pane has its own title and menu — no crowded tab strip fighting for attention.",
+    body: "Split right or down and work side by side. Each pane has its own title and menu. No crowded tab strip fighting for attention.",
   },
   {
     title: "Built for flow",
@@ -37,7 +37,7 @@ export const FEATURES = [
   },
   {
     title: "Ready for agents",
-    body: "Keep your coding agents in the same window as your terminals — without turning Qterm into another chat app.",
+    body: "Keep your coding agents in the same window as your terminals, without turning Qterm into another chat app.",
   },
 ] as const;
 

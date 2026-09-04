@@ -64,3 +64,4 @@ Run Wails from `apps/desktop` (`wails dev` / `wails build`). The marketing site 
 - Match existing naming, `@/` imports, and Wails path depth from the feature folder.
 - Stay on task — no drive-by refactors or unsolicited docs.
 - **Defaults live once** — app defaults are named constants in `store/defaults.ts` (TS) and `internal/config` (Go). Callers use clamp helpers / `currentScope()` — never re-literal `12`, `240`, `100`, or `"_default"`.
+- **No em dashes in user-facing copy.** Do not use the em dash character (U+2014, `—`) in the marketing site, README product text, titles, or UI strings. Use a period, comma, or colon instead.
