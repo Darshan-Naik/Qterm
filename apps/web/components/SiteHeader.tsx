@@ -1,8 +1,8 @@
 import { NAV, SITE } from "@/lib/site";
 import { BrandMark } from "./BrandMark";
-import { DownloadButton } from "./DownloadButton";
+import { MacDownloadActions } from "./MacDownloadActions";
 
-export function SiteHeader() {
+export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/6 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
@@ -17,7 +17,7 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
-        <DownloadButton className="h-8 px-3 py-0 text-[13px]" />
+        <MacDownloadActions showIntel={false} buttonClassName="h-8 px-3 py-0 text-[13px]" />
       </div>
     </header>
   );

@@ -45,6 +45,9 @@ apps/web/
   app/           # Next.js App Router (layout, page, metadata)
   components/    # marketing sections (one component per file)
   lib/           # site copy, URLs, class helpers
+
+.github/workflows/
+  release.yml    # tag v* or workflow_dispatch: build macOS DMGs, git tag, GitHub Release
 ```
 
 App code talks to **agentcli** (not CLI paths). Resume = `adapter.Resume(id)` → open PTY → type command.
