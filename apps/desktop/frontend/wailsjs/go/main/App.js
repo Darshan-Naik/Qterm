@@ -174,6 +174,10 @@ export function ListSessions() {
   return window['go']['main']['App']['ListSessions']();
 }
 
+export function ListUpdateRisk() {
+  return window['go']['main']['App']['ListUpdateRisk']();
+}
+
 export function OpenInFinder(arg1) {
   return window['go']['main']['App']['OpenInFinder'](arg1);
 }

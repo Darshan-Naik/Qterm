@@ -93,6 +93,8 @@ export function ListProjects():Promise<Array<config.ProjectMeta>>;
 
 export function ListSessions():Promise<Array<main.SessionDTO>>;
 
+export function ListUpdateRisk():Promise<main.UpdateRisk>;
+
 export function OpenInFinder(arg1:string):Promise<void>;
 
 export function OpenInIDE(arg1:string):Promise<void>;

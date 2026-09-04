@@ -6,8 +6,8 @@ import { SectionLabel } from "@/features/settings/ui/SectionLabel";
 import { SettingCard } from "@/features/settings/ui/SettingCard";
 import { SettingRow } from "@/features/settings/ui/SettingRow";
 import {
-  downloadAppUpdate,
   fetchAppUpdate,
+  requestDownloadAppUpdate,
   skipAppUpdate,
   type AppUpdateStatus,
 } from "./checkAppUpdate";
@@ -91,7 +91,7 @@ export function UpdatesPage() {
           {busy ? "Checking…" : "Check now"}
         </Button>
         {status?.available ? (
-          <Button onClick={() => downloadAppUpdate(status)}>Download {status.latestVersion}</Button>
+          <Button onClick={() => void requestDownloadAppUpdate(status)}>Download {status.latestVersion}</Button>
         ) : null}
         {status?.available && status.releaseUrl ? (
           <Button variant="ghost" onClick={() => BrowserOpenURL(status.releaseUrl)}>
