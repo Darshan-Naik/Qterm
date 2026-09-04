@@ -13,7 +13,7 @@ export function DownloadSection() {
               Get {SITE.name}
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-              Download the latest release, open {SITE.name}, and create a terminal — or add a project folder and
+              Download the latest release, open {SITE.name}, and create a terminal, or add a project folder and
               go.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

@@ -9,7 +9,7 @@ export function AgentSection() {
         <SectionHeading
           kicker="Agents"
           title="Agents, not another chat window"
-          body="Bring the agents you already use. They stay in the terminal — Qterm never takes over your workflow."
+          body="Bring the agents you already use. They stay in the terminal. Qterm never takes over your workflow."
         />
         <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-3">
           {AGENTS.map((agent) => (
