@@ -165,6 +165,7 @@ export namespace config {
 	    sidebarFooter: string[];
 	    agentCLIs?: Record<string, string>;
 	    keybindings?: Record<string, Array<KeyChord>>;
+	    skippedAppUpdate?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -187,6 +188,7 @@ export namespace config {
 	        this.sidebarFooter = source["sidebarFooter"];
 	        this.agentCLIs = source["agentCLIs"];
 	        this.keybindings = this.convertValues(source["keybindings"], Array<KeyChord>, true);
+	        this.skippedAppUpdate = source["skippedAppUpdate"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -609,6 +611,33 @@ export namespace git {
 	        this.stdout = source["stdout"];
 	        this.stderr = source["stderr"];
 	        this.cmd = source["cmd"];
+	    }
+	}
+
+}
+
+export namespace update {
+	
+	export class Status {
+	    available: boolean;
+	    currentVersion: string;
+	    latestVersion: string;
+	    downloadUrl: string;
+	    releaseUrl: string;
+	    skipped: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Status(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.currentVersion = source["currentVersion"];
+	        this.latestVersion = source["latestVersion"];
+	        this.downloadUrl = source["downloadUrl"];
+	        this.releaseUrl = source["releaseUrl"];
+	        this.skipped = source["skipped"];
 	    }
 	}
 

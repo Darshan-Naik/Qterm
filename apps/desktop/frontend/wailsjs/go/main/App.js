@@ -14,6 +14,10 @@ export function AddProject(arg1, arg2) {
   return window['go']['main']['App']['AddProject'](arg1, arg2);
 }
 
+export function CheckForAppUpdate() {
+  return window['go']['main']['App']['CheckForAppUpdate']();
+}
+
 export function CreateSession(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSession'](arg1, arg2, arg3);
 }
@@ -264,6 +268,10 @@ export function SetSessionName(arg1, arg2) {
 
 export function SetSessionPinned(arg1, arg2) {
   return window['go']['main']['App']['SetSessionPinned'](arg1, arg2);
+}
+
+export function SkipAppUpdate(arg1) {
+  return window['go']['main']['App']['SkipAppUpdate'](arg1);
 }
 
 export function UninstallAgentCLI(arg1) {

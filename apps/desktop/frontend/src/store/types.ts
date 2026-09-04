@@ -2,7 +2,7 @@ import type { KeybindingOverrides } from "@/lib/shortcuts/types";
 
 export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "idle" | "action_required" | "task_complete" | "thinking";
-export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts";
+export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "updates";
 export type AppMode = "workspace" | "settings";
 export type SidebarFooterId = "palette" | "agent" | "theme" | "settings";
 
