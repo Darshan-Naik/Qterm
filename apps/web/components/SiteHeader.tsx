@@ -17,7 +17,7 @@ export async function SiteHeader() {
             </a>
           ))}
         </nav>
-        <MacDownloadActions showIntel={false} buttonClassName="h-8 px-3 py-0 text-[13px]" />
+        <MacDownloadActions buttonClassName="h-8 px-3 py-0 text-[13px]" />
       </div>
     </header>
   );

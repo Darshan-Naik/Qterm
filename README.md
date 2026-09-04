@@ -96,7 +96,7 @@ npm run build:web    # production build
 
 1. Set `info.productVersion` in `apps/desktop/wails.json` and `AppVersion` in `apps/desktop/internal/appmode/version.go` to the new version (for example `1.6.3`). They must match.
 2. Commit and push to `main`.
-3. Tag and push that version. The Release workflow builds Apple Silicon and Intel DMGs and publishes a GitHub Release with those files and a git tag:
+3. Tag and push that version. The Release workflow builds the Apple Silicon DMG and publishes a GitHub Release with `Qterm-macos-arm64.dmg` and a git tag:
 
 ```bash
 git tag v1.6.3
@@ -105,9 +105,9 @@ git push origin v1.6.3
 
 You can also run **Actions → Release → Run workflow** on `main` after the version bump. That creates the same `v*` tag and release.
 
-The marketing site **Download for Mac** button fetches the latest GitHub Release and downloads `Qterm-macos-arm64.dmg`. Intel Macs use the Intel Mac link (`Qterm-macos-amd64.dmg`).
+The marketing site **Download for Mac** button fetches the latest GitHub Release and downloads `Qterm-macos-arm64.dmg`. Qterm is Apple Silicon only.
 
-Installed apps check that same latest release on launch. If a newer version exists, Qterm offers a download from the app menu (**Check for Updates**), About, Settings → Updates, and a quiet prompt. Download opens the Mac installer for this machine (Apple Silicon or Intel). You still bump `info.productVersion` in `apps/desktop/wails.json` and `AppVersion` in `apps/desktop/internal/appmode/version.go` together so the in-app check matches the tagged build.
+Installed apps check that same latest release on launch. If a newer version exists, Qterm offers a download from the sidebar, the app menu (**Check for Updates**), About, and Settings → Updates. You still bump `info.productVersion` in `apps/desktop/wails.json` and `AppVersion` in `apps/desktop/internal/appmode/version.go` together so the in-app check matches the tagged build.
 
 ---
 

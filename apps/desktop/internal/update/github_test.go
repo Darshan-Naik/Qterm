@@ -32,14 +32,14 @@ func TestPickAsset(t *testing.T) {
 		{Name: "Qterm-macos-arm64.dmg", BrowserDownloadURL: "https://ex/arm"},
 		{Name: "Qterm-macos-amd64.dmg", BrowserDownloadURL: "https://ex/amd"},
 	}
-	if got := PickAsset(assets, "arm64"); got != "https://ex/arm" {
+	if got := PickAsset(assets); got != "https://ex/arm" {
 		t.Fatalf("arm64: %s", got)
 	}
-	if got := PickAsset(assets, "amd64"); got != "https://ex/amd" {
-		t.Fatalf("amd64: %s", got)
-	}
-	if got := PickAsset(nil, "arm64"); got != "" {
+	if got := PickAsset(nil); got != "" {
 		t.Fatalf("empty: %s", got)
+	}
+	if got := PickAsset([]Asset{{Name: "Qterm-1.6.3-arm64.dmg", BrowserDownloadURL: "https://ex/ver"}}); got != "https://ex/ver" {
+		t.Fatalf("versioned arm64: %s", got)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestEvaluate(t *testing.T) {
 		},
 	}
 
-	newer := Evaluate("1.6.2", "", "arm64", rel)
+	newer := Evaluate("1.6.2", "", rel)
 	if !newer.Available || newer.LatestVersion != "1.6.3" || newer.DownloadURL != "https://ex/Qterm-macos-arm64.dmg" {
 		t.Fatalf("newer: %+v", newer)
 	}
@@ -60,27 +60,27 @@ func TestEvaluate(t *testing.T) {
 		t.Fatal("not skipped")
 	}
 
-	same := Evaluate("1.6.3", "", "arm64", rel)
+	same := Evaluate("1.6.3", "", rel)
 	if same.Available {
 		t.Fatalf("same should not be available: %+v", same)
 	}
 
-	olderSkip := Evaluate("1.6.2", "1.6.1", "arm64", rel)
+	olderSkip := Evaluate("1.6.2", "1.6.1", rel)
 	if !olderSkip.Available || olderSkip.Skipped {
 		t.Fatalf("older skip should not suppress a newer release: %+v", olderSkip)
 	}
 
-	skipped := Evaluate("1.6.2", "1.6.3", "arm64", rel)
+	skipped := Evaluate("1.6.2", "1.6.3", rel)
 	if !skipped.Available || !skipped.Skipped {
 		t.Fatalf("skipped: %+v", skipped)
 	}
 
-	noAsset := Evaluate("1.6.2", "", "amd64", rel)
+	noAsset := Evaluate("1.6.2", "", Release{TagName: "v1.6.3", HTMLURL: rel.HTMLURL})
 	if !noAsset.Available || noAsset.DownloadURL != rel.HTMLURL {
 		t.Fatalf("fallback download should be release page: %+v", noAsset)
 	}
 
-	draft := Evaluate("1.6.2", "", "arm64", Release{TagName: "v1.6.3", Draft: true})
+	draft := Evaluate("1.6.2", "", Release{TagName: "v1.6.3", Draft: true})
 	if draft.Available {
 		t.Fatalf("draft: %+v", draft)
 	}
@@ -104,7 +104,7 @@ func TestClientCheck(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	c := &Client{HTTP: srv.Client(), API: srv.URL, UA: "Qterm-test"}
-	st, err := c.Check(context.Background(), "1.6.2", "", "arm64")
+	st, err := c.Check(context.Background(), "1.6.2", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestClientCheckHTTPError(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	c := &Client{HTTP: srv.Client(), API: srv.URL}
-	_, err := c.Check(context.Background(), "1.6.2", "", "arm64")
+	_, err := c.Check(context.Background(), "1.6.2", "")
 	if err == nil {
 		t.Fatal("expected HTTP error")
 	}
@@ -133,7 +133,7 @@ func TestClientCheckNotFound(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	c := &Client{HTTP: srv.Client(), API: srv.URL}
-	st, err := c.Check(context.Background(), "1.6.2", "", "arm64")
+	st, err := c.Check(context.Background(), "1.6.2", "")
 	if err != nil {
 		t.Fatal(err)
 	}

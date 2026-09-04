@@ -9,10 +9,7 @@ export const SITE = {
   author: "Darshan Naik",
 } as const;
 
-export const MAC_ASSET = {
-  arm64: "Qterm-macos-arm64.dmg",
-  amd64: "Qterm-macos-amd64.dmg",
-} as const;
+export const MAC_ASSET = "Qterm-macos-arm64.dmg";
 
 export function siteUrl() {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;

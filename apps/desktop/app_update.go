@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -29,7 +28,7 @@ func (a *App) CheckForAppUpdate() (update.Status, error) {
 	}
 	c := update.Default()
 	c.UA = "Qterm/" + current
-	return c.Check(ctx, current, skipped, goruntime.GOARCH)
+	return c.Check(ctx, current, skipped)
 }
 
 // SkipAppUpdate records a version the user does not want to be prompted about.
