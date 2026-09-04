@@ -1,8 +1,19 @@
-build/bin
+# JS workspaces
 node_modules
-frontend/dist
-frontend/node_modules
+
+# Desktop (Wails)
+apps/desktop/build/bin
+apps/desktop/frontend/dist/**
+!apps/desktop/frontend/dist/.gitkeep
+apps/desktop/frontend/node_modules
+apps/desktop/frontend/package.json.md5
 *.app
 *.dmg
+
+# Web (Next.js / Vercel)
+apps/web/.next
+apps/web/out
+apps/web/node_modules
+.vercel
+
 .DS_Store
-frontend/package.json.md5

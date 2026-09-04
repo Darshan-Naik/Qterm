@@ -1,5 +1,20 @@
 {
-  "dependencies": {
-    "@radix-ui/react-popover": "^1.1.23"
+  "name": "qterm",
+  "private": true,
+  "workspaces": [
+    "apps/desktop/frontend",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @qterm/web",
+    "build:web": "npm run build -w @qterm/web",
+    "start:web": "npm run start -w @qterm/web",
+    "dev:desktop": "npm run dev -w @qterm/desktop",
+    "build:desktop": "npm run build -w @qterm/desktop",
+    "test:desktop": "npm run test -w @qterm/desktop",
+    "test:go": "cd apps/desktop && go test ./..."
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
