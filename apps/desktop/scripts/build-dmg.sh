@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build Qterm.app (Wails) and package a macOS DMG.
 #
-# Usage:
+# Usage (from apps/desktop):
 #   ./scripts/build-dmg.sh              # native arch (arm64 or amd64)
 #   ./scripts/build-dmg.sh arm64        # Apple Silicon
 #   ./scripts/build-dmg.sh amd64        # Intel
