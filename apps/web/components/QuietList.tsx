@@ -19,7 +19,7 @@ export function QuietList() {
               key={point}
               className="flex items-start gap-3 rounded-xl border border-white/8 bg-card/60 px-4 py-3 text-[14px] leading-snug"
             >
-              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--brand-green)]" />
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--brand-ink)]/70" />
               {point}
             </li>
           ))}
