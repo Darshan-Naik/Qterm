@@ -43,7 +43,11 @@ export function subscribeAppEvents(): () => void {
 
     on("app:open-settings", (page?: string) => {
       const p =
-        page === "terminal" || page === "agent" || page === "appearance" || page === "shortcuts"
+        page === "terminal" ||
+        page === "agent" ||
+        page === "appearance" ||
+        page === "shortcuts" ||
+        page === "updates"
           ? page
           : "appearance";
       openSettings(p);

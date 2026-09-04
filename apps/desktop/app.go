@@ -86,6 +86,7 @@ func (a *App) startup(ctx context.Context) {
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "app:ready", nil)
 	}
+	go a.notifyAppUpdate()
 }
 
 // domReady runs after index.html loads — reliable place to emit runtime events.
@@ -107,6 +108,10 @@ func (a *App) setupMenu() {
 	app := menu.NewMenu()
 	app.AddText("About "+appmode.AppTitle, nil, func(_ *menu.CallbackData) {
 		runtime.EventsEmit(a.ctx, "app:open-about")
+	})
+	app.AddSeparator()
+	app.AddText("Check for Updates…", nil, func(_ *menu.CallbackData) {
+		runtime.EventsEmit(a.ctx, "app:check-updates")
 	})
 	app.AddSeparator()
 	app.AddText("Settings…", keys.CmdOrCtrl(","), func(_ *menu.CallbackData) {

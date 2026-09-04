@@ -23,6 +23,7 @@ import {
   SaveTheme,
 } from "../../../wailsjs/go/main/App";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { runManualUpdateCheck } from "@/features/updates";
 
 export function CommandPalette() {
   const open = useUI((s) => s.paletteOpen);
@@ -194,6 +195,18 @@ export function CommandPalette() {
         id: "settings",
         label: "Settings",
         run: async () => openSettings("appearance"),
+      },
+      {
+        id: "check-updates",
+        label: "Check for Updates",
+        run: async () => {
+          await runManualUpdateCheck();
+        },
+      },
+      {
+        id: "settings-updates",
+        label: "Settings: Updates",
+        run: async () => openSettings("updates"),
       },
       {
         id: "reload-window",

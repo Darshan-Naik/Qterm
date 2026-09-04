@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { closeAbout, useUI } from "@/store/ui";
 import { AboutInfo } from "../../../wailsjs/go/main/App";
+import { runManualUpdateCheck } from "@/features/updates";
 
 type AboutData = Awaited<ReturnType<typeof AboutInfo>>;
 
@@ -61,11 +62,20 @@ export function AboutDialog() {
             <p>{info.author ? `Designed by ${info.author}` : "\u00A0"}</p>
           </div>
 
-          <DialogClose asChild>
-            <Button className="mt-1 min-w-[88px]" size="default">
-              OK
+          <div className="flex w-full flex-col items-center gap-2">
+            <Button
+              variant="ghost"
+              className="min-w-[88px] text-muted-foreground"
+              onClick={() => void runManualUpdateCheck()}
+            >
+              Check for Updates
             </Button>
-          </DialogClose>
+            <DialogClose asChild>
+              <Button className="min-w-[88px]" size="default">
+                OK
+              </Button>
+            </DialogClose>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

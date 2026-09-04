@@ -121,6 +121,8 @@ type AppConfig struct {
 	AgentCLIs map[string]string `json:"agentCLIs,omitempty"`
 	// Keybindings stores only user overrides of keyboard shortcuts.
 	Keybindings KeybindingOverrides `json:"keybindings,omitempty"`
+	// SkippedAppUpdate is a normalized version the user dismissed (no launch prompt).
+	SkippedAppUpdate string `json:"skippedAppUpdate,omitempty"`
 }
 
 // UIPrefs is the subset of config written by the frontend chrome (sidebar/zoom/collapse).

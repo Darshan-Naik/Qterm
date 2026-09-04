@@ -41,6 +41,9 @@ apps/desktop/internal/agentcli/
   api.go         # app/bridge facade — ListCLIs, Install, ListSessions, Resume
   bridge/        # HTTP hook server + stdio MCP
 
+apps/desktop/internal/update/
+  # GitHub Release check for in-app Updates (Settings, About, app menu)
+
 apps/web/
   app/           # Next.js App Router (layout, page, metadata)
   components/    # marketing sections (one component per file)
