@@ -8,8 +8,8 @@ export function AgentSection() {
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
           kicker="Agents"
-          title="Hooks, not another chat window"
-          body="Connect the CLIs you already use. Qterm observes terminals and surfaces actions in the UI without taking over your workflow."
+          title="Agents, not another chat window"
+          body="Bring the agents you already use. They stay in the terminal — Qterm never takes over your workflow."
         />
         <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-3">
           {AGENTS.map((agent) => (

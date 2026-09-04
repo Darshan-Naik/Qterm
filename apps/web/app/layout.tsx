@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   description: SITE.description,
   applicationName: SITE.name,
   authors: [{ name: SITE.author }],
-  keywords: ["terminal", "macOS", "Wails", "splits", "agent hooks", "CLI"],
+  keywords: ["terminal", "macOS", "splits", "projects", "agents"],
   openGraph: {
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,

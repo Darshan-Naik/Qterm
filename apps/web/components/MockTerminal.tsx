@@ -20,7 +20,7 @@ export function MockTerminal({
       ))}
       {caret ? (
         <div className="text-muted-foreground">
-          ~/qterm % <span className="term-caret" />
+          ~/acme % <span className="term-caret" />
         </div>
       ) : null}
     </div>

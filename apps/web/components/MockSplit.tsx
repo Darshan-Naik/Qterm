@@ -6,19 +6,17 @@ export function MockSplit() {
       <MockPane
         title="dev"
         lines={[
-          { text: "~/qterm % git status", tone: "muted" },
+          { text: "~/acme % git status", tone: "muted" },
           { text: "On branch main", tone: "fg" },
           { text: "nothing to commit, working tree clean", tone: "fg" },
-          { text: "~/qterm % wails dev", tone: "muted" },
-          { text: "Watching for changes…", tone: "dim" },
         ]}
         caret
       />
       <MockPane
         title="claude"
         lines={[
-          { text: "claude · resume 7f2a", tone: "muted" },
-          { text: "Connected. Reading git status…", tone: "fg" },
+          { text: "Looking at the repo…", tone: "muted" },
+          { text: "Working tree is clean.", tone: "fg" },
           { text: "Ready for the next change.", tone: "dim" },
         ]}
       />

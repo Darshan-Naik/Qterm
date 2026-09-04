@@ -2,10 +2,9 @@ export const SITE = {
   name: "Qterm",
   tagline: "Terminal, without the noise.",
   description:
-    "A fast, focused terminal for people who live in the shell. Projects, splits, and agent hooks in one calm Mac window.",
+    "A fast, focused terminal for people who live in the shell. Projects, splits, and your agents in one calm Mac window.",
   github: "https://github.com/Darshan-Naik/Qterm",
   releases: "https://github.com/Darshan-Naik/Qterm/releases/latest",
-  qortex: "https://qortex.darshannaik.com",
   author: "Darshan Naik",
 } as const;
 
@@ -38,7 +37,7 @@ export const FEATURES = [
   },
   {
     title: "Ready for agents",
-    body: "Install hooks that observe your terminals and surface actions in the UI — without turning Qterm into another chat app.",
+    body: "Keep your coding agents in the same window as your terminals — without turning Qterm into another chat app.",
   },
 ] as const;
 
