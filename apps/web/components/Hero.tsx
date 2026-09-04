@@ -1,9 +1,9 @@
 import { SITE } from "@/lib/site";
-import { DownloadButton } from "./DownloadButton";
 import { GithubLink } from "./GithubLink";
+import { MacDownloadActions } from "./MacDownloadActions";
 import { ProductWindow } from "./ProductWindow";
 
-export function Hero() {
+export async function Hero() {
   return (
     <section id="top" className="relative overflow-hidden">
       <div className="brand-glow pointer-events-none absolute inset-0" />
@@ -19,7 +19,7 @@ export function Hero() {
           {SITE.description}
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <DownloadButton />
+          <MacDownloadActions />
           <GithubLink />
         </div>
         <div className="mt-14">

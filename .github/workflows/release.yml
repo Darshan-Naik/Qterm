@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, like 1.6.3. Leave blank to use apps/desktop/wails.json."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          WAILS_VER="$(python3 -c "import json; print(json.load(open('apps/desktop/wails.json'))['info']['productVersion'])")"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [[ -n "${INPUT_VERSION}" ]]; then
+            TAG="v${INPUT_VERSION#v}"
+          else
+            TAG="v${WAILS_VER}"
+          fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must look like v1.2.3 (got $TAG)" >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          if [[ "$VERSION" != "$WAILS_VER" ]]; then
+            echo "Release $TAG does not match apps/desktop/wails.json productVersion $WAILS_VER" >&2
+            echo "Bump productVersion, commit, then tag." >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG"
+
+  build-macos:
+    needs: meta
+    runs-on: macos-14
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, amd64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/desktop/go.mod
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install JS workspaces
+        run: npm ci
+
+      - name: Install Wails
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build DMG
+        working-directory: apps/desktop
+        run: ./scripts/build-dmg.sh ${{ matrix.arch }}
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: qterm-macos-${{ matrix.arch }}
+          path: |
+            apps/desktop/build/bin/Qterm-${{ needs.meta.outputs.version }}-${{ matrix.arch }}.dmg
+            apps/desktop/build/bin/Qterm-macos-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish:
+    needs: [meta, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download DMGs
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          ls -la
+          sha256sum *.dmg | tee SHA256SUMS
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          TARGET: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          NOTES="$(printf '%s\n' \
+            "Qterm ${VERSION} for macOS." \
+            "" \
+            "Download Qterm-macos-arm64.dmg for Apple Silicon, or Qterm-macos-amd64.dmg for Intel." \
+            "If macOS blocks the app, open System Settings, Privacy and Security, and allow it.")"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.dmg dist/SHA256SUMS --clobber
+            gh release edit "$TAG" --notes "$NOTES"
+          else
+            gh release create "$TAG" dist/*.dmg dist/SHA256SUMS \
+              --title "Qterm ${VERSION}" \
+              --notes "$NOTES" \
+              --target "$TARGET"
+          fi
+          gh release view "$TAG"

@@ -6,7 +6,7 @@ import { AgentSection } from "@/components/AgentSection";
 import { DownloadSection } from "@/components/DownloadSection";
 import { SiteFooter } from "@/components/SiteFooter";
 
-export default function HomePage() {
+export default async function HomePage() {
   return (
     <>
       <SiteHeader />

@@ -8,9 +8,10 @@
 #   ./scripts/build-dmg.sh universal    # both (lipo) — requires Go + Wails setup for both
 #
 # Outputs:
-#   build/bin/Qterm.app
+#   build/bin/*.app
 #   build/bin/Qterm-<version>-<arch>.dmg
-#   build/bin/Qterm.dmg                 (same file, stable name)
+#   build/bin/Qterm-macos-<arch>.dmg    (stable name for GitHub latest/download)
+#   build/bin/Qterm.dmg
 
 set -euo pipefail
 
@@ -37,8 +38,8 @@ fi
 VERSION="$(python3 -c "import json; print(json.load(open('wails.json'))['info']['productVersion'])")"
 APP_NAME="Qterm"
 BIN_DIR="$ROOT/build/bin"
-APP="$BIN_DIR/${APP_NAME}.app"
 DMG_VERSIONED="$BIN_DIR/${APP_NAME}-${VERSION}-${ARCH}.dmg"
+DMG_DOWNLOAD="$BIN_DIR/${APP_NAME}-macos-${ARCH}.dmg"
 DMG_STABLE="$BIN_DIR/${APP_NAME}.dmg"
 
 echo "==> Building ${APP_NAME} v${VERSION} (darwin/${ARCH})"
@@ -56,8 +57,12 @@ case "$ARCH" in
     ;;
 esac
 
-if [[ ! -d "$APP" ]]; then
-  echo "error: expected app bundle missing: $APP" >&2
+shopt -s nullglob
+apps=("$BIN_DIR"/*.app)
+APP="${apps[0]-}"
+if [[ -z "$APP" || ! -d "$APP" ]]; then
+  echo "error: expected app bundle missing under $BIN_DIR" >&2
+  ls -la "$BIN_DIR" >&2 || true
   exit 1
 fi
 
@@ -66,10 +71,10 @@ STAGE="$(mktemp -d "${TMPDIR:-/tmp}/qterm-dmg.XXXXXX")"
 cleanup() { rm -rf "$STAGE"; }
 trap cleanup EXIT
 
-cp -R "$APP" "$STAGE/"
+cp -R "$APP" "$STAGE/${APP_NAME}.app"
 ln -s /Applications "$STAGE/Applications"
 
-rm -f "$DMG_VERSIONED" "$DMG_STABLE"
+rm -f "$DMG_VERSIONED" "$DMG_DOWNLOAD" "$DMG_STABLE"
 hdiutil create \
   -volname "$APP_NAME" \
   -srcfolder "$STAGE" \
@@ -77,11 +82,13 @@ hdiutil create \
   -format UDZO \
   "$DMG_VERSIONED"
 
+cp "$DMG_VERSIONED" "$DMG_DOWNLOAD"
 cp "$DMG_VERSIONED" "$DMG_STABLE"
 
 echo
 echo "Done."
 echo "  App:  $APP"
 echo "  DMG:  $DMG_VERSIONED"
+echo "  Download: $DMG_DOWNLOAD"
 echo "  Also: $DMG_STABLE"
 ls -lh "$DMG_VERSIONED" "$APP/Contents/MacOS/"* 2>/dev/null | sed 's/^/  /'

@@ -4,8 +4,14 @@ export const SITE = {
   description:
     "A fast, focused terminal for people who live in the shell. Projects, splits, and your agents in one calm Mac window.",
   github: "https://github.com/Darshan-Naik/Qterm",
+  repo: "Darshan-Naik/Qterm",
   releases: "https://github.com/Darshan-Naik/Qterm/releases/latest",
   author: "Darshan Naik",
+} as const;
+
+export const MAC_ASSET = {
+  arm64: "Qterm-macos-arm64.dmg",
+  amd64: "Qterm-macos-amd64.dmg",
 } as const;
 
 export function siteUrl() {

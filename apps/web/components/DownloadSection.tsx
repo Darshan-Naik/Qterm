@@ -1,8 +1,8 @@
 import { SITE } from "@/lib/site";
-import { DownloadButton } from "./DownloadButton";
 import { GithubLink } from "./GithubLink";
+import { MacDownloadActions } from "./MacDownloadActions";
 
-export function DownloadSection() {
+export async function DownloadSection() {
   return (
     <section id="download" className="border-t border-white/6 py-20">
       <div className="mx-auto max-w-6xl px-5">
@@ -17,7 +17,7 @@ export function DownloadSection() {
               go.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <DownloadButton />
+              <MacDownloadActions className="justify-center" />
               <GithubLink />
             </div>
           </div>

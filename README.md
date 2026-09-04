@@ -92,4 +92,21 @@ npm run build:web    # production build
 
 ---
 
+## Cut a Mac release
+
+1. Set `info.productVersion` in `apps/desktop/wails.json` to the new version (for example `1.6.3`).
+2. Commit and push to `main`.
+3. Tag and push that version. The Release workflow builds Apple Silicon and Intel DMGs and publishes a GitHub Release with those files and a git tag:
+
+```bash
+git tag v1.6.3
+git push origin v1.6.3
+```
+
+You can also run **Actions → Release → Run workflow** on `main` after the version bump. That creates the same `v*` tag and release.
+
+The marketing site **Download for Mac** button fetches the latest GitHub Release and downloads `Qterm-macos-arm64.dmg`. Intel Macs use the Intel Mac link (`Qterm-macos-amd64.dmg`).
+
+---
+
 *Qterm: terminal, without the noise.*
