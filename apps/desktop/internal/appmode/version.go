@@ -1,7 +1,7 @@
 package appmode
 
 // AppVersion matches wails.json info.productVersion.
-const AppVersion = "1.0.2"
+const AppVersion = "1.6.3"
 
 // AppDescription is the short tagline shown in About dialogs.
 const AppDescription = "A fast terminal with project groups and agent hooks."

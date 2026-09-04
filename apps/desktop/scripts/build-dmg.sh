@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
-# Build Qterm.app (Wails) and package a macOS DMG.
+# Build Qterm.app (Wails) and package a macOS DMG for Apple Silicon.
 #
 # Usage (from apps/desktop):
-#   ./scripts/build-dmg.sh              # native arch (arm64 or amd64)
-#   ./scripts/build-dmg.sh arm64        # Apple Silicon
-#   ./scripts/build-dmg.sh amd64        # Intel
-#   ./scripts/build-dmg.sh universal    # both (lipo) — requires Go + Wails setup for both
+#   ./scripts/build-dmg.sh
+#   ./scripts/build-dmg.sh arm64
 #
-# Outputs:
+# Output:
 #   build/bin/*.app
-#   build/bin/Qterm-<version>-<arch>.dmg
-#   build/bin/Qterm-macos-<arch>.dmg    (stable name for GitHub latest/download)
-#   build/bin/Qterm.dmg
+#   build/bin/Qterm-macos-arm64.dmg
 
 set -euo pipefail
 
@@ -27,35 +23,25 @@ ARCH="${1:-}"
 if [[ -z "$ARCH" ]]; then
   case "$(uname -m)" in
     arm64|aarch64) ARCH=arm64 ;;
-    x86_64|amd64)  ARCH=amd64 ;;
     *)
-      echo "error: unsupported machine $(uname -m); pass arm64 or amd64" >&2
+      echo "error: Qterm ships Apple Silicon only (got $(uname -m))" >&2
       exit 1
       ;;
   esac
 fi
 
+if [[ "$ARCH" != "arm64" ]]; then
+  echo "error: arch must be arm64 (Apple Silicon). Intel builds are not shipped." >&2
+  exit 1
+fi
+
 VERSION="$(python3 -c "import json; print(json.load(open('wails.json'))['info']['productVersion'])")"
 APP_NAME="Qterm"
 BIN_DIR="$ROOT/build/bin"
-DMG_VERSIONED="$BIN_DIR/${APP_NAME}-${VERSION}-${ARCH}.dmg"
-DMG_DOWNLOAD="$BIN_DIR/${APP_NAME}-macos-${ARCH}.dmg"
-DMG_STABLE="$BIN_DIR/${APP_NAME}.dmg"
+DMG_DOWNLOAD="$BIN_DIR/${APP_NAME}-macos-arm64.dmg"
 
-echo "==> Building ${APP_NAME} v${VERSION} (darwin/${ARCH})"
-case "$ARCH" in
-  arm64|amd64)
-    wails build -clean -platform "darwin/${ARCH}" -v 1
-    ;;
-  universal)
-    echo "error: universal builds not wired yet — use arm64 or amd64" >&2
-    exit 1
-    ;;
-  *)
-    echo "error: arch must be arm64 or amd64 (got: $ARCH)" >&2
-    exit 1
-    ;;
-esac
+echo "==> Building ${APP_NAME} v${VERSION} (darwin/arm64)"
+wails build -clean -platform "darwin/arm64" -v 1
 
 shopt -s nullglob
 apps=("$BIN_DIR"/*.app)
@@ -74,21 +60,16 @@ trap cleanup EXIT
 cp -R "$APP" "$STAGE/${APP_NAME}.app"
 ln -s /Applications "$STAGE/Applications"
 
-rm -f "$DMG_VERSIONED" "$DMG_DOWNLOAD" "$DMG_STABLE"
+rm -f "$DMG_DOWNLOAD"
 hdiutil create \
   -volname "$APP_NAME" \
   -srcfolder "$STAGE" \
   -ov \
   -format UDZO \
-  "$DMG_VERSIONED"
-
-cp "$DMG_VERSIONED" "$DMG_DOWNLOAD"
-cp "$DMG_VERSIONED" "$DMG_STABLE"
+  "$DMG_DOWNLOAD"
 
 echo
 echo "Done."
 echo "  App:  $APP"
-echo "  DMG:  $DMG_VERSIONED"
-echo "  Download: $DMG_DOWNLOAD"
-echo "  Also: $DMG_STABLE"
-ls -lh "$DMG_VERSIONED" "$APP/Contents/MacOS/"* 2>/dev/null | sed 's/^/  /'
+echo "  DMG:  $DMG_DOWNLOAD"
+ls -lh "$DMG_DOWNLOAD" "$APP/Contents/MacOS/"* 2>/dev/null | sed 's/^/  /'

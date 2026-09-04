@@ -2,8 +2,7 @@ import { MAC_ASSET, SITE } from "./site";
 
 export type MacDownloads = {
   version: string | null;
-  arm64: string;
-  amd64: string | null;
+  dmg: string;
 };
 
 type GithubAsset = {
@@ -23,16 +22,12 @@ export function latestDownloadUrl(filename: string) {
 
 export function pickMacDownloads(release: GithubRelease | null): MacDownloads {
   const assets = release?.assets ?? [];
-  const arm64 =
-    assets.find((a) => a.name === MAC_ASSET.arm64)?.browser_download_url ??
+  const dmg =
+    assets.find((a) => a.name === MAC_ASSET)?.browser_download_url ??
     assets.find((a) => /-arm64\.dmg$/i.test(a.name))?.browser_download_url ??
-    latestDownloadUrl(MAC_ASSET.arm64);
-  const amd64 =
-    assets.find((a) => a.name === MAC_ASSET.amd64)?.browser_download_url ??
-    assets.find((a) => /-amd64\.dmg$/i.test(a.name))?.browser_download_url ??
-    null;
+    latestDownloadUrl(MAC_ASSET);
   const tag = release?.tag_name?.replace(/^v/, "") ?? null;
-  return { version: tag, arm64, amd64 };
+  return { version: tag, dmg };
 }
 
 export async function getMacDownloads(): Promise<MacDownloads> {
@@ -46,7 +41,7 @@ export async function getMacDownloads(): Promise<MacDownloads> {
       next: { revalidate: 120 },
     });
     if (res.status === 404) {
-      return { version: null, arm64: SITE.releases, amd64: null };
+      return { version: null, dmg: SITE.releases };
     }
     if (!res.ok) return fallback;
     const data = (await res.json()) as GithubRelease;

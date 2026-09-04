@@ -59,6 +59,7 @@ export const uiStore = createStore<UIState>({
   keybindings: {},
   sidebarFooter: [...SIDEBAR_FOOTER_DEFAULT],
   gitPanel: null,
+  appUpdate: null,
 });
 
 export const useUI = createUseStore(uiStore);

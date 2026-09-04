@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Plus, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
+import { SidebarUpdateOverlay } from "@/features/updates";
 import { persistUIPrefs, collectSessionIds, uiStore, useUI } from "@/store/ui";
 import { createDefaultTerminal, isUnbound } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
@@ -70,16 +71,19 @@ export function AppSidebar() {
           </div>
 
           {/* Native overflow so position:sticky works (Radix ScrollArea breaks it). */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2">
-            {unboundSessions.length > 0 && (
-              <div className="mt-1 space-y-0.5">
-                {unboundSessions.map((s) => (
-                  <SessionRow key={s.id} session={s} openInPane={unboundOpenIds.has(s.id)} />
-                ))}
-              </div>
-            )}
+          <div className="relative min-h-0 flex-1">
+            <div className="h-full overflow-y-auto overscroll-contain px-3 pb-12">
+              {unboundSessions.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {unboundSessions.map((s) => (
+                    <SessionRow key={s.id} session={s} openInPane={unboundOpenIds.has(s.id)} />
+                  ))}
+                </div>
+              )}
 
-            <ProjectsSection />
+              <ProjectsSection />
+            </div>
+            <SidebarUpdateOverlay />
           </div>
 
           <SidebarFooter />

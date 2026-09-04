@@ -73,6 +73,69 @@ func MatchBinary(p Proc, binaries []string) bool {
 	return false
 }
 
+func shellName(comm string) string {
+	b := strings.ToLower(filepath.Base(strings.TrimSpace(comm)))
+	return strings.TrimPrefix(b, "-")
+}
+
+// IsShellName reports login/interactive shells that are not a "running task".
+func IsShellName(comm string) bool {
+	switch shellName(comm) {
+	case "zsh", "bash", "sh", "fish", "nu", "pwsh", "powershell", "powershell.exe", "ksh", "dash", "login":
+		return true
+	default:
+		return false
+	}
+}
+
+// CommandLabel is a short name for a process (claude from node …/bin/claude).
+func CommandLabel(p Proc) string {
+	base := strings.TrimPrefix(filepath.Base(strings.TrimSpace(p.Comm)), "-")
+	low := strings.ToLower(base)
+	switch low {
+	case "node", "nodejs", "python", "python3", "ruby", "perl":
+		fields := strings.Fields(p.Args)
+		for i := 1; i < len(fields); i++ {
+			f := fields[i]
+			if strings.HasPrefix(f, "-") {
+				continue
+			}
+			return filepath.Base(f)
+		}
+	}
+	return base
+}
+
+const maxActiveCommands = 5
+
+// ActiveCommands lists non-shell descendant commands under a terminal shell.
+func ActiveCommands(shellPID int, all []Proc) []string {
+	if shellPID <= 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, 4)
+	out := make([]string, 0, 4)
+	for _, k := range Descendants(shellPID, all) {
+		if IsShellName(k.Comm) && IsShellName(CommandLabel(k)) {
+			continue
+		}
+		name := CommandLabel(k)
+		if name == "" || IsShellName(name) {
+			continue
+		}
+		key := strings.ToLower(name)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, name)
+		if len(out) >= maxActiveCommands {
+			break
+		}
+	}
+	return out
+}
+
 func parsePS(out []byte) []Proc {
 	sc := bufio.NewScanner(bytes.NewReader(out))
 	// Long command lines

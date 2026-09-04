@@ -2,9 +2,18 @@ import type { KeybindingOverrides } from "@/lib/shortcuts/types";
 
 export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "idle" | "action_required" | "task_complete" | "thinking";
-export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts";
+export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "updates";
 export type AppMode = "workspace" | "settings";
 export type SidebarFooterId = "palette" | "agent" | "theme" | "settings";
+
+export type AppUpdateInfo = {
+  available: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  downloadUrl: string;
+  releaseUrl: string;
+  skipped: boolean;
+};
 
 export type { KeybindingOverrides };
 
@@ -85,6 +94,8 @@ export type UIState = {
   sidebarFooter: SidebarFooterId[];
   /** Which git chip should show the toolkit popover. */
   gitPanel: GitPanelTarget | null;
+  /** Latest GitHub Release check. Null until the first check finishes. */
+  appUpdate: AppUpdateInfo | null;
 };
 
 export type GitPanelView = "main" | "branches" | "stashes" | "worktrees";

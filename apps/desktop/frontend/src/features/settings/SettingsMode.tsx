@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { UpdatesPage } from "@/features/updates";
 import { uiStore, useUI } from "@/store/ui";
 import { NAV } from "./nav";
 import { SettingsSidebar } from "./SettingsSidebar";
@@ -38,6 +39,7 @@ export function SettingsMode() {
             {page === "terminal" && <TerminalPage />}
             {page === "shortcuts" && <ShortcutsPage />}
             {page === "agent" && <AgentPage />}
+            {page === "updates" && <UpdatesPage />}
           </div>
         </ScrollArea>
       </div>
