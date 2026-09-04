@@ -22,9 +22,6 @@ export function Hero() {
           <DownloadButton />
           <GithubLink />
         </div>
-        <p className="mt-4 font-mono text-[12px] text-muted-foreground/80">
-          Open source · Wails · Go + TypeScript
-        </p>
         <div className="mt-14">
           <ProductWindow />
         </div>

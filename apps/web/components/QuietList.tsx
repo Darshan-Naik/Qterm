@@ -9,8 +9,8 @@ export function QuietList() {
             Built to stay out of the way
           </h2>
           <p className="mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-            Mac-first chrome, traffic lights, and menus that feel at home next to the tools you already use.
-            Cross-platform support is on the roadmap.
+            Traffic lights, menus, and a window that feels at home next to the tools you already use.
+            Designed for Mac.
           </p>
         </div>
         <ul className="space-y-3">
