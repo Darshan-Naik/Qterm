@@ -4,6 +4,13 @@
 
 Qterm must feel **lightning fast**. That is why the stack is **Go + TypeScript** (Wails) — not Electron-heavy abstractions. Treat latency, jank, and unnecessary work as bugs.
 
+This repo is an npm + Go monorepo:
+
+```
+apps/desktop/   # Wails desktop app (Go + Vite frontend)
+apps/web/       # Marketing site (Next.js, Vercel)
+```
+
 ### Performance rules
 
 - **PTY path stays off React** — terminal output writes straight to xterm; never put PTY chunks in React state or the UI store.
@@ -20,7 +27,7 @@ Qterm must feel **lightning fast**. That is why the stack is **Go + TypeScript**
 ## Code structure
 
 ```
-frontend/src/
+apps/desktop/frontend/src/
   app/           # thin shell: App, providers, bootstrap, hotkeys, layout
   features/      # sidebar, panes, settings, terminal, palette, hooks
   store/         # types, store, prefs, theme, splits (+ ui barrel)
@@ -28,14 +35,21 @@ frontend/src/
   components/ui/ # shadcn primitives
   hooks/         # shared React hooks
 
-internal/agentcli/
+apps/desktop/internal/agentcli/
   core/          # Adapter interface, schema, shared install/hook helpers
   cli/<name>/    # one folder per CLI (claude, codex, gemini, cursor, agy)
   api.go         # app/bridge facade — ListCLIs, Install, ListSessions, Resume
   bridge/        # HTTP hook server + stdio MCP
+
+apps/web/
+  app/           # Next.js App Router (layout, page, metadata)
+  components/    # marketing sections (one component per file)
+  lib/           # site copy, URLs, class helpers
 ```
 
 App code talks to **agentcli** (not CLI paths). Resume = `adapter.Resume(id)` → open PTY → type command.
+
+Run Wails from `apps/desktop` (`wails dev` / `wails build`). The marketing site is `npm run dev:web` from the repo root.
 
 ## Rules
 
