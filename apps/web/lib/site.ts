@@ -5,6 +5,7 @@ export const SITE = {
     "A fast, focused terminal for people who live in the shell. Projects, splits, and your agents in one calm Mac window.",
   github: "https://github.com/Darshan-Naik/Qterm",
   repo: "Darshan-Naik/Qterm",
+  url: "https://qterm.darshannaik.com",
   releases: "https://github.com/Darshan-Naik/Qterm/releases/latest",
   author: "Darshan Naik",
 } as const;
@@ -14,9 +15,8 @@ export const MAC_ASSET = "Qterm-macos-arm64.dmg";
 export function siteUrl() {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return explicit.replace(/\/$/, "");
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
-  return "http://localhost:3000";
+  if (process.env.NODE_ENV === "development") return "http://localhost:3000";
+  return SITE.url;
 }
 
 export const NAV = [
