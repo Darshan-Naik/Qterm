@@ -1,0 +1,11 @@
+{
+  "name": "Qterm",
+  "install": "./.cursor/install.sh",
+  "start": "./.cursor/start.sh",
+  "terminals": [
+    {
+      "name": "qterm-app",
+      "command": "cd \"$(git rev-parse --show-toplevel)\" && DISPLAY=:99 WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 dbus-run-session -- ./build/bin/q-term"
+    }
+  ]
+}
