@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { expandSnippetBody, snippetWriteText, keywordExpandPayload, canSaveSnippet, snippetsEqual } from "./expand.ts";
+import { snippetCardPreview, snippetCardTitle } from "./display.ts";
 
 describe("expandSnippetBody", () => {
   it("replaces {cwd}", () => {
@@ -56,5 +57,21 @@ describe("snippetsEqual", () => {
     const b = { id: "1", name: "A", body: "ls", keyword: "", send: false };
     assert.equal(snippetsEqual(a, b), true);
     assert.equal(snippetsEqual(a, { ...b, send: true }), false);
+  });
+});
+
+describe("snippetCardTitle", () => {
+  it("prefers the name, then the first command line", () => {
+    assert.equal(snippetCardTitle({ name: "Status", body: "git status" }), "Status");
+    assert.equal(snippetCardTitle({ name: "  ", body: "git status\ngit diff" }), "git status");
+    assert.equal(snippetCardTitle({ name: "", body: "" }), "Untitled snippet");
+  });
+});
+
+describe("snippetCardPreview", () => {
+  it("hides a preview that would repeat the title", () => {
+    assert.equal(snippetCardPreview({ name: "", body: "git status" }), "");
+    assert.equal(snippetCardPreview({ name: "Status", body: "git status" }), "git status");
+    assert.equal(snippetCardPreview({ name: "Status", body: "git status\ngit diff" }), "git status git diff");
   });
 });
