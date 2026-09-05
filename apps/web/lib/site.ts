@@ -1,8 +1,8 @@
 export const SITE = {
   name: "Qterm",
-  tagline: "Terminal, without the noise.",
+  tagline: "The lightest, fastest, cleanest terminal.",
   description:
-    "A fast, focused terminal for people who live in the shell. Projects, splits, and your agents in one calm Mac window.",
+    "Native Mac speed. No Electron weight. A quiet window for projects, splits, and your agents.",
   github: "https://github.com/Darshan-Naik/Qterm",
   sponsors: "https://github.com/sponsors/Darshan-Naik",
   repo: "Darshan-Naik/Qterm",

@@ -25,7 +25,7 @@ export async function Hero() {
         <div className="mt-14">
           <ProductWindow />
           <p className="mx-auto mt-5 max-w-xl text-center text-[13px] leading-relaxed text-muted-foreground">
-            Agents stay in the terminal. Running work pulses quietly. Needs input waits until you answer.
+            Feels instant to type in. Agents stay in the terminal. Nothing extra on screen.
           </p>
         </div>
       </div>

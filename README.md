@@ -1,8 +1,8 @@
 # Qterm
 
-**A fast, focused terminal for people who live in the shell.**
+**The lightest, fastest, cleanest terminal.**
 
-Terminal, without the noise. Projects, splits, and your agents in one calm Mac window.
+Native Mac speed. No Electron weight. A quiet window for projects, splits, and your agents.
 
 [Download for Mac](https://qterm.darshannaik.com) · [Latest release](https://github.com/Darshan-Naik/Qterm/releases/latest)
 
