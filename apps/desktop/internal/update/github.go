@@ -30,6 +30,10 @@ type Status struct {
 	DownloadURL    string `json:"downloadUrl"`
 	ReleaseURL     string `json:"releaseUrl"`
 	Skipped        bool   `json:"skipped"`
+	State          string `json:"state,omitempty"`
+	Bytes          int64  `json:"bytes,omitempty"`
+	Total          int64  `json:"total,omitempty"`
+	Error          string `json:"error,omitempty"`
 }
 
 // Release is the GitHub latest-release payload we care about.

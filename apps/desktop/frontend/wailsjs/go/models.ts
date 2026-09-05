@@ -667,6 +667,10 @@ export namespace update {
 	    downloadUrl: string;
 	    releaseUrl: string;
 	    skipped: boolean;
+	    state: string;
+	    bytes: number;
+	    total: number;
+	    error: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Status(source);
@@ -680,6 +684,10 @@ export namespace update {
 	        this.downloadUrl = source["downloadUrl"];
 	        this.releaseUrl = source["releaseUrl"];
 	        this.skipped = source["skipped"];
+	        this.state = source["state"];
+	        this.bytes = source["bytes"];
+	        this.total = source["total"];
+	        this.error = source["error"];
 	    }
 	}
 

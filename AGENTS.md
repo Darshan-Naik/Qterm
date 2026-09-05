@@ -42,7 +42,7 @@ apps/desktop/internal/agentcli/
   bridge/        # HTTP hook server + stdio MCP
 
 apps/desktop/internal/update/
-  # GitHub Release check for in-app Updates (Settings, About, app menu)
+  # GitHub Release check, background DMG download, restart to apply
 
 apps/web/
   app/           # Next.js App Router (layout, page, metadata)

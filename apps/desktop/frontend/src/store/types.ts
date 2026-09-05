@@ -14,6 +14,10 @@ export type AppUpdateInfo = {
   downloadUrl: string;
   releaseUrl: string;
   skipped: boolean;
+  state: string;
+  bytes: number;
+  total: number;
+  error: string;
 };
 
 export type { KeybindingOverrides, Snippet };

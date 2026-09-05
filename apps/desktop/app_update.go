@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"qterm/internal/appmode"
@@ -13,22 +16,94 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const appUpdateNotifyDelay = 4 * time.Second
+const (
+	appUpdateNotifyDelay   = 4 * time.Second
+	appUpdateProgressEvent = "app:update-progress"
+)
+
+type appUpdateDL struct {
+	mu      sync.Mutex
+	prog    update.Progress
+	cancel  context.CancelFunc
+	lastPub time.Time
+}
+
+func (a *App) updateDL() *appUpdateDL {
+	if a == nil {
+		return nil
+	}
+	if a.upd == nil {
+		a.upd = &appUpdateDL{}
+	}
+	return a.upd
+}
+
+func (a *App) updateContext() context.Context {
+	if a != nil && a.ctx != nil {
+		return a.ctx
+	}
+	return context.Background()
+}
+
+func (a *App) skippedAppUpdate() string {
+	if a != nil && a.store != nil {
+		return a.store.Get().SkippedAppUpdate
+	}
+	return ""
+}
+
+func (a *App) checkAppUpdate() (update.Status, error) {
+	current := appmode.AppVersion
+	c := update.Default()
+	c.UA = "Qterm/" + current
+	st, err := c.Check(a.updateContext(), current, a.skippedAppUpdate())
+	if err != nil {
+		return st, err
+	}
+	return overlayUpdateProgress(a, st), nil
+}
 
 // CheckForAppUpdate compares this build to the latest GitHub Release.
 func (a *App) CheckForAppUpdate() (update.Status, error) {
-	current := appmode.AppVersion
-	skipped := ""
-	if a != nil && a.store != nil {
-		skipped = a.store.Get().SkippedAppUpdate
+	st, err := a.checkAppUpdate()
+	if err != nil {
+		return st, err
 	}
-	ctx := context.Background()
-	if a != nil && a.ctx != nil {
-		ctx = a.ctx
+	if st.Available && !st.Skipped && update.IsInstallerURL(st.DownloadURL) {
+		go a.startAppUpdateDownload(st)
 	}
-	c := update.Default()
-	c.UA = "Qterm/" + current
-	return c.Check(ctx, current, skipped)
+	return st, nil
+}
+
+func overlayUpdateProgress(a *App, st update.Status) update.Status {
+	if path, ok := update.CachedReady(st.LatestVersion); ok {
+		st.State = update.StateReady
+		if info, err := os.Stat(path); err == nil {
+			st.Bytes = info.Size()
+			st.Total = info.Size()
+		}
+	}
+	if a == nil {
+		return st
+	}
+	dl := a.updateDL()
+	if dl == nil {
+		return st
+	}
+	dl.mu.Lock()
+	p := dl.prog
+	dl.mu.Unlock()
+	if p.State == "" {
+		return st
+	}
+	if p.Version != "" && st.LatestVersion != "" && update.Normalize(p.Version) != update.Normalize(st.LatestVersion) {
+		return st
+	}
+	st.State = p.State
+	st.Bytes = p.Bytes
+	st.Total = p.Total
+	st.Error = p.Error
+	return st
 }
 
 // SkipAppUpdate records a version the user does not want to be prompted about.
@@ -38,9 +113,165 @@ func (a *App) SkipAppUpdate(version string) error {
 		return nil
 	}
 	version = update.Normalize(strings.TrimSpace(version))
+	if version != "" {
+		a.cancelAppUpdateDownload()
+	}
 	return a.store.Update(func(cfg *config.AppConfig) {
 		cfg.SkippedAppUpdate = version
 	})
+}
+
+// StartAppUpdateDownload begins a background DMG fetch. Off the PTY path.
+func (a *App) StartAppUpdateDownload() error {
+	st, err := a.checkAppUpdate()
+	if err != nil {
+		return err
+	}
+	if !st.Available {
+		return nil
+	}
+	a.startAppUpdateDownload(st)
+	return nil
+}
+
+// ApplyAppUpdateAndRestart replaces this Mac app from the downloaded DMG after quit.
+func (a *App) ApplyAppUpdateAndRestart() error {
+	if a == nil {
+		return nil
+	}
+	version := a.currentUpdateVersion()
+	if version == "" {
+		st, err := a.checkAppUpdate()
+		if err != nil {
+			return err
+		}
+		version = st.LatestVersion
+	}
+	path, ok := update.CachedReady(version)
+	if !ok {
+		return fmt.Errorf("The update is still downloading")
+	}
+	if err := update.ApplyAndRelaunch(path); err != nil {
+		return err
+	}
+	if a.ctx != nil {
+		runtime.Quit(a.ctx)
+	}
+	return nil
+}
+
+func (a *App) currentUpdateVersion() string {
+	dl := a.updateDL()
+	if dl == nil {
+		return ""
+	}
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+	return dl.prog.Version
+}
+
+func (a *App) startAppUpdateDownload(st update.Status) {
+	if a == nil || !st.Available || !update.IsInstallerURL(st.DownloadURL) || a.shuttingDown {
+		return
+	}
+	if path, ok := update.CachedReady(st.LatestVersion); ok {
+		info, _ := os.Stat(path)
+		p := update.Progress{Version: st.LatestVersion, State: update.StateReady}
+		if info != nil {
+			p.Bytes = info.Size()
+			p.Total = info.Size()
+		}
+		a.publishUpdateProgress(p)
+		return
+	}
+	dl := a.updateDL()
+	if dl == nil {
+		return
+	}
+	dl.mu.Lock()
+	if dl.prog.State == update.StateDownloading && update.Normalize(dl.prog.Version) == update.Normalize(st.LatestVersion) {
+		dl.mu.Unlock()
+		return
+	}
+	if dl.cancel != nil {
+		dl.cancel()
+		dl.cancel = nil
+	}
+	ctx, cancel := context.WithCancel(a.updateContext())
+	dl.cancel = cancel
+	dl.prog = update.Progress{Version: st.LatestVersion, State: update.StateDownloading}
+	dl.mu.Unlock()
+
+	a.emitUpdateProgress(update.Progress{Version: st.LatestVersion, State: update.StateDownloading})
+
+	go func() {
+		dest, err := update.CacheFile(st.LatestVersion)
+		if err != nil {
+			a.publishUpdateProgress(update.Progress{Version: st.LatestVersion, State: update.StateError, Error: err.Error()})
+			return
+		}
+		err = update.Download(ctx, st.DownloadURL, dest, func(bytes, total int64) {
+			a.publishUpdateProgress(update.Progress{
+				Version: st.LatestVersion,
+				State:   update.StateDownloading,
+				Bytes:   bytes,
+				Total:   total,
+			})
+		})
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			a.publishUpdateProgress(update.Progress{Version: st.LatestVersion, State: update.StateError, Error: err.Error()})
+			return
+		}
+		p := update.Progress{Version: st.LatestVersion, State: update.StateReady}
+		if info, err := os.Stat(dest); err == nil {
+			p.Bytes = info.Size()
+			p.Total = info.Size()
+		}
+		a.publishUpdateProgress(p)
+	}()
+}
+
+func (a *App) cancelAppUpdateDownload() {
+	dl := a.updateDL()
+	if dl == nil {
+		return
+	}
+	dl.mu.Lock()
+	if dl.cancel != nil {
+		dl.cancel()
+		dl.cancel = nil
+	}
+	dl.prog = update.Progress{}
+	dl.mu.Unlock()
+}
+
+func (a *App) publishUpdateProgress(p update.Progress) {
+	dl := a.updateDL()
+	if dl == nil {
+		return
+	}
+	now := time.Now()
+	dl.mu.Lock()
+	stateChange := dl.prog.State != p.State || dl.prog.Error != p.Error
+	if p.State == update.StateDownloading && !stateChange && !dl.lastPub.IsZero() && now.Sub(dl.lastPub) < 200*time.Millisecond {
+		dl.prog = p
+		dl.mu.Unlock()
+		return
+	}
+	dl.prog = p
+	dl.lastPub = now
+	dl.mu.Unlock()
+	a.emitUpdateProgress(p)
+}
+
+func (a *App) emitUpdateProgress(p update.Progress) {
+	if a == nil || a.ctx == nil || a.shuttingDown {
+		return
+	}
+	runtime.EventsEmit(a.ctx, appUpdateProgressEvent, p)
 }
 
 // BusyTerminal is a live PTY with a non-shell child process.
@@ -50,7 +281,7 @@ type BusyTerminal struct {
 	Commands []string `json:"commands"`
 }
 
-// UpdateRisk describes open terminals that quitting to install would kill.
+// UpdateRisk describes running terminal work that restarting to update would kill.
 type UpdateRisk struct {
 	SessionCount int            `json:"sessionCount"`
 	Busy         []BusyTerminal `json:"busy"`
@@ -73,13 +304,10 @@ func (a *App) ListUpdateRisk() UpdateRisk {
 	}
 	for _, s := range live {
 		pid, ok := a.pty.ShellPID(s.ID)
-		cmds := []string{}
-		if ok {
-			cmds = append(cmds, procs.ActiveCommands(pid, all)...)
+		if !ok {
+			continue
 		}
-		if cli := a.sessionAgentCLI(s.ID); cli != "" {
-			cmds = appendUniqueCmd(cmds, cli)
-		}
+		cmds := procs.ActiveCommands(pid, all)
 		if len(cmds) == 0 {
 			continue
 		}
@@ -92,29 +320,12 @@ func (a *App) ListUpdateRisk() UpdateRisk {
 	return risk
 }
 
-func appendUniqueCmd(cmds []string, name string) []string {
-	key := strings.ToLower(strings.TrimSpace(name))
-	if key == "" {
-		return cmds
-	}
-	for _, c := range cmds {
-		if strings.ToLower(c) == key {
-			return cmds
-		}
-	}
-	return append(cmds, name)
-}
-
 func (a *App) notifyAppUpdate() {
 	timer := time.NewTimer(appUpdateNotifyDelay)
 	defer timer.Stop()
-	ctx := context.Background()
-	if a.ctx != nil {
-		ctx = a.ctx
-	}
 	select {
 	case <-timer.C:
-	case <-ctx.Done():
+	case <-a.updateContext().Done():
 		return
 	}
 	if a.shuttingDown {

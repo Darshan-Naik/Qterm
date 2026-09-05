@@ -5,9 +5,10 @@ import { PageTitle } from "@/features/settings/ui/PageTitle";
 import { SectionLabel } from "@/features/settings/ui/SectionLabel";
 import { SettingCard } from "@/features/settings/ui/SettingCard";
 import { SettingRow } from "@/features/settings/ui/SettingRow";
+import { useUI } from "@/store/ui";
 import {
   fetchAppUpdate,
-  requestDownloadAppUpdate,
+  openUpdateDialog,
   skipAppUpdate,
   type AppUpdateStatus,
 } from "./checkAppUpdate";
@@ -17,10 +18,13 @@ function statusHint(status: AppUpdateStatus | null, error: string | null): strin
   if (error) return error;
   if (!status) return "Check GitHub Releases for a newer Qterm.";
   if (status.available && status.skipped) {
-    return `You skipped ${status.latestVersion}. Download it anytime, or turn reminders back on.`;
+    return `You skipped ${status.latestVersion}. Restart to update anytime, or turn reminders back on.`;
+  }
+  if (status.available && status.state === "ready") {
+    return `Qterm ${status.latestVersion} is ready. Open Update to restart.`;
   }
   if (status.available) {
-    return `Qterm ${status.latestVersion} is ready to download.`;
+    return `Qterm ${status.latestVersion} is available.`;
   }
   if (status.latestVersion) {
     return `Qterm ${status.currentVersion} is the latest release.`;
@@ -29,6 +33,7 @@ function statusHint(status: AppUpdateStatus | null, error: string | null): strin
 }
 
 export function UpdatesPage() {
+  const live = useUI((s) => s.appUpdate);
   const [status, setStatus] = useState<AppUpdateStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,10 +55,12 @@ export function UpdatesPage() {
     void refresh();
   }, [refresh]);
 
+  const shown = live ?? status;
+
   const skip = async () => {
-    if (!status?.latestVersion) return;
-    await skipAppUpdate(status.latestVersion);
-    toast.message(`Skipped Qterm ${status.latestVersion}`);
+    if (!shown?.latestVersion) return;
+    await skipAppUpdate(shown.latestVersion);
+    toast.message(`OK. The sidebar button is hidden for Qterm ${shown.latestVersion}.`);
     await refresh();
   };
 
@@ -63,7 +70,7 @@ export function UpdatesPage() {
     await refresh();
   };
 
-  const latestLabel = status?.latestVersion ? status.latestVersion : busy ? "Checking" : "Unknown";
+  const latestLabel = shown?.latestVersion ? shown.latestVersion : busy ? "Checking" : "Unknown";
 
   return (
     <div>
@@ -75,13 +82,13 @@ export function UpdatesPage() {
           description="The version running in this window."
           control={
             <span className="text-[12.5px] text-muted-foreground">
-              {status?.currentVersion || (busy ? "…" : "Unknown")}
+              {shown?.currentVersion || (busy ? "…" : "Unknown")}
             </span>
           }
         />
         <SettingRow
           title="Latest release"
-          description={statusHint(status, error)}
+          description={statusHint(shown, error)}
           control={<span className="text-[12.5px] text-muted-foreground">{latestLabel}</span>}
         />
       </SettingCard>
@@ -90,20 +97,20 @@ export function UpdatesPage() {
         <Button variant="secondary" disabled={busy} onClick={() => void refresh()}>
           {busy ? "Checking…" : "Check now"}
         </Button>
-        {status?.available ? (
-          <Button onClick={() => void requestDownloadAppUpdate(status)}>Download {status.latestVersion}</Button>
+        {shown?.available ? (
+          <Button onClick={() => openUpdateDialog()}>Update</Button>
         ) : null}
-        {status?.available && status.releaseUrl ? (
-          <Button variant="ghost" onClick={() => BrowserOpenURL(status.releaseUrl)}>
+        {shown?.available && shown.releaseUrl ? (
+          <Button variant="ghost" onClick={() => BrowserOpenURL(shown.releaseUrl)}>
             Release notes
           </Button>
         ) : null}
-        {status?.available && !status.skipped ? (
+        {shown?.available && !shown.skipped ? (
           <Button variant="ghost" onClick={() => void skip()}>
-            Skip this version
+            Remind me later
           </Button>
         ) : null}
-        {status?.available && status.skipped ? (
+        {shown?.available && shown.skipped ? (
           <Button variant="ghost" onClick={() => void remind()}>
             Remind me
           </Button>

@@ -1,13 +1,39 @@
 import { toast } from "sonner";
-import { confirm } from "@/lib/confirm";
 import { uiStore, type AppUpdateInfo } from "@/store/ui";
-import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
-import { CheckForAppUpdate, ListUpdateRisk, SkipAppUpdate } from "../../../wailsjs/go/main/App";
-import { countAgentTasks, updateInstallWarning } from "./updateInstallWarning";
+import {
+  ApplyAppUpdateAndRestart,
+  CheckForAppUpdate,
+  SkipAppUpdate,
+} from "../../../wailsjs/go/main/App";
 
 export type AppUpdateStatus = AppUpdateInfo;
 
 const TOAST_ID = "app-update";
+
+let dialogOpen = false;
+const dialogListeners = new Set<(open: boolean) => void>();
+
+function emitDialog() {
+  for (const listener of dialogListeners) listener(dialogOpen);
+}
+
+export function openUpdateDialog() {
+  dialogOpen = true;
+  emitDialog();
+}
+
+export function closeUpdateDialog() {
+  dialogOpen = false;
+  emitDialog();
+}
+
+export function subscribeUpdateDialog(listener: (open: boolean) => void): () => void {
+  dialogListeners.add(listener);
+  listener(dialogOpen);
+  return () => {
+    dialogListeners.delete(listener);
+  };
+}
 
 function asStatus(raw: unknown): AppUpdateStatus | null {
   if (!raw || typeof raw !== "object") return null;
@@ -19,6 +45,10 @@ function asStatus(raw: unknown): AppUpdateStatus | null {
     downloadUrl: String(o.downloadUrl || ""),
     releaseUrl: String(o.releaseUrl || ""),
     skipped: Boolean(o.skipped),
+    state: String(o.state || ""),
+    bytes: Number(o.bytes || 0),
+    total: Number(o.total || 0),
+    error: String(o.error || ""),
   };
 }
 
@@ -26,71 +56,59 @@ export function rememberAppUpdate(status: AppUpdateStatus | null) {
   uiStore.set({ appUpdate: status });
 }
 
-function openInstaller(status: AppUpdateStatus) {
-  const url = status.downloadUrl || status.releaseUrl;
-  if (!url) {
-    toast.error("No download is available yet.");
-    return false;
+export function mergeUpdateProgress(raw: unknown) {
+  if (!raw || typeof raw !== "object") return;
+  const o = raw as Record<string, unknown>;
+  const version = String(o.version || "");
+  const cur = uiStore.get().appUpdate;
+  if (!cur) {
+    if (!version) return;
+    rememberAppUpdate({
+      available: true,
+      currentVersion: "",
+      latestVersion: version,
+      downloadUrl: "",
+      releaseUrl: "",
+      skipped: false,
+      state: String(o.state || ""),
+      bytes: Number(o.bytes || 0),
+      total: Number(o.total || 0),
+      error: String(o.error || ""),
+    });
+    return;
   }
-  BrowserOpenURL(url);
-  return true;
+  if (version && cur.latestVersion && version !== cur.latestVersion) return;
+  rememberAppUpdate({
+    ...cur,
+    state: String(o.state || cur.state),
+    bytes: Number(o.bytes || 0),
+    total: Number(o.total || 0),
+    error: String(o.error || ""),
+  });
 }
 
-async function confirmInstallRisk(): Promise<boolean> {
-  let sessionCount = uiStore.get().sessions.length;
-  let busy: { name: string; commands: string[] }[] = [];
+export async function remindLaterAppUpdate(status?: AppUpdateStatus | null): Promise<void> {
+  const cur = status || uiStore.get().appUpdate;
+  const version = cur?.latestVersion || "";
+  if (version) {
+    await skipAppUpdate(version);
+  }
+  closeUpdateDialog();
+  toast.dismiss(TOAST_ID);
+}
+
+export async function applyReadyAppUpdate(): Promise<void> {
+  const status = uiStore.get().appUpdate;
+  if (!status || status.state !== "ready") return;
   try {
-    const risk = await ListUpdateRisk();
-    if (risk && typeof risk.sessionCount === "number") {
-      sessionCount = risk.sessionCount;
-    }
-    if (Array.isArray(risk?.busy)) {
-      busy = risk.busy.map((row) => ({
-        name: String(row?.name || "Terminal"),
-        commands: Array.isArray(row?.commands) ? row.commands.map(String) : [],
-      }));
-    }
-  } catch {
-    // Fall back to sidebar session count if the process scan fails.
+    await ApplyAppUpdateAndRestart();
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    toast.error("Could not install the update", {
+      id: TOAST_ID,
+      description: String(err?.message || e || "Try again in a bit."),
+    });
   }
-  const warning = updateInstallWarning({
-    sessionCount,
-    busy,
-    agentTasks: countAgentTasks(uiStore.get().paneAnimations),
-  });
-  if (!warning) return true;
-  return confirm({
-    title: warning.title,
-    description: warning.description,
-    confirmLabel: "Download anyway",
-    cancelLabel: "Not now",
-    destructive: warning.destructive,
-  });
-}
-
-export async function requestDownloadAppUpdate(status: AppUpdateStatus): Promise<void> {
-  const ok = await confirmInstallRisk();
-  if (!ok) return;
-  openInstaller(status);
-}
-
-export function showUpdateAvailableToast(status: AppUpdateStatus) {
-  if (!status.available) return;
-  toast.message(`Qterm ${status.latestVersion} is available`, {
-    id: TOAST_ID,
-    description: "Download the installer, then replace this app.",
-    duration: 20000,
-    action: {
-      label: "Download",
-      onClick: () => {
-        void requestDownloadAppUpdate(status);
-      },
-    },
-    cancel: {
-      label: "Later",
-      onClick: () => toast.dismiss(TOAST_ID),
-    },
-  });
 }
 
 export async function fetchAppUpdate(): Promise<AppUpdateStatus> {
@@ -98,23 +116,29 @@ export async function fetchAppUpdate(): Promise<AppUpdateStatus> {
   if (!status) {
     throw new Error("Could not check for updates");
   }
-  rememberAppUpdate(status);
-  return status;
+  const prev = uiStore.get().appUpdate;
+  rememberAppUpdate({
+    ...status,
+    state: status.state || prev?.state || "",
+    bytes: status.bytes || prev?.bytes || 0,
+    total: status.total || prev?.total || 0,
+  });
+  return uiStore.get().appUpdate as AppUpdateStatus;
 }
 
 export async function runManualUpdateCheck(): Promise<AppUpdateStatus | null> {
   try {
     const status = await fetchAppUpdate();
-    if (status.available) {
-      showUpdateAvailableToast(status);
+    if (!status.available) {
+      toast.success("You're up to date", {
+        id: TOAST_ID,
+        description: status.currentVersion
+          ? `Qterm ${status.currentVersion} is the latest release.`
+          : "No newer release was found.",
+      });
       return status;
     }
-    toast.success("You're up to date", {
-      id: TOAST_ID,
-      description: status.currentVersion
-        ? `Qterm ${status.currentVersion} is the latest release.`
-        : "No newer release was found.",
-    });
+    openUpdateDialog();
     return status;
   } catch (e: unknown) {
     const err = e as { message?: string };

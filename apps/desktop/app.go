@@ -47,6 +47,7 @@ type App struct {
 	nudgeSeen        map[string]struct{}      // sessionID\0cli — already nudged
 	nudgeTimers      map[string][]*time.Timer // sessionID → 10s/20s/50s checks
 	ready            bool
+	upd              *appUpdateDL
 }
 
 func NewApp() *App {

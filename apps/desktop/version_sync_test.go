@@ -8,7 +8,7 @@ import (
 	"qterm/internal/appmode"
 )
 
-func TestAppVersionMatchesWails(t *testing.T) {
+func TestAppVersionFromWailsJSON(t *testing.T) {
 	data, err := os.ReadFile("wails.json")
 	if err != nil {
 		t.Fatal(err)
@@ -25,6 +25,6 @@ func TestAppVersionMatchesWails(t *testing.T) {
 		t.Fatal("wails.json info.productVersion is empty")
 	}
 	if appmode.AppVersion != cfg.Info.ProductVersion {
-		t.Fatalf("appmode.AppVersion %q != wails.json productVersion %q", appmode.AppVersion, cfg.Info.ProductVersion)
+		t.Fatalf("AppVersion %q != wails.json productVersion %q", appmode.AppVersion, cfg.Info.ProductVersion)
 	}
 }

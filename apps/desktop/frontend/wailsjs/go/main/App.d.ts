@@ -13,6 +13,8 @@ export function ActiveAgentBinds():Promise<Record<string, string>>;
 
 export function AddProject(arg1:string,arg2:string):Promise<config.ProjectMeta>;
 
+export function ApplyAppUpdateAndRestart():Promise<void>;
+
 export function CheckForAppUpdate():Promise<update.Status>;
 
 export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
@@ -146,6 +148,8 @@ export function SetSessionName(arg1:string,arg2:string):Promise<boolean>;
 export function SetSessionPinned(arg1:string,arg2:boolean):Promise<boolean>;
 
 export function SkipAppUpdate(arg1:string):Promise<void>;
+
+export function StartAppUpdateDownload():Promise<void>;
 
 export function UninstallAgentCLI(arg1:string):Promise<void>;
 
