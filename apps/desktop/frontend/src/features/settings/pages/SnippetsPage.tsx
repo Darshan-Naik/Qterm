@@ -5,6 +5,7 @@ import { confirm } from "@/lib/confirm";
 import { shortcutLabelFor } from "@/lib/shortcuts";
 import { MAX_SNIPPETS, snippetCardTitle, type Snippet } from "@/lib/snippets";
 import { newSnippet, removeSnippet, useUI } from "@/store/ui";
+import { SettingCard } from "../ui/SettingCard";
 import { SnippetCard } from "./SnippetCard";
 import { SnippetEditorDialog } from "./SnippetEditorDialog";
 
@@ -38,7 +39,7 @@ export function SnippetsPage() {
         <div>
           <h1 className="text-[18px] font-medium tracking-tight">Snippets</h1>
           <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
-            Insert from the palette ({paletteLabel}), a shortcut, or a keyword.
+            Text sent to the focused terminal. Palette: {paletteLabel}.
           </p>
         </div>
         <Button
@@ -62,7 +63,7 @@ export function SnippetsPage() {
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <SettingCard>
           {snippets.map((snippet) => (
             <SnippetCard
               key={snippet.id}
@@ -71,7 +72,7 @@ export function SnippetsPage() {
               onDelete={() => void remove(snippet)}
             />
           ))}
-        </div>
+        </SettingCard>
       )}
 
       <SnippetEditorDialog
