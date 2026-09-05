@@ -1,7 +1,26 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { MockSidebar } from "./MockSidebar";
 import { MockSplit } from "./MockSplit";
 
 export function ProductWindow() {
+  const [scene, setScene] = useState<"thinking" | "input">("thinking");
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) {
+      setScene("input");
+      return;
+    }
+
+    const id = window.setInterval(() => {
+      setScene((current) => (current === "thinking" ? "input" : "thinking"));
+    }, 7000);
+
+    return () => window.clearInterval(id);
+  }, []);
+
   return (
     <div className="hero-window relative">
       <div className="hero-window-glow pointer-events-none absolute inset-x-8 -bottom-10 h-24 blur-2xl" />
@@ -16,8 +35,8 @@ export function ProductWindow() {
           <span className="ml-3 font-mono text-[11px] text-muted-foreground/80">Qterm</span>
         </div>
         <div className="flex min-h-[400px] sm:min-h-[468px]">
-          <MockSidebar />
-          <MockSplit />
+          <MockSidebar claude={scene} />
+          <MockSplit claude={scene} />
         </div>
       </div>
     </div>

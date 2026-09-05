@@ -9,10 +9,12 @@ export function MockTerminal({
   lines,
   caret,
   reveal = false,
+  working = false,
 }: {
   lines: Array<{ text: string; tone: "muted" | "fg" | "dim" | "cmd" }>;
   caret?: boolean;
   reveal?: boolean;
+  working?: boolean;
 }) {
   return (
     <div className="flex-1 p-3 font-mono text-[12px] leading-6">
@@ -25,6 +27,7 @@ export function MockTerminal({
           {line.text}
         </div>
       ))}
+      {working ? <div className="session-logo-pulse text-muted-foreground/80">Working</div> : null}
       {caret ? (
         <div className="text-muted-foreground">
           ~/acme % <span className="term-caret" />

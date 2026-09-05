@@ -190,7 +190,7 @@ body {
 }
 
 .mock-prompt {
-  animation: mock-prompt-in 0.8s ease 1.9s both;
+  animation: mock-prompt-in 0.7s ease 0.45s both;
 }
 
 @keyframes mock-prompt-yes {

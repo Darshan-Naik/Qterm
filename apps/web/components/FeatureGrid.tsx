@@ -11,7 +11,7 @@ export function FeatureGrid() {
           title="A quieter workspace"
           body="Keep projects, terminals, and splits in one calm window so you spend less time managing tabs and more time shipping."
         />
-        <div className="mt-12 grid gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2">
           {FEATURES.map((feature) => (
             <FeatureCard
               key={feature.title}

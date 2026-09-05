@@ -31,8 +31,8 @@ export function MockSidebarRow({
         needsInput && "session-needs-input"
       )}
     >
-      <span className="relative flex size-4 shrink-0 items-center justify-center">
-        <MockAgentIcon agent={agent} thinking={thinking} />
+      <span className="relative flex size-[18px] shrink-0 items-center justify-center">
+        <MockAgentIcon agent={agent} thinking={thinking} size={18} />
         {needsInput ? <MockStatusDot /> : null}
       </span>
       <span className={cn("min-w-0 flex-1 truncate leading-4", thinking && "session-flow-title")}>{label}</span>
