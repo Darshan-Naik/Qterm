@@ -1,5 +1,6 @@
 import { SITE } from "@/lib/site";
 import { DownloadDialog } from "./DownloadDialog";
+import { DialogActions } from "./DialogActions";
 import { StarArt } from "./StarArt";
 
 export function StarDialog({ onClose }: { onClose: () => void }) {
@@ -10,7 +11,14 @@ export function StarDialog({ onClose }: { onClose: () => void }) {
         Star the repo. Zero dollars, takes a second, and it actually helps people find Qterm. No Apple
         paperwork involved.
       </p>
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <DialogActions>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
+        >
+          Maybe later
+        </button>
         <a
           href={SITE.github}
           target="_blank"
@@ -29,14 +37,7 @@ export function StarDialog({ onClose }: { onClose: () => void }) {
           </svg>
           Star Qterm
         </a>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
-        >
-          Maybe later
-        </button>
-      </div>
+      </DialogActions>
     </DownloadDialog>
   );
 }

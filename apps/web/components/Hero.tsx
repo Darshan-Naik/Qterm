@@ -19,8 +19,8 @@ export async function Hero() {
           {SITE.description}
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <MacDownloadActions />
           <GithubLink />
+          <MacDownloadActions />
         </div>
         <div className="mt-14">
           <ProductWindow />

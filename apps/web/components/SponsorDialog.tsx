@@ -1,5 +1,6 @@
 import { SITE } from "@/lib/site";
 import { DownloadDialog } from "./DownloadDialog";
+import { DialogActions } from "./DialogActions";
 import { SponsorArt } from "./SponsorArt";
 
 export function SponsorDialog({ onNext }: { onNext: () => void }) {
@@ -10,7 +11,14 @@ export function SponsorDialog({ onNext }: { onNext: () => void }) {
         Signing the app needs Apple&apos;s Developer Program, which is $99 a year. You do not have to sponsor
         $99. If you like Qterm, sponsor whatever feels right. If not, no guilt trip.
       </p>
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <DialogActions>
+        <button
+          type="button"
+          onClick={onNext}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
+        >
+          Not today
+        </button>
         <a
           href={SITE.sponsors}
           target="_blank"
@@ -30,14 +38,7 @@ export function SponsorDialog({ onNext }: { onNext: () => void }) {
           </svg>
           Sponsor
         </a>
-        <button
-          type="button"
-          onClick={onNext}
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
-        >
-          Not today
-        </button>
-      </div>
+      </DialogActions>
     </DownloadDialog>
   );
 }

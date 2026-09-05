@@ -7,6 +7,7 @@ export const SITE = {
   sponsors: "https://github.com/sponsors/Darshan-Naik",
   repo: "Darshan-Naik/Qterm",
   url: "https://qterm.darshannaik.com",
+  website: "https://darshannaik.com",
   releases: "https://github.com/Darshan-Naik/Qterm/releases/latest",
   author: "Darshan Naik",
 } as const;

@@ -1,4 +1,5 @@
 import { DownloadDialog } from "./DownloadDialog";
+import { DialogActions } from "./DialogActions";
 import { GatekeeperGuide } from "./GatekeeperGuide";
 
 export function OpenAnywayDialog({ onNext }: { onNext: () => void }) {
@@ -9,7 +10,7 @@ export function OpenAnywayDialog({ onNext }: { onNext: () => void }) {
         then Open Anyway.
       </p>
       <GatekeeperGuide />
-      <div className="mt-6">
+      <DialogActions>
         <button
           type="button"
           data-dialog-primary
@@ -18,7 +19,7 @@ export function OpenAnywayDialog({ onNext }: { onNext: () => void }) {
         >
           Got it
         </button>
-      </div>
+      </DialogActions>
     </DownloadDialog>
   );
 }
