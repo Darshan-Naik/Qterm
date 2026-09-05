@@ -8,7 +8,7 @@ import { RelatedLinks } from "@/components/RelatedLinks";
 import { VS_PAGES } from "@/lib/compare";
 import { articleLd, breadcrumbLd, pageMeta } from "@/lib/seo";
 
-const title = "Qterm vs Warp, Ghostty, iTerm2, and cmux";
+const title = "Compare Warp, Ghostty, iTerm2, and cmux";
 const description =
   "Compare Qterm, the fast Mac agent terminal, with Warp, Ghostty, iTerm2, Wave, and cmux. Built for Claude Code, Codex, and Gemini CLI without a vendor chat UI.";
 const path = "/compare";
