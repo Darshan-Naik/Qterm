@@ -44,25 +44,28 @@ export function Onboarding() {
     return () => window.removeEventListener("keydown", onKey);
   }, [goBack, goNext, step]);
 
+  if (step === "welcome") {
+    return (
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-col bg-[#0b0b0a] text-white">
+        <OnboardingWelcome onStart={() => setStep("theme")} onSkip={finish} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col bg-background text-foreground">
       <div className="h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden />
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-6 pb-10">
         <div className="w-full max-w-[420px]">
-          {step === "welcome" ? (
-            <OnboardingWelcome onStart={() => setStep("theme")} onSkip={finish} />
-          ) : null}
           {step === "theme" ? <OnboardingTheme /> : null}
           {step === "agents" ? <OnboardingAgents /> : null}
           {step === "ready" ? <OnboardingReady /> : null}
-          {step !== "welcome" ? (
-            <OnboardingNav
-              step={step}
-              nextLabel={step === "ready" ? "Open Qterm" : "Continue"}
-              onBack={goBack}
-              onNext={goNext}
-            />
-          ) : null}
+          <OnboardingNav
+            step={step}
+            nextLabel={step === "ready" ? "Open Qterm" : "Continue"}
+            onBack={goBack}
+            onNext={goNext}
+          />
         </div>
       </div>
     </div>

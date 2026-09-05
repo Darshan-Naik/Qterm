@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { OnboardingWelcomeArt } from "./OnboardingWelcomeArt";
+import { OnboardingWelcomeBg } from "./OnboardingWelcomeBg";
+import { OnboardingWelcomeTitle } from "./OnboardingWelcomeTitle";
 
 export function OnboardingWelcome({
   onStart,
@@ -9,31 +11,24 @@ export function OnboardingWelcome({
   onSkip: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center text-center">
-      <img
-        src="/icon.svg"
-        alt=""
-        width={72}
-        height={72}
-        className="mb-6 h-[72px] w-[72px] rounded-[18px] shadow-lg ring-1 ring-border/50"
-        draggable={false}
-      />
-      <OnboardingWelcomeArt />
-      <h1 className="mt-8 text-[26px] font-semibold tracking-tight">Welcome to Qterm</h1>
-      <p className="mt-2 max-w-[22rem] text-[13.5px] leading-relaxed text-muted-foreground">
-        Thanks for installing. A fast, quiet terminal for your projects and agents.
-      </p>
-      <div className="mt-8 flex w-full max-w-[16rem] flex-col items-center gap-2">
-        <Button className="h-10 w-full rounded-lg text-[13.5px]" onClick={onStart}>
-          Get started
-        </Button>
-        <Button
-          variant="ghost"
-          className="h-8 text-[12.5px] text-muted-foreground"
-          onClick={onSkip}
-        >
-          Skip for now
-        </Button>
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0a] text-white">
+      <OnboardingWelcomeBg />
+      <div className="relative z-10 h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden />
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-12">
+        <OnboardingWelcomeArt />
+        <OnboardingWelcomeTitle />
+        <div className="setup-welcome-cta mt-10 flex w-full max-w-[15rem] flex-col items-center gap-2 titlebar-no-drag">
+          <Button className="h-10 w-full rounded-lg text-[13.5px]" onClick={onStart}>
+            Get started
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-8 text-[12.5px] text-white/35 hover:bg-white/6 hover:text-white/70"
+            onClick={onSkip}
+          >
+            Skip
+          </Button>
+        </div>
       </div>
     </div>
   );
