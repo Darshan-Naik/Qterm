@@ -1,9 +1,11 @@
 import { SITE } from "@/lib/site";
 import { DownloadDialog } from "./DownloadDialog";
+import { StarArt } from "./StarArt";
 
 export function StarDialog({ onClose }: { onClose: () => void }) {
   return (
     <DownloadDialog title="Cool. GitHub is free." step={3} onClose={onClose} closeOnOverlay>
+      <StarArt />
       <p className="text-[14px] leading-relaxed text-muted-foreground">
         Star the repo. Zero dollars, takes a second, and it actually helps people find Qterm. No Apple
         paperwork involved.

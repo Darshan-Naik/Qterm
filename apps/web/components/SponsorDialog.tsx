@@ -1,9 +1,11 @@
 import { SITE } from "@/lib/site";
 import { DownloadDialog } from "./DownloadDialog";
+import { SponsorArt } from "./SponsorArt";
 
 export function SponsorDialog({ onNext }: { onNext: () => void }) {
   return (
     <DownloadDialog title="Want to help kill that warning?" step={2} onClose={onNext} closeOnOverlay>
+      <SponsorArt />
       <p className="text-[14px] leading-relaxed text-muted-foreground">
         Signing the app needs Apple&apos;s Developer Program, which is $99 a year. You do not have to sponsor
         $99. If you like Qterm, sponsor whatever feels right. If not, no guilt trip.

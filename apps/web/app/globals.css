@@ -299,6 +299,20 @@ body {
   }
 }
 
+@keyframes guide-click {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 28%, transparent);
+  }
+}
+
+.guide-click {
+  animation: guide-click 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -315,7 +329,8 @@ body {
   .feature-split-rule,
   .feature-palette,
   .dialog-overlay,
-  .dialog-panel {
+  .dialog-panel,
+  .guide-click {
     animation: none;
   }
   .mock-line,
