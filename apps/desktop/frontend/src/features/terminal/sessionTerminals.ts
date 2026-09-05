@@ -5,8 +5,10 @@ import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon, type ISearchOptions } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
-import { GetScrollback, ResizeSession, WriteSessionBytes } from "../../../wailsjs/go/main/App";
+import { GetScrollback, ResizeSession, WriteSession, WriteSessionBytes } from "../../../wailsjs/go/main/App";
 import { isAppShortcut } from "@/app/appShortcuts";
+import { keywordExpandPayload } from "@/lib/snippets";
+import { uiStore } from "@/store/ui";
 import { openTerminalLink } from "@/features/terminal/openTerminalLink";
 import {
   clearLeakingDecModes,
@@ -72,6 +74,34 @@ function colorWithAlpha(color: string, alpha: number): string {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
   return c;
+}
+
+function lineBeforeCursor(term: Terminal): string | null {
+  if (term.buffer.active !== term.buffer.normal) return null;
+  const buf = term.buffer.active;
+  const line = buf.getLine(buf.baseY + buf.cursorY);
+  if (!line) return "";
+  return line.translateToString(false).slice(0, Math.max(0, buf.cursorX));
+}
+
+/** Enter expands a snippet keyword. Off the PTY read path. Normal buffer only. */
+function tryExpandSnippetKeyword(term: Terminal, sessionId: string): boolean {
+  const snippets = uiStore.get().snippets;
+  if (snippets.length === 0) return false;
+  const line = lineBeforeCursor(term);
+  if (line == null) return false;
+  const sessions = uiStore.get().sessions;
+  let cwd: string | undefined;
+  for (let i = 0; i < sessions.length; i++) {
+    if (sessions[i].id === sessionId) {
+      cwd = sessions[i].cwd;
+      break;
+    }
+  }
+  const payload = keywordExpandPayload(line, snippets, cwd);
+  if (!payload) return false;
+  void WriteSession(sessionId, payload);
+  return true;
 }
 
 type Pending = { data: string; seq: number };
@@ -205,7 +235,11 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   // handler can open palettes instead of feeding the PTY.
   term.attachCustomKeyEventHandler((ev) => {
     if (ev.type !== "keydown") return true;
-    return !isAppShortcut(ev);
+    if (isAppShortcut(ev)) return false;
+    if (ev.key === "Enter" && !ev.metaKey && !ev.ctrlKey && !ev.altKey && tryExpandSnippetKeyword(term, sessionId)) {
+      return false;
+    }
+    return true;
   });
   // Block mouse/focus DECSET on normal; mute emulator→PTY while seeding so
   // scrollback queries cannot write replies into the live shell. DA/CPR/OSC
