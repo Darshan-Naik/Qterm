@@ -21,8 +21,11 @@ export function GatekeeperGuide() {
         <div className="rounded-lg border border-white/10 bg-[#2c2c2e] px-3 py-2.5">
           <p className="text-[11px] font-medium text-foreground/90">Qterm cannot be opened</p>
           <p className="mt-1 text-[10px] leading-snug text-muted-foreground">Apple cannot check it for malware.</p>
-          <div className="mt-2.5 flex justify-end gap-1.5">
-            <span className="rounded-md bg-white/8 px-2 py-1 text-[10px] text-muted-foreground/40 line-through decoration-red-400/80">
+          <div className="mt-2.5 flex items-center justify-end gap-1.5">
+            <span className="rounded bg-red-400/15 px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-red-300">
+              Don&apos;t
+            </span>
+            <span className="rounded-md bg-white/8 px-2 py-1 text-[10px] text-muted-foreground/40 line-through decoration-red-400">
               Move to Trash
             </span>
             <span className="guide-click rounded-md bg-white px-2 py-1 text-[10px] font-medium text-black">OK</span>
