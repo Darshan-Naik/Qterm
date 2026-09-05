@@ -1,8 +1,8 @@
 export const SITE = {
   name: "Qterm",
-  tagline: "The lightest, fastest, cleanest terminal.",
+  tagline: "The best agentic terminal.",
   description:
-    "A quiet Mac window for projects, splits, and your agents. Fast to type in, and nothing extra on screen.",
+    "Fast, clean, and light. Projects, splits, and your agents in one quiet window.",
   github: "https://github.com/Darshan-Naik/Qterm",
   sponsors: "https://github.com/sponsors/Darshan-Naik",
   repo: "Darshan-Naik/Qterm",

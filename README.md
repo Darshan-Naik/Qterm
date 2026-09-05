@@ -1,8 +1,8 @@
 # Qterm
 
-**The lightest, fastest, cleanest terminal.**
+**The best agentic terminal.**
 
-A quiet Mac window for projects, splits, and your agents. Fast to type in, and nothing extra on screen.
+Fast, clean, and light. Projects, splits, and your agents in one quiet window.
 
 [Download for Mac](https://qterm.darshannaik.com) · [Latest release](https://github.com/Darshan-Naik/Qterm/releases/latest)
 
