@@ -1,4 +1,7 @@
+"use client";
+
 import { SITE } from "@/lib/site";
+import { trackCTA } from "@/lib/analytics";
 import { DownloadDialog } from "./DownloadDialog";
 import { DialogActions } from "./DialogActions";
 import { SponsorArt } from "./SponsorArt";
@@ -15,7 +18,10 @@ export function SponsorDialog({ onNext }: { onNext: () => void }) {
           href={SITE.github}
           target="_blank"
           rel="noreferrer"
-          onClick={onNext}
+          onClick={() => {
+            trackCTA("github_star_click");
+            onNext();
+          }}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
         >
           <svg
@@ -34,7 +40,10 @@ export function SponsorDialog({ onNext }: { onNext: () => void }) {
           target="_blank"
           rel="noreferrer"
           data-dialog-primary
-          onClick={onNext}
+          onClick={() => {
+            trackCTA("sponsor_click");
+            onNext();
+          }}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-[14px] font-medium text-background transition hover:bg-white"
         >
           <svg
