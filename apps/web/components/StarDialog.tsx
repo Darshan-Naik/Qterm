@@ -14,8 +14,17 @@ export function StarDialog({ onClose }: { onClose: () => void }) {
           target="_blank"
           rel="noreferrer"
           data-dialog-primary
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-foreground px-4 text-[14px] font-medium text-background transition hover:bg-white"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-[14px] font-medium text-background transition hover:bg-white"
         >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 6.82 21.02 8 14.14 3 9.27 9.91 8.26 12 2" />
+          </svg>
           Star Qterm
         </a>
         <button
