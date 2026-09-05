@@ -2,7 +2,7 @@
 
 **The lightest, fastest, cleanest terminal.**
 
-Native Mac speed. No Electron weight. A quiet window for projects, splits, and your agents.
+A quiet Mac window for projects, splits, and your agents. Fast to type in, and nothing extra on screen.
 
 [Download for Mac](https://qterm.darshannaik.com) · [Latest release](https://github.com/Darshan-Naik/Qterm/releases/latest)
 
