@@ -9,7 +9,7 @@ export function FeatureGrid() {
         <SectionHeading
           kicker="Why Qterm"
           title="A quieter workspace"
-          body="Keep projects, terminals, and splits in one calm window so you spend less time managing tabs and more time shipping."
+          body="A fast, light Mac workspace: projects, terminals, and splits in one calm window so you spend less time managing tabs and more time shipping."
         />
         <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2">
           {FEATURES.map((feature) => (

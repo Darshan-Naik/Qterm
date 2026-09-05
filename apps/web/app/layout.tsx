@@ -2,6 +2,12 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import { SITE, siteUrl } from "@/lib/site";
+import { SITE_KEYWORDS } from "@/lib/keywords";
+import { softwareApplicationLd, websiteLd } from "@/lib/seo";
+import { DownloadGuide } from "@/components/DownloadGuide";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { JsonLd } from "@/components/JsonLd";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({
@@ -18,26 +24,45 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+const url = siteUrl();
+
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl()),
+  metadataBase: new URL(url),
   title: {
-    default: `${SITE.name}: ${SITE.tagline}`,
-    template: `%s: ${SITE.name}`,
+    default: SITE.seoTitle,
+    template: `%s | ${SITE.name}`,
   },
-  description: SITE.description,
+  description: SITE.seoDescription,
   applicationName: SITE.name,
-  authors: [{ name: SITE.author }],
-  keywords: ["terminal", "macOS", "agentic", "fast", "lightweight", "clean", "splits", "projects", "agents"],
+  authors: [{ name: SITE.author, url: SITE.website }],
+  creator: SITE.author,
+  publisher: SITE.name,
+  category: "DeveloperApplication",
+  keywords: [...SITE_KEYWORDS],
+  alternates: { canonical: url },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    title: `${SITE.name}: ${SITE.tagline}`,
-    description: SITE.description,
+    title: SITE.seoTitle,
+    description: SITE.seoDescription,
+    url,
     siteName: SITE.name,
+    locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE.name}: ${SITE.tagline}`,
-    description: SITE.description,
+    title: SITE.seoTitle,
+    description: SITE.seoDescription,
   },
   icons: {
     icon: [{ url: "/favicon.png", type: "image/png" }],
@@ -54,7 +79,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} dark`}>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
-        {children}
+        <JsonLd data={softwareApplicationLd()} />
+        <JsonLd data={websiteLd()} />
+        <DownloadGuide>
+          <SiteHeader />
+          {children}
+          <SiteFooter />
+        </DownloadGuide>
       </body>
     </html>
   );
