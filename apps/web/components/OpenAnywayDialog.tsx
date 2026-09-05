@@ -5,9 +5,8 @@ export function OpenAnywayDialog({ onNext }: { onNext: () => void }) {
   return (
     <DownloadDialog title="Mac is going to look suspicious" step={1} onClose={onNext} closeOnOverlay wide>
       <p className="text-[14px] leading-relaxed text-muted-foreground">
-        Your download is already going. Apple blocks unsigned apps, and Qterm is not signed yet. Gatekeeper
-        will say it cannot be opened. Completely normal. Follow the screen guide, especially the part where you
-        skip Move to Trash.
+        Your download is already going. Apple will block unsigned Qterm. Follow the path: skip Move to Trash,
+        then Open Anyway.
       </p>
       <GatekeeperGuide />
       <div className="mt-6">

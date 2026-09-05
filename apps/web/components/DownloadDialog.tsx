@@ -57,7 +57,7 @@ export function DownloadDialog({
           aria-labelledby={titleId}
           className={cn(
             "dialog-panel pointer-events-auto w-full rounded-2xl border border-white/10 bg-card p-6 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.8)]",
-            wide ? "max-w-[36rem]" : "max-w-[28rem]"
+            wide ? "max-w-[28rem]" : "max-w-[26rem]"
           )}
         >
           <div className="mb-4 flex items-start justify-between gap-4">
