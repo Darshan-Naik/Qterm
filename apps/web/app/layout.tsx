@@ -8,6 +8,7 @@ import { DownloadGuide } from "@/components/DownloadGuide";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
+import { PostHogProvider } from "@/components/PostHogProvider";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({
@@ -79,13 +80,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} dark`}>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
-        <JsonLd data={softwareApplicationLd()} />
-        <JsonLd data={websiteLd()} />
-        <DownloadGuide>
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-        </DownloadGuide>
+        <PostHogProvider>
+          <JsonLd data={softwareApplicationLd()} />
+          <JsonLd data={websiteLd()} />
+          <DownloadGuide>
+            <SiteHeader />
+            {children}
+            <SiteFooter />
+          </DownloadGuide>
+        </PostHogProvider>
       </body>
     </html>
   );
