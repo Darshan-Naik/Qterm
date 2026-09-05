@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pencil, RotateCcw } from "lucide-react";
 import {
   chordFromEvent,
-  conflictLabel,
   effectiveChords,
-  findConflict,
   formatChords,
   isCustomized,
   setKeybindingCapturing,
   type ShortcutId,
 } from "@/lib/shortcuts";
+import { describeChordConflict } from "@/lib/snippets";
 import { resetKeybinding, setKeybinding, uiStore, useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
 import { ShortcutKeys } from "../ui/ShortcutKeys";
@@ -52,9 +51,13 @@ export function ShortcutRow({
       const next = chordFromEvent(e);
       if (!next) return;
 
-      const other = findConflict(next, uiStore.get().keybindings, id);
+      const other = describeChordConflict(next, {
+        keybindings: uiStore.get().keybindings,
+        snippets: uiStore.get().snippets,
+        exceptShortcutId: id,
+      });
       if (other) {
-        setConflict(`Used by ${conflictLabel(other)}`);
+        setConflict(`Used by ${other}`);
         return;
       }
 

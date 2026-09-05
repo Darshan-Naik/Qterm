@@ -13,6 +13,7 @@ export type {
   ThemeMode,
   UIState,
   SidebarFooterId,
+  Snippet,
 } from "./types";
 
 export {
@@ -56,6 +57,7 @@ export {
   setUiZoom,
   toggleProjectCollapsed,
 } from "./prefs";
+export { addSnippet, removeSnippet, saveSnippets, updateSnippet } from "./snippets";
 export {
   collectSessionIds,
   findFirstLeaf,

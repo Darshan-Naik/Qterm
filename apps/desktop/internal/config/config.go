@@ -121,6 +121,8 @@ type AppConfig struct {
 	AgentCLIs map[string]string `json:"agentCLIs,omitempty"`
 	// Keybindings stores only user overrides of keyboard shortcuts.
 	Keybindings KeybindingOverrides `json:"keybindings,omitempty"`
+	// Snippets are reusable commands inserted into the focused terminal.
+	Snippets []Snippet `json:"snippets,omitempty"`
 	// SkippedAppUpdate is a normalized version the user dismissed (no launch prompt).
 	SkippedAppUpdate string `json:"skippedAppUpdate,omitempty"`
 }
@@ -266,6 +268,7 @@ func (s *Store) Load() error {
 	if cfg.AgentCLIs == nil {
 		cfg.AgentCLIs = map[string]string{}
 	}
+	cfg.Snippets = SanitizeSnippets(cfg.Snippets)
 	s.cfg = cfg
 	return nil
 }

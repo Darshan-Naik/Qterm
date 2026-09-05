@@ -162,6 +162,13 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     group: "Project",
     whenSettings: "block",
   },
+  {
+    id: "snippetPalette",
+    label: "Insert snippet",
+    description: "Search saved commands and type them into the focused terminal",
+    group: "Terminal",
+    whenSettings: "block",
+  },
 ];
 
 const mod = (key: string, extra?: Partial<KeyChord>): KeyChord => ({
@@ -206,6 +213,7 @@ export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   openInIDE: [modShift("i")],
   removeProject: [modShift("Backspace", { codes: ["Backspace"], alt: true })],
   gitToolkit: [modShift("g")],
+  snippetPalette: [modShift("s")],
 };
 
 export const SHORTCUT_GROUPS: Array<ShortcutMeta["group"]> = ["General", "View", "Terminal", "Project"];

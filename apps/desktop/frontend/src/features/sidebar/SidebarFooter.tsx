@@ -12,6 +12,7 @@ function openCommandPalette() {
     paletteOpen: true,
     quickOpen: false,
     agentSessionsOpen: false,
+    snippetsOpen: false,
     terminalFindOpen: false,
   });
 }
@@ -21,6 +22,7 @@ function openAgentSessions() {
     agentSessionsOpen: true,
     paletteOpen: false,
     quickOpen: false,
+    snippetsOpen: false,
     terminalFindOpen: false,
   });
 }

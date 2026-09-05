@@ -391,6 +391,12 @@ func (a *App) SaveKeybindings(bindings config.KeybindingOverrides) error {
 	})
 }
 
+func (a *App) SaveSnippets(snippets []config.Snippet) error {
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.Snippets = config.SanitizeSnippets(snippets)
+	})
+}
+
 func (a *App) SaveLayout(key string, layout config.SplitNode) error {
 	return a.store.Update(func(cfg *config.AppConfig) {
 		if cfg.Layouts == nil {

@@ -22,6 +22,7 @@ export type ShortcutId =
   | "openInIDE"
   | "removeProject"
   | "gitToolkit"
+  | "snippetPalette"
   | "toggleTheme"
   | "zoomIn"
   | "zoomOut"

@@ -45,6 +45,7 @@ export const uiStore = createStore<UIState>({
   quickOpen: false,
   terminalFindOpen: false,
   agentSessionsOpen: false,
+  snippetsOpen: false,
   aboutOpen: false,
   appMode: "workspace",
   settingsPage: "appearance",
@@ -57,6 +58,7 @@ export const uiStore = createStore<UIState>({
   suggestText: null,
   collapsedProjects: {},
   keybindings: {},
+  snippets: [],
   sidebarFooter: [...SIDEBAR_FOOTER_DEFAULT],
   gitPanel: null,
   appUpdate: null,
@@ -72,6 +74,7 @@ export function openSettings(page: SettingsPage = "appearance") {
     quickOpen: false,
     terminalFindOpen: false,
     agentSessionsOpen: false,
+    snippetsOpen: false,
     gitPanel: null,
   });
 }
