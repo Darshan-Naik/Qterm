@@ -8,11 +8,10 @@ import { SettingRow } from "@/features/settings/ui/SettingRow";
 import { useUI } from "@/store/ui";
 import {
   fetchAppUpdate,
-  requestRestartAppUpdate,
+  openUpdateDialog,
   skipAppUpdate,
   type AppUpdateStatus,
 } from "./checkAppUpdate";
-import { restartUpdateLabel } from "./updateInstallWarning";
 import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 
 function statusHint(status: AppUpdateStatus | null, error: string | null): string {
@@ -22,13 +21,7 @@ function statusHint(status: AppUpdateStatus | null, error: string | null): strin
     return `You skipped ${status.latestVersion}. Restart to update anytime, or turn reminders back on.`;
   }
   if (status.available && status.state === "ready") {
-    return `Qterm ${status.latestVersion} is ready. Restart to install.`;
-  }
-  if (status.available && status.state === "downloading") {
-    return `Downloading Qterm ${status.latestVersion}.`;
-  }
-  if (status.available && status.state === "error") {
-    return status.error || "The update download failed. Check now to try again.";
+    return `Qterm ${status.latestVersion} is ready. Open Update to restart.`;
   }
   if (status.available) {
     return `Qterm ${status.latestVersion} is available.`;
@@ -78,12 +71,6 @@ export function UpdatesPage() {
   };
 
   const latestLabel = shown?.latestVersion ? shown.latestVersion : busy ? "Checking" : "Unknown";
-  const restartLabel =
-    shown?.state === "downloading"
-      ? "Downloading…"
-      : shown?.latestVersion
-        ? restartUpdateLabel
-        : "Restart to update";
 
   return (
     <div>
@@ -111,12 +98,7 @@ export function UpdatesPage() {
           {busy ? "Checking…" : "Check now"}
         </Button>
         {shown?.available ? (
-          <Button
-            disabled={shown.state === "downloading"}
-            onClick={() => void requestRestartAppUpdate(shown)}
-          >
-            {restartLabel}
-          </Button>
+          <Button onClick={() => openUpdateDialog()}>Update</Button>
         ) : null}
         {shown?.available && shown.releaseUrl ? (
           <Button variant="ghost" onClick={() => BrowserOpenURL(shown.releaseUrl)}>

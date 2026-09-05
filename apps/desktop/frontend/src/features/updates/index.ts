@@ -1,13 +1,13 @@
 export { UpdateListener } from "./UpdateListener";
 export { UpdatesPage } from "./UpdatesPage";
 export { SidebarUpdateOverlay } from "./SidebarUpdateOverlay";
+export { UpdateDialog } from "./UpdateDialog";
 export {
   fetchAppUpdate,
   rememberAppUpdate,
   remindLaterAppUpdate,
-  requestRestartAppUpdate,
+  openUpdateDialog,
   runManualUpdateCheck,
-  showUpdateReadyToast,
   skipAppUpdate,
   type AppUpdateStatus,
 } from "./checkAppUpdate";

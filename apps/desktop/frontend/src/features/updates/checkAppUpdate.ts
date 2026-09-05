@@ -1,23 +1,39 @@
 import { toast } from "sonner";
-import { confirm } from "@/lib/confirm";
 import { uiStore, type AppUpdateInfo } from "@/store/ui";
 import {
   ApplyAppUpdateAndRestart,
   CheckForAppUpdate,
-  ListUpdateRisk,
   SkipAppUpdate,
-  StartAppUpdateDownload,
 } from "../../../wailsjs/go/main/App";
-import {
-  countAgentTasks,
-  remindLaterLabel,
-  restartUpdateLabel,
-  updateInstallWarning,
-} from "./updateInstallWarning";
 
 export type AppUpdateStatus = AppUpdateInfo;
 
 const TOAST_ID = "app-update";
+
+let dialogOpen = false;
+const dialogListeners = new Set<(open: boolean) => void>();
+
+function emitDialog() {
+  for (const listener of dialogListeners) listener(dialogOpen);
+}
+
+export function openUpdateDialog() {
+  dialogOpen = true;
+  emitDialog();
+}
+
+export function closeUpdateDialog() {
+  dialogOpen = false;
+  emitDialog();
+}
+
+export function subscribeUpdateDialog(listener: (open: boolean) => void): () => void {
+  dialogListeners.add(listener);
+  listener(dialogOpen);
+  return () => {
+    dialogListeners.delete(listener);
+  };
+}
 
 function asStatus(raw: unknown): AppUpdateStatus | null {
   if (!raw || typeof raw !== "object") return null;
@@ -71,66 +87,19 @@ export function mergeUpdateProgress(raw: unknown) {
   });
 }
 
-async function confirmRestartRisk(): Promise<boolean> {
-  let busy: { name: string; commands: string[] }[] = [];
-  try {
-    const risk = await ListUpdateRisk();
-    if (Array.isArray(risk?.busy)) {
-      busy = risk.busy.map((row) => ({
-        name: String(row?.name || "Terminal"),
-        commands: Array.isArray(row?.commands) ? row.commands.map(String) : [],
-      }));
-    }
-  } catch {
-    // Fall back to agent-hook activity if the process scan fails.
-  }
-  const warning = updateInstallWarning({
-    sessionCount: 0,
-    busy,
-    agentTasks: countAgentTasks(uiStore.get().paneAnimations),
-  });
-  if (!warning) return true;
-  return confirm({
-    title: warning.title,
-    description: warning.description,
-    confirmLabel: restartUpdateLabel,
-    cancelLabel: remindLaterLabel,
-    destructive: warning.destructive,
-  });
-}
-
 export async function remindLaterAppUpdate(status?: AppUpdateStatus | null): Promise<void> {
   const cur = status || uiStore.get().appUpdate;
   const version = cur?.latestVersion || "";
   if (version) {
     await skipAppUpdate(version);
   }
+  closeUpdateDialog();
   toast.dismiss(TOAST_ID);
 }
 
-export async function requestRestartAppUpdate(status: AppUpdateStatus): Promise<void> {
-  if (status.state !== "ready") {
-    try {
-      await StartAppUpdateDownload();
-    } catch (e: unknown) {
-      const err = e as { message?: string };
-      toast.error("Could not download the update", {
-        id: TOAST_ID,
-        description: String(err?.message || e || "Try again in a bit."),
-      });
-      return;
-    }
-    toast.message(`Downloading Qterm ${status.latestVersion}`, {
-      id: TOAST_ID,
-      description: "You can restart when the download finishes.",
-    });
-    return;
-  }
-  const ok = await confirmRestartRisk();
-  if (!ok) {
-    await remindLaterAppUpdate(status);
-    return;
-  }
+export async function applyReadyAppUpdate(): Promise<void> {
+  const status = uiStore.get().appUpdate;
+  if (!status || status.state !== "ready") return;
   try {
     await ApplyAppUpdateAndRestart();
   } catch (e: unknown) {
@@ -140,27 +109,6 @@ export async function requestRestartAppUpdate(status: AppUpdateStatus): Promise<
       description: String(err?.message || e || "Try again in a bit."),
     });
   }
-}
-
-export function showUpdateReadyToast(status: AppUpdateStatus) {
-  if (!status.available || status.skipped || status.state !== "ready") return;
-  toast.message(`Qterm ${status.latestVersion} is ready`, {
-    id: TOAST_ID,
-    description: "Restart Qterm to install the update.",
-    duration: 20000,
-    action: {
-      label: restartUpdateLabel,
-      onClick: () => {
-        void requestRestartAppUpdate(status);
-      },
-    },
-    cancel: {
-      label: remindLaterLabel,
-      onClick: () => {
-        void remindLaterAppUpdate(status);
-      },
-    },
-  });
 }
 
 export async function fetchAppUpdate(): Promise<AppUpdateStatus> {
@@ -190,14 +138,7 @@ export async function runManualUpdateCheck(): Promise<AppUpdateStatus | null> {
       });
       return status;
     }
-    if (status.state === "ready") {
-      showUpdateReadyToast(status);
-      return status;
-    }
-    toast.message(`Qterm ${status.latestVersion} is downloading`, {
-      id: TOAST_ID,
-      description: "You'll be asked to restart when it's ready.",
-    });
+    openUpdateDialog();
     return status;
   } catch (e: unknown) {
     const err = e as { message?: string };
