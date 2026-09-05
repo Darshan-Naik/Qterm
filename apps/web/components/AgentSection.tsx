@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AGENTS } from "@/lib/site";
 import { AgentChip } from "./AgentChip";
 import { SectionHeading } from "./SectionHeading";
@@ -13,7 +14,9 @@ export function AgentSection() {
         />
         <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-3">
           {AGENTS.map((agent) => (
-            <AgentChip key={agent.id} name={agent.name} src={agent.src} />
+            <Link key={agent.id} href={`/agents/${agent.slug}`}>
+              <AgentChip name={agent.name} src={agent.src} />
+            </Link>
           ))}
         </div>
       </div>

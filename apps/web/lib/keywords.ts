@@ -1,0 +1,46 @@
+export const PRIMARY_KEYWORDS = [
+  "agent terminal",
+  "agentic terminal",
+  "best agentic terminal",
+  "AI terminal",
+  "AI coding terminal",
+  "terminal for AI agents",
+  "fast terminal",
+  "light terminal",
+  "lightweight terminal",
+  "Mac terminal",
+  "macOS terminal",
+] as const;
+
+export const AGENT_KEYWORDS = [
+  "Claude Code terminal",
+  "terminal for Claude Code",
+  "Codex CLI terminal",
+  "Gemini CLI terminal",
+  "Cursor Agent terminal",
+  "Antigravity terminal",
+] as const;
+
+export const SITE_KEYWORDS = [
+  "Qterm",
+  "terminal",
+  "agent",
+  "agent terminal",
+  "agentic terminal",
+  "fast",
+  "light",
+  "lightweight",
+  "small terminal",
+  "Mac",
+  "macOS",
+  "Apple Silicon",
+  "Claude Code",
+  "Codex",
+  "Gemini CLI",
+  "Cursor Agent",
+  "Antigravity",
+  "splits",
+  "projects",
+  ...PRIMARY_KEYWORDS,
+  ...AGENT_KEYWORDS,
+] as const;

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { SITE } from "@/lib/site";
 
-export const alt = `${SITE.name}: ${SITE.tagline}`;
+export const alt = SITE.seoTitle;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -34,7 +34,7 @@ export default async function OpengraphImage() {
           style={{ borderRadius: 18, marginBottom: 36 }}
         />
         <div style={{ fontSize: 72, fontWeight: 600, letterSpacing: -2 }}>{SITE.name}</div>
-        <div style={{ fontSize: 32, color: "#a3a3a3", marginTop: 12 }}>{SITE.tagline}</div>
+        <div style={{ fontSize: 32, color: "#a3a3a3", marginTop: 12 }}>Fast agent terminal for Mac</div>
       </div>
     ),
     size,
