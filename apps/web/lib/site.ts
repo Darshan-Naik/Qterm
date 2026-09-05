@@ -28,18 +28,22 @@ export const NAV = [
 export const FEATURES = [
   {
     title: "Projects, not clutter",
+    visual: "projects" as const,
     body: "Map local folders as projects. Open as many terminals as you need under each one, rename them, and keep home shells separate when you’re just experimenting.",
   },
   {
     title: "Splits that feel native",
+    visual: "splits" as const,
     body: "Split right or down and work side by side. Each pane has its own title and menu. No crowded tab strip fighting for attention.",
   },
   {
     title: "Built for flow",
+    visual: "flow" as const,
     body: "Command palette, thoughtful shortcuts, dark and light themes, and a sidebar that stays out of your way until you need it.",
   },
   {
     title: "Ready for agents",
+    visual: "agents" as const,
     body: "Keep your coding agents in the same window as your terminals, without turning Qterm into another chat app.",
   },
 ] as const;

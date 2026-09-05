@@ -78,11 +78,224 @@ body {
   }
 }
 
+.hero-window {
+  animation: hero-rise 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hero-window-glow {
+  background: radial-gradient(
+    ellipse 72% 42% at 50% 100%,
+    oklch(1 0 0 / 9%),
+    transparent 72%
+  );
+}
+
+@keyframes session-title-shimmer {
+  0% {
+    background-position: 140% 0, 0 0;
+  }
+  100% {
+    background-position: -40% 0, 0 0;
+  }
+}
+
+.session-flow-title {
+  color: inherit;
+  -webkit-text-fill-color: transparent;
+  background-image:
+    linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 40%,
+      rgb(255 255 255 / 0.9) 50%,
+      transparent 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      color-mix(in oklab, currentColor 42%, transparent),
+      color-mix(in oklab, currentColor 42%, transparent)
+    );
+  background-size: 180% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: session-title-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes session-logo-pulse {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.session-logo-pulse {
+  animation: session-logo-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes session-amber-glow {
+  0%,
+  100% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 10%, transparent);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 20%, transparent);
+    box-shadow: 0 0 12px color-mix(in oklab, rgb(251 191 36) 28%, transparent);
+  }
+}
+
+.session-needs-input {
+  animation: session-amber-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes mock-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mock-line {
+  animation: mock-line-in 0.7s ease both;
+}
+
+@keyframes mock-prompt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mock-prompt {
+  animation: mock-prompt-in 0.7s ease 0.45s both;
+}
+
+@keyframes mock-prompt-yes {
+  0%,
+  100% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 18%, transparent);
+  }
+  50% {
+    background-color: color-mix(in oklab, rgb(251 191 36) 32%, transparent);
+  }
+}
+
+.mock-prompt-yes {
+  animation: mock-prompt-yes 2.4s ease-in-out infinite;
+}
+
+.feature-card {
+  transition:
+    transform 0.45s ease,
+    border-color 0.45s ease,
+    background-color 0.45s ease;
+  animation: feature-rise 0.8s ease both;
+}
+
+.feature-card:hover {
+  transform: translateY(-3px);
+  border-color: oklch(1 0 0 / 16%);
+  background-color: color-mix(in oklab, var(--card) 86%, white);
+}
+
+.feature-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.feature-card:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.feature-card:nth-child(3) {
+  animation-delay: 0.19s;
+}
+.feature-card:nth-child(4) {
+  animation-delay: 0.26s;
+}
+
+@keyframes feature-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes split-breathe {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.feature-split-rule {
+  animation: split-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes palette-glow {
+  0%,
+  100% {
+    border-color: oklch(1 0 0 / 10%);
+  }
+  50% {
+    border-color: oklch(1 0 0 / 22%);
+  }
+}
+
+.feature-palette {
+  animation: palette-glow 3.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  .term-caret {
+  .term-caret,
+  .hero-window,
+  .session-flow-title,
+  .session-logo-pulse,
+  .session-needs-input,
+  .mock-line,
+  .mock-prompt,
+  .mock-prompt-yes,
+  .feature-card,
+  .feature-split-rule,
+  .feature-palette {
     animation: none;
+  }
+  .mock-line,
+  .mock-prompt,
+  .feature-card,
+  .hero-window {
+    opacity: 1;
+    transform: none;
+  }
+  .feature-card:hover {
+    transform: none;
   }
 }
