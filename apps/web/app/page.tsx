@@ -22,7 +22,7 @@ export default async function HomePage() {
         <FaqSection
           items={HOME_FAQ}
           title="Fast agent terminal, answered"
-          body="What people type: agent terminal, fast terminal, small terminal, best terminal for Claude Code. Short answers below."
+          body="Short answers on agent terminal, fast terminal, small terminal, and the best terminal for Claude Code."
         />
         <DownloadSection />
       </main>

@@ -8,7 +8,7 @@ export function CompareTeaser() {
         <SectionHeading
           kicker="Compare"
           title="Best terminal for agents, by job"
-          body="Live search still sends 'best terminal' and 'fast terminal' to Ghostty, Alacritty, and iTerm2. Agent searches go to Warp, cmux, and comparison guides. Qterm sits in the gap: a fast, light Mac agent terminal."
+          body="Warp is the AI terminal. Ghostty and Alacritty are the fast, small emulators. Qterm is the fast, light Mac agent terminal for Claude Code, Codex, and Gemini CLI."
         />
         <div className="mx-auto mt-8 flex max-w-xl flex-wrap justify-center gap-3 text-[13px]">
           <Link
