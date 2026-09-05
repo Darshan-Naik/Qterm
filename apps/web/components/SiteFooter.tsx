@@ -7,8 +7,11 @@ export function SiteFooter() {
         <p>
           {SITE.name}: {SITE.tagline}
         </p>
-        <a href={SITE.github} className="text-foreground/80 underline-offset-4 hover:underline">
-          GitHub
+        <a
+          href={SITE.website}
+          className="text-foreground/80 underline-offset-4 hover:underline"
+        >
+          darshannaik.com
         </a>
       </div>
     </footer>

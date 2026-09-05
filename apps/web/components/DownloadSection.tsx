@@ -17,8 +17,8 @@ export async function DownloadSection() {
               go.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <MacDownloadActions className="justify-center" />
               <GithubLink />
+              <MacDownloadActions className="justify-center" />
             </div>
           </div>
         </div>

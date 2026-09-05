@@ -271,6 +271,48 @@ body {
   animation: palette-glow 3.2s ease-in-out infinite;
 }
 
+.dialog-overlay {
+  animation: dialog-overlay-in 0.28s ease both;
+}
+
+.dialog-panel {
+  animation: dialog-panel-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes guide-click {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 28%, transparent);
+  }
+}
+
+.guide-click {
+  animation: guide-click 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -285,13 +327,18 @@ body {
   .mock-prompt-yes,
   .feature-card,
   .feature-split-rule,
-  .feature-palette {
+  .feature-palette,
+  .dialog-overlay,
+  .dialog-panel,
+  .guide-click {
     animation: none;
   }
   .mock-line,
   .mock-prompt,
   .feature-card,
-  .hero-window {
+  .hero-window,
+  .dialog-overlay,
+  .dialog-panel {
     opacity: 1;
     transform: none;
   }
