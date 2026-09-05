@@ -1,13 +1,15 @@
 name: Release
 
+# Ships a GitHub Release when main moves and the app version changed
+# (merge or direct push). Manual runs still work from Actions.
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release, like 1.6.3. Leave blank to use apps/desktop/wails.json."
+        description: "Version to release, like 1.6.4. Leave blank to use apps/desktop/wails.json."
         required: false
         type: string
 
@@ -15,29 +17,47 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   meta:
     runs-on: ubuntu-latest
     outputs:
+      release: ${{ steps.resolve.outputs.release }}
       tag: ${{ steps.resolve.outputs.tag }}
       version: ${{ steps.resolve.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Resolve version
         id: resolve
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          WAILS_VER="$(python3 -c "import json; print(json.load(open('apps/desktop/wails.json'))['info']['productVersion'])")"
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG="${GITHUB_REF_NAME}"
-          elif [[ -n "${INPUT_VERSION}" ]]; then
+
+          wails_ver() {
+            python3 -c "import json,sys; print(json.load(sys.stdin)['info']['productVersion'])"
+          }
+          go_ver() {
+            python3 -c "import re,sys; m=re.search(r'const AppVersion = \"([^\"]+)\"', sys.stdin.read()); print(m.group(1) if m else '')"
+          }
+
+          WAILS_VER="$(wails_ver < apps/desktop/wails.json)"
+          APP_VER="$(go_ver < apps/desktop/internal/appmode/version.go)"
+          if [[ -z "$WAILS_VER" || "$WAILS_VER" != "$APP_VER" ]]; then
+            echo "Version mismatch: wails.json productVersion=$WAILS_VER AppVersion=$APP_VER" >&2
+            exit 1
+          fi
+
+          if [[ -n "${INPUT_VERSION:-}" ]]; then
             TAG="v${INPUT_VERSION#v}"
           else
             TAG="v${WAILS_VER}"
@@ -49,15 +69,40 @@ jobs:
           VERSION="${TAG#v}"
           if [[ "$VERSION" != "$WAILS_VER" ]]; then
             echo "Release $TAG does not match apps/desktop/wails.json productVersion $WAILS_VER" >&2
-            echo "Bump productVersion, commit, then tag." >&2
             exit 1
           fi
+
+          RELEASE=true
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            OLD_WAILS=""
+            OLD_APP=""
+            if [[ -n "${BEFORE:-}" && ! "$BEFORE" =~ ^0+$ ]] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+              OLD_WAILS="$(git show "$BEFORE:apps/desktop/wails.json" 2>/dev/null | wails_ver || true)"
+              OLD_APP="$(git show "$BEFORE:apps/desktop/internal/appmode/version.go" 2>/dev/null | go_ver || true)"
+            fi
+            if [[ "$WAILS_VER" == "$OLD_WAILS" && "$APP_VER" == "$OLD_APP" ]]; then
+              echo "No version change ($VERSION). Skipping release."
+              RELEASE=false
+            fi
+          fi
+
+          if [[ "$RELEASE" == "true" ]] && gh release view "$TAG" >/dev/null 2>&1; then
+            if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+              echo "Release $TAG exists; workflow_dispatch will replace assets."
+            else
+              echo "Release $TAG already exists. Skipping rebuild."
+              RELEASE=false
+            fi
+          fi
+
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Releasing $TAG"
+          echo "Resolved $TAG release=$RELEASE"
 
   build-macos:
     needs: meta
+    if: needs.meta.outputs.release == 'true'
     runs-on: macos-14
     timeout-minutes: 45
     steps:
@@ -98,12 +143,11 @@ jobs:
 
   publish:
     needs: [meta, build-macos]
+    if: needs.meta.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download DMGs
         uses: actions/download-artifact@v4
@@ -133,7 +177,7 @@ jobs:
             "If macOS blocks the app, open System Settings, Privacy and Security, and allow it.")"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.dmg dist/SHA256SUMS --clobber
-            gh release edit "$TAG" --notes "$NOTES"
+            gh release edit "$TAG" --notes "$NOTES" --target "$TARGET"
           else
             gh release create "$TAG" dist/*.dmg dist/SHA256SUMS \
               --title "Qterm ${VERSION}" \

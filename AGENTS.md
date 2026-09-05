@@ -50,7 +50,7 @@ apps/web/
   lib/           # site copy, URLs, class helpers
 
 .github/workflows/
-  release.yml    # tag v* or workflow_dispatch: build macOS DMGs, git tag, GitHub Release
+  release.yml    # push/merge to main with a version bump (or workflow_dispatch): build DMG, GitHub Release
 ```
 
 App code talks to **agentcli** (not CLI paths). Resume = `adapter.Resume(id)` → open PTY → type command.
