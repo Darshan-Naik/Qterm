@@ -1,8 +1,8 @@
 # Qterm
 
-**A fast, focused terminal for people who live in the shell.**
+**The best agentic terminal.**
 
-Terminal, without the noise. Projects, splits, and your agents in one calm Mac window.
+Fast, clean, and light. Projects, splits, and your agents in one quiet window.
 
 [Download for Mac](https://qterm.darshannaik.com) · [Latest release](https://github.com/Darshan-Naik/Qterm/releases/latest)
 
