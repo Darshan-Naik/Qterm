@@ -22,9 +22,7 @@ export function DownloadGuide({ children }: { children: ReactNode }) {
     <DownloadGuideContext.Provider value={value}>
       {children}
       {step === "open" ? <OpenAnywayDialog onNext={() => setStep("sponsor")} /> : null}
-      {step === "sponsor" ? (
-        <SponsorDialog onSkip={() => setStep("star")} onSponsored={() => setStep(null)} />
-      ) : null}
+      {step === "sponsor" ? <SponsorDialog onNext={() => setStep("star")} /> : null}
       {step === "star" ? <StarDialog onClose={() => setStep(null)} /> : null}
     </DownloadGuideContext.Provider>
   );

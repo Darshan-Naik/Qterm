@@ -7,7 +7,12 @@ export function SiteFooter() {
         <p>
           {SITE.name}: {SITE.tagline}
         </p>
-        <a href={SITE.github} className="text-foreground/80 underline-offset-4 hover:underline">
+        <a
+          href={SITE.github}
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground/80 underline-offset-4 hover:underline"
+        >
           GitHub
         </a>
       </div>
