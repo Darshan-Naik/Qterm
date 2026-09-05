@@ -2,6 +2,8 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -24,6 +26,7 @@ jobs:
     outputs:
       tag: ${{ steps.resolve.outputs.tag }}
       version: ${{ steps.resolve.outputs.version }}
+      skip: ${{ steps.resolve.outputs.skip }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -32,6 +35,7 @@ jobs:
         id: resolve
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           WAILS_VER="$(python3 -c "import json; print(json.load(open('apps/desktop/wails.json'))['info']['productVersion'])")"
@@ -49,15 +53,28 @@ jobs:
           VERSION="${TAG#v}"
           if [[ "$VERSION" != "$WAILS_VER" ]]; then
             echo "Release $TAG does not match apps/desktop/wails.json productVersion $WAILS_VER" >&2
-            echo "Bump productVersion, commit, then tag." >&2
+            echo "Bump productVersion, commit, then merge to main." >&2
             exit 1
+          fi
+          SKIP=false
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF_TYPE}" == "branch" ]]; then
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Release $TAG already exists; skip build."
+              SKIP=true
+            fi
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Releasing $TAG"
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+          if [[ "$SKIP" == "true" ]]; then
+            echo "Skipping $TAG"
+          else
+            echo "Releasing $TAG"
+          fi
 
   build-macos:
     needs: meta
+    if: needs.meta.outputs.skip != 'true'
     runs-on: macos-14
     timeout-minutes: 45
     steps:
@@ -98,6 +115,7 @@ jobs:
 
   publish:
     needs: [meta, build-macos]
+    if: needs.meta.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
