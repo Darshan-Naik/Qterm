@@ -246,6 +246,10 @@ export function SaveShell(arg1) {
   return window['go']['main']['App']['SaveShell'](arg1);
 }
 
+export function SaveSnippets(arg1) {
+  return window['go']['main']['App']['SaveSnippets'](arg1);
+}
+
 export function SaveTheme(arg1) {
   return window['go']['main']['App']['SaveTheme'](arg1);
 }

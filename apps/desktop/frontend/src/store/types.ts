@@ -1,8 +1,9 @@
+import type { Snippet } from "@/lib/snippets";
 import type { KeybindingOverrides } from "@/lib/shortcuts/types";
 
 export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "idle" | "action_required" | "task_complete" | "thinking";
-export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "updates";
+export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "snippets" | "updates";
 export type AppMode = "workspace" | "settings";
 export type SidebarFooterId = "palette" | "agent" | "theme" | "settings";
 
@@ -15,7 +16,7 @@ export type AppUpdateInfo = {
   skipped: boolean;
 };
 
-export type { KeybindingOverrides };
+export type { KeybindingOverrides, Snippet };
 
 export type SplitNode =
   | { type: "leaf"; id: string; sessionId: string }
@@ -75,6 +76,8 @@ export type UIState = {
   terminalFindOpen: boolean;
   /** ⌘⇧A agent session history palette */
   agentSessionsOpen: boolean;
+  /** ⌘⇧S snippet picker */
+  snippetsOpen: boolean;
   /** App menu → About */
   aboutOpen: boolean;
   appMode: AppMode;
@@ -90,6 +93,8 @@ export type UIState = {
   collapsedProjects: Record<string, boolean>;
   /** Custom keybinding overrides (defaults live in shortcut catalog). */
   keybindings: KeybindingOverrides;
+  /** User-defined command snippets. */
+  snippets: Snippet[];
   /** Enabled sidebar footer icons. Empty hides the footer. */
   sidebarFooter: SidebarFooterId[];
   /** Which git chip should show the toolkit popover. */

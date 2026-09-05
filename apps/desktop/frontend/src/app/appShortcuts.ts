@@ -10,6 +10,7 @@ import {
   revealActiveProject,
 } from "@/lib/menuActions";
 import { matchShortcut, metaFor, type ShortcutId } from "@/lib/shortcuts";
+import { insertSnippet, matchSnippetChord } from "@/lib/snippets";
 import { isKeybindingCapturing } from "@/lib/shortcuts/capture";
 import {
   adjustUiZoom,
@@ -29,6 +30,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
       paletteOpen: true,
       quickOpen: false,
       agentSessionsOpen: false,
+      snippetsOpen: false,
       terminalFindOpen: false,
     });
   },
@@ -37,6 +39,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
       quickOpen: true,
       paletteOpen: false,
       agentSessionsOpen: false,
+      snippetsOpen: false,
       terminalFindOpen: false,
     });
   },
@@ -45,6 +48,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
       agentSessionsOpen: true,
       paletteOpen: false,
       quickOpen: false,
+      snippetsOpen: false,
       terminalFindOpen: false,
     });
   },
@@ -56,6 +60,7 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
       paletteOpen: false,
       quickOpen: false,
       agentSessionsOpen: false,
+      snippetsOpen: false,
     });
   },
   openSettings: () => openSettings(),
@@ -86,6 +91,15 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   openInIDE: () => void openActiveInIDE(),
   removeProject: () => void removeActiveProject(),
   gitToolkit: () => toggleGitToolkit(),
+  snippetPalette: () => {
+    uiStore.set({
+      snippetsOpen: true,
+      paletteOpen: false,
+      quickOpen: false,
+      agentSessionsOpen: false,
+      terminalFindOpen: false,
+    });
+  },
 };
 
 /**
@@ -121,13 +135,21 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
   }
 
   const id = matchShortcut(e, uiStore.get().keybindings);
-  if (!id) return false;
+  if (id) {
+    if (settings && metaFor(id).whenSettings === "block") return false;
 
-  if (settings && metaFor(id).whenSettings === "block") return false;
+    e.preventDefault();
+    e.stopPropagation();
+    void HANDLERS[id]();
+    return true;
+  }
 
+  if (settings) return false;
+  const snippet = matchSnippetChord(e, uiStore.get().snippets);
+  if (!snippet) return false;
   e.preventDefault();
   e.stopPropagation();
-  void HANDLERS[id]();
+  void insertSnippet(snippet);
   return true;
 }
 
@@ -138,5 +160,8 @@ export function isAppShortcut(e: KeyboardEvent): boolean {
   if (e.key === "Escape" && (uiStore.get().appMode === "settings" || uiStore.get().terminalFindOpen)) {
     return true;
   }
-  return matchShortcut(e, uiStore.get().keybindings) !== null;
+  return (
+    matchShortcut(e, uiStore.get().keybindings) !== null ||
+    matchSnippetChord(e, uiStore.get().snippets) !== null
+  );
 }

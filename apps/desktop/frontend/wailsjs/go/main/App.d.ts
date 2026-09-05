@@ -129,6 +129,8 @@ export function SaveLayout(arg1:string,arg2:config.SplitNode):Promise<void>;
 
 export function SaveShell(arg1:string):Promise<void>;
 
+export function SaveSnippets(arg1:Array<config.Snippet>):Promise<void>;
+
 export function SaveTheme(arg1:string):Promise<void>;
 
 export function SaveUIPrefs(arg1:config.UIPrefs):Promise<void>;

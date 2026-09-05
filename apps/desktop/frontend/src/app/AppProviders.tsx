@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AboutDialog } from "@/features/about";
 import { UpdateListener } from "@/features/updates";
-import { CommandPalette, QuickOpen, AgentSessions } from "@/features/palette";
+import { CommandPalette, QuickOpen, AgentSessions, SnippetPalette } from "@/features/palette";
 import { ConnectNudgeListener, HookIntentListener } from "@/features/hooks";
 import { ConfirmHost } from "@/lib/confirm";
 import { ExclusiveMenuDismiss } from "@/hooks/ExclusiveMenuDismiss";
@@ -15,6 +15,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <CommandPalette />
       <QuickOpen />
       <AgentSessions />
+      <SnippetPalette />
       <HookIntentListener />
       <ConnectNudgeListener />
       <AboutDialog />

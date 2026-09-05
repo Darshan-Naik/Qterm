@@ -47,6 +47,7 @@ export function subscribeAppEvents(): () => void {
         page === "agent" ||
         page === "appearance" ||
         page === "shortcuts" ||
+        page === "snippets" ||
         page === "updates"
           ? page
           : "appearance";

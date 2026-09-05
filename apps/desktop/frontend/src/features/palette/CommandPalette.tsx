@@ -24,9 +24,11 @@ import {
 } from "../../../wailsjs/go/main/App";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { runManualUpdateCheck } from "@/features/updates";
+import { insertSnippet } from "@/lib/snippets";
 
 export function CommandPalette() {
   const open = useUI((s) => s.paletteOpen);
+  const snippets = useUI((s) => s.snippets);
   const [q, setQ] = useState("");
   const [worktreePick, setWorktreePick] = useState<{
     id: string;
@@ -43,15 +45,27 @@ export function CommandPalette() {
         id: "quick-open",
         label: "Quick open terminals",
         run: async () => {
-          uiStore.set({ quickOpen: true, paletteOpen: false, agentSessionsOpen: false });
+          uiStore.set({ quickOpen: true, paletteOpen: false, agentSessionsOpen: false, snippetsOpen: false });
         },
       },
       {
         id: "agent-sessions",
         label: "Resume agent session",
         run: async () => {
-          uiStore.set({ agentSessionsOpen: true, paletteOpen: false, quickOpen: false });
+          uiStore.set({ agentSessionsOpen: true, paletteOpen: false, quickOpen: false, snippetsOpen: false });
         },
+      },
+      {
+        id: "insert-snippet",
+        label: "Insert snippet",
+        run: async () => {
+          uiStore.set({ snippetsOpen: true, paletteOpen: false, quickOpen: false, agentSessionsOpen: false });
+        },
+      },
+      {
+        id: "settings-snippets",
+        label: "Settings: Snippets",
+        run: async () => openSettings("snippets"),
       },
       {
         id: "git-open",
@@ -261,8 +275,15 @@ export function CommandPalette() {
           await requestDeleteSession(focusedSessionId);
         },
       },
+      ...snippets.map((snippet) => ({
+        id: `snippet-${snippet.id}`,
+        label: snippet.keyword ? `Snippet: ${snippet.name} (${snippet.keyword})` : `Snippet: ${snippet.name}`,
+        run: async () => {
+          await insertSnippet(snippet);
+        },
+      })),
     ],
-    []
+    [snippets]
   );
 
   return (

@@ -10,6 +10,7 @@ import {
   uiStore,
   type ThemeMode,
 } from "@/store/ui";
+import { sanitizeSnippets } from "@/lib/snippets";
 import { GetConfig, ListProjects, ListSessions } from "../../wailsjs/go/main/App";
 import { whenAppReady } from "./whenAppReady";
 
@@ -33,6 +34,7 @@ export async function hydrateWorkspace() {
     projects: cfgProjects,
     sessions: [],
     keybindings: sanitizeKeybindings(cfg.keybindings),
+    snippets: sanitizeSnippets(cfg.snippets),
   });
   // Persist chrome after seed — never before, and never block listing.
   void persistUIPrefs();
