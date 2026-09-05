@@ -6,6 +6,7 @@ export function MockSplit({ claude }: { claude: "thinking" | "input" }) {
       <MockPane
         title="zsh"
         branch="main"
+        active
         lines={[
           { text: "~/acme % git status", tone: "muted" },
           { text: "On branch main", tone: "fg" },
@@ -16,6 +17,7 @@ export function MockSplit({ claude }: { claude: "thinking" | "input" }) {
       <MockPane
         title="claude"
         agent="claude"
+        branch="main"
         thinking={claude === "thinking"}
         needsInput={claude === "input"}
         reveal
