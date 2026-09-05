@@ -144,17 +144,9 @@ export function articleLd({
 export const SITEMAP_PATHS = [
   "/",
   "/agent-terminal",
-  "/best-terminal-for-ai-agents",
-  "/best-terminal-for-claude-code",
-  "/compare",
   "/agents/claude-code",
   "/agents/codex",
   "/agents/gemini-cli",
   "/agents/cursor-agent",
   "/agents/antigravity",
-  "/vs/warp",
-  "/vs/ghostty",
-  "/vs/iterm2",
-  "/vs/wave",
-  "/vs/cmux",
 ] as const;

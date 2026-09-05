@@ -4,7 +4,6 @@ import { PageHero } from "@/components/PageHero";
 import { PageCta } from "@/components/PageCta";
 import { FaqSection } from "@/components/FaqSection";
 import { RelatedLinks } from "@/components/RelatedLinks";
-import { TextLink } from "@/components/TextLink";
 import { AGENT_TERMINAL_FAQ } from "@/lib/faq";
 import { articleLd, breadcrumbLd, faqPageLd, pageMeta } from "@/lib/seo";
 
@@ -33,31 +32,21 @@ export default function AgentTerminalPage() {
       />
       <article className="mx-auto max-w-3xl space-y-6 px-5 pb-8 text-[15px] leading-relaxed text-muted-foreground">
         <p>
-          Search for <strong className="font-medium text-foreground">agent terminal</strong> and you are
-          not looking for Apple Terminal or a CIA briefing. You want a window that can host coding agents.
-          Qterm is that window: a fast, light Mac agent terminal where Claude Code, Codex, Gemini CLI, and
-          Cursor Agent stay in the shell.
+          An <strong className="font-medium text-foreground">agent terminal</strong> is a window that hosts
+          coding agents next to your shells. Qterm is that window: a fast, light Mac agent terminal where
+          Claude Code, Codex, Gemini CLI, and Cursor Agent stay in the shell.
         </p>
         <p>
           An <strong className="font-medium text-foreground">agentic terminal</strong> is the same idea with
-          a product-category name. Warp uses it for an all-in-one AI environment. Qterm uses it for a quieter
-          job: your CLI agents, your projects, your splits. Nothing extra on screen.
+          a product-category name. Qterm uses it for a quiet job: your CLI agents, your projects, your
+          splits. Nothing extra on screen.
         </p>
         <h2 className="pt-4 text-[22px] font-semibold tracking-tight text-foreground">
-          Fast terminal, small terminal, agent terminal
+          Fast, light, and built for agents
         </h2>
         <p>
-          Live results for <strong className="font-medium text-foreground">fast terminal</strong> still go to
-          Ghostty and Alacritty. Results for{" "}
-          <strong className="font-medium text-foreground">small terminal</strong> and lightweight terminal go
-          to tiny emulators. Those tools render text. They do not organize agent sessions. Qterm is fast and
-          light in the workflow sense: a small Mac window for agents, not a 2 MB framebuffer toy and not a
-          heavy AI IDE.
-        </p>
-        <p>
-          If you want the fastest emulator, read Ghostty. If you want the smallest emulator, read Alacritty.
-          If you want an agent terminal,{" "}
-          <TextLink href="/best-terminal-for-ai-agents">compare the field</TextLink> or download Qterm.
+          Qterm is fast and light in the workflow sense: a small Mac window for agents, projects, and named
+          splits, not a heavy chat app. Open a folder, split a pane, and keep working.
         </p>
         <h2 className="pt-4 text-[22px] font-semibold tracking-tight text-foreground">What Qterm runs</h2>
         <p>
@@ -70,16 +59,20 @@ export default function AgentTerminalPage() {
       <RelatedLinks
         items={[
           {
-            href: "/best-terminal-for-ai-agents",
-            label: "Best terminal for AI agents",
-            body: "How Qterm sits next to Warp, Ghostty, cmux, and Alacritty.",
+            href: "/agents/claude-code",
+            label: "Claude Code terminal",
+            body: "Run Claude Code in a Qterm project pane.",
           },
           {
-            href: "/best-terminal-for-claude-code",
-            label: "Best terminal for Claude Code",
-            body: "A Claude Code terminal that stays a terminal.",
+            href: "/agents/codex",
+            label: "Codex CLI terminal",
+            body: "Keep Codex in the terminal next to your shells.",
           },
-          { href: "/compare", label: "Compare", body: "Side by side with Warp, Ghostty, iTerm2, and cmux." },
+          {
+            href: "/agents/gemini-cli",
+            label: "Gemini CLI terminal",
+            body: "Host Gemini CLI in the same quiet window.",
+          },
         ]}
       />
     </main>

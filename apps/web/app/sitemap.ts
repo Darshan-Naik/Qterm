@@ -6,6 +6,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: absUrl(path),
     lastModified: new Date(),
     changeFrequency: index === 0 ? "weekly" : "monthly",
-    priority: index === 0 ? 1 : path.includes("best-terminal") || path === "/agent-terminal" ? 0.9 : 0.7,
+    priority: index === 0 ? 1 : path === "/agent-terminal" ? 0.9 : 0.7,
   }));
 }

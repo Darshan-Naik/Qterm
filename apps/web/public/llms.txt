@@ -8,11 +8,6 @@
 - Download: https://qterm.darshannaik.com/#download
 - GitHub: https://github.com/Darshan-Naik/Qterm
 
-## Guides
-- Best terminal for AI agents: https://qterm.darshannaik.com/best-terminal-for-ai-agents
-- Best terminal for Claude Code: https://qterm.darshannaik.com/best-terminal-for-claude-code
-- Compare: https://qterm.darshannaik.com/compare
-
 ## Agents
 - Claude Code: https://qterm.darshannaik.com/agents/claude-code
 - Codex: https://qterm.darshannaik.com/agents/codex

@@ -27,7 +27,6 @@ export function siteUrl() {
 export const NAV = [
   { href: "/#features", label: "Features" },
   { href: "/#agents", label: "Agents" },
-  { href: "/compare", label: "Compare" },
   { href: "/#download", label: "Download" },
 ] as const;
 
@@ -71,7 +70,7 @@ export const QUIET_POINTS = [
 
 export const FOOTER_LINKS = [
   { href: "/agent-terminal", label: "Agent terminal" },
-  { href: "/best-terminal-for-ai-agents", label: "Best for AI agents" },
-  { href: "/best-terminal-for-claude-code", label: "Claude Code terminal" },
-  { href: "/compare", label: "Compare" },
+  { href: "/agents/claude-code", label: "Claude Code" },
+  { href: "/agents/codex", label: "Codex" },
+  { href: "/agents/gemini-cli", label: "Gemini CLI" },
 ] as const;

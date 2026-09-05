@@ -60,13 +60,9 @@ export default async function AgentLandingPage({ params }: { params: Promise<Par
       <PageCta />
       <RelatedLinks
         items={[
-          {
-            href: "/best-terminal-for-claude-code",
-            label: "Best terminal for Claude Code",
-            body: "How this agent fits the Mac terminal landscape.",
-          },
-          { href: "/agent-terminal", label: "Agent terminal", body: "The category Qterm is built for." },
-          { href: "/compare", label: "Compare", body: "Qterm next to Warp, Ghostty, and cmux." },
+          { href: "/agent-terminal", label: "Agent terminal", body: "What Qterm is built for." },
+          { href: "/agents/claude-code", label: "Claude Code", body: "Run Claude Code in a project pane." },
+          { href: "/agents/codex", label: "Codex", body: "Keep Codex in the terminal." },
         ]}
       />
     </main>

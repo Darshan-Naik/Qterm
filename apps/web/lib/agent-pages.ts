@@ -26,7 +26,7 @@ export const AGENT_PAGES: AgentPage[] = [
       "Stay on Apple Silicon with a quiet window that feels like a Mac terminal.",
     ],
     closing:
-      "If you searched for the best terminal for Claude Code and you want a small, fast agent terminal rather than Warp or a GPU emulator alone, start with Qterm.",
+      "If you want a small, fast Claude Code terminal on Mac, with projects and splits, start with Qterm.",
   },
   {
     slug: "codex",
