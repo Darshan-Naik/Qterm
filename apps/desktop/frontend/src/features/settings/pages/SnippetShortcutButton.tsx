@@ -91,7 +91,7 @@ export function SnippetShortcutButton({
               ? "Press ⌘ or Ctrl and a key. Esc cancels. Backspace clears."
               : chord
                 ? `Edit shortcut (${formatChords(chords)})`
-                : "Click, then press ⌘ or Ctrl and a key"
+                : "Set a keyboard shortcut"
           }
           onClick={() => {
             if (recording) return;
@@ -104,14 +104,14 @@ export function SnippetShortcutButton({
           )}
         >
           {recording ? (
-            <span className="animate-pulse px-1.5 text-[12px] text-muted-foreground">Press ⌘ plus a key…</span>
+            <span className="animate-pulse px-1.5 text-[12px] text-muted-foreground">Press keys…</span>
           ) : chord ? (
             <>
               <ShortcutKeys chords={chords} />
               <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
             </>
           ) : (
-            <span className="px-1.5 text-[12px] text-muted-foreground">Click to set ⌘ shortcut</span>
+            <span className="px-1.5 text-[12px] text-muted-foreground">Set shortcut</span>
           )}
         </button>
         {chord && !recording && (
