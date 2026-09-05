@@ -167,6 +167,7 @@ export namespace config {
 	    keybindings?: Record<string, Array<KeyChord>>;
 	    snippets?: Snippet[];
 	    skippedAppUpdate?: string;
+	    setupComplete?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -191,6 +192,7 @@ export namespace config {
 	        this.keybindings = this.convertValues(source["keybindings"], Array<KeyChord>, true);
 	        this.snippets = this.convertValues(source["snippets"], Snippet);
 	        this.skippedAppUpdate = source["skippedAppUpdate"];
+	        this.setupComplete = source["setupComplete"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

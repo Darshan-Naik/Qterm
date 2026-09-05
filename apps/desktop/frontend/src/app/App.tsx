@@ -1,4 +1,5 @@
 import { useTrafficInsetVar } from "@/hooks/useTrafficInset";
+import { Onboarding } from "@/features/onboarding";
 import { SettingsMode } from "@/features/settings";
 import { useUI } from "@/store/ui";
 import { AppProviders } from "./AppProviders";
@@ -8,13 +9,22 @@ import { WorkspaceLayout } from "./WorkspaceLayout";
 
 export default function App() {
   const appMode = useUI((s) => s.appMode);
+  const uiReady = useUI((s) => s.uiReady);
   useTrafficInsetVar();
   useAppBootstrap();
   useAppHotkeys();
 
   return (
     <AppProviders>
-      {appMode === "settings" ? <SettingsMode /> : <WorkspaceLayout />}
+      {!uiReady ? (
+        <div className="h-full w-full bg-background" />
+      ) : appMode === "setup" ? (
+        <Onboarding />
+      ) : appMode === "settings" ? (
+        <SettingsMode />
+      ) : (
+        <WorkspaceLayout />
+      )}
     </AppProviders>
   );
 }

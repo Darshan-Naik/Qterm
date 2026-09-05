@@ -31,6 +31,7 @@ export {
 } from "./defaults";
 
 export const uiStore = createStore<UIState>({
+  uiReady: false,
   sidebarOpen: true,
   sidebarWidth: SIDEBAR_DEFAULT,
   activeScope: DEFAULT_SCOPE,
@@ -67,6 +68,7 @@ export const uiStore = createStore<UIState>({
 export const useUI = createUseStore(uiStore);
 
 export function openSettings(page: SettingsPage = "appearance") {
+  if (uiStore.get().appMode === "setup") return;
   uiStore.set({
     appMode: "settings",
     settingsPage: page,
@@ -80,6 +82,7 @@ export function openSettings(page: SettingsPage = "appearance") {
 }
 
 export function closeSettings() {
+  if (uiStore.get().appMode === "setup") return;
   uiStore.set({ appMode: "workspace" });
 }
 
