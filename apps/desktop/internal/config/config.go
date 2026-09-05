@@ -125,6 +125,8 @@ type AppConfig struct {
 	Snippets []Snippet `json:"snippets,omitempty"`
 	// SkippedAppUpdate is a normalized version the user dismissed (no launch prompt).
 	SkippedAppUpdate string `json:"skippedAppUpdate,omitempty"`
+	// SetupComplete is true after first-run setup (or skipped). Fresh installs stay false.
+	SetupComplete bool `json:"setupComplete,omitempty"`
 }
 
 // UIPrefs is the subset of config written by the frontend chrome (sidebar/zoom/collapse).
@@ -269,6 +271,9 @@ func (s *Store) Load() error {
 		cfg.AgentCLIs = map[string]string{}
 	}
 	cfg.Snippets = SanitizeSnippets(cfg.Snippets)
+	if cfg.hasPriorUse() {
+		cfg.SetupComplete = true
+	}
 	s.cfg = cfg
 	return nil
 }

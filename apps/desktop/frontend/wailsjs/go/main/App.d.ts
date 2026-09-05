@@ -17,6 +17,8 @@ export function ApplyAppUpdateAndRestart():Promise<void>;
 
 export function CheckForAppUpdate():Promise<update.Status>;
 
+export function CompleteSetup():Promise<void>;
+
 export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
 
 export function GetAgentToolsCaps(arg1:string):Promise<core.ToolsCaps>;

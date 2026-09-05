@@ -16,16 +16,25 @@ import { whenAppReady } from "./whenAppReady";
 
 /** Load config → seed UI → sync live PTYs → restore layout (or leave empty start screen). */
 export async function hydrateWorkspace() {
-  await whenAppReady();
+  let cfg: Awaited<ReturnType<typeof GetConfig>>;
+  try {
+    await whenAppReady();
+    cfg = await GetConfig();
+  } catch {
+    uiStore.set({ uiReady: true });
+    return;
+  }
 
-  const cfg = await GetConfig();
   const themeMode = ((cfg.theme as ThemeMode) || "system") as ThemeMode;
   applyTheme(themeMode);
   applyConfigChrome(cfg);
 
   const rawProjects = Array.isArray(cfg.projects) ? cfg.projects : [];
   const cfgProjects = sortProjectsByAdded(rawProjects);
+  const needsSetup = !cfg.setupComplete;
   uiStore.set({
+    uiReady: true,
+    appMode: needsSetup ? "setup" : "workspace",
     theme: themeMode,
     fontSize: clampFontSize(cfg.fontSize),
     shell: cfg.shell || "",

@@ -110,6 +110,8 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
   if (e.isComposing) return false;
   // Settings rebinding UI owns the event.
   if (isKeybindingCapturing()) return false;
+  // First-run setup owns the keyboard until it finishes.
+  if (uiStore.get().appMode === "setup") return false;
 
   const settings = uiStore.get().appMode === "settings";
 
@@ -157,6 +159,7 @@ export function handleAppShortcut(e: KeyboardEvent): boolean {
 export function isAppShortcut(e: KeyboardEvent): boolean {
   if (e.isComposing) return false;
   if (isKeybindingCapturing()) return true;
+  if (uiStore.get().appMode === "setup") return false;
   if (e.key === "Escape" && (uiStore.get().appMode === "settings" || uiStore.get().terminalFindOpen)) {
     return true;
   }

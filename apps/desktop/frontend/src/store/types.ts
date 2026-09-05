@@ -4,7 +4,7 @@ import type { KeybindingOverrides } from "@/lib/shortcuts/types";
 export type ThemeMode = "system" | "dark" | "light";
 export type AnimateState = "none" | "idle" | "action_required" | "task_complete" | "thinking";
 export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "snippets" | "updates";
-export type AppMode = "workspace" | "settings";
+export type AppMode = "workspace" | "settings" | "setup";
 export type SidebarFooterId = "palette" | "agent" | "theme" | "settings";
 
 export type AppUpdateInfo = {
@@ -61,6 +61,8 @@ export type HookIntent = {
 };
 
 export type UIState = {
+  /** False until config is read so first-run setup can replace the workspace without a flash. */
+  uiReady: boolean;
   sidebarOpen: boolean;
   sidebarWidth: number;
   activeScope: string;

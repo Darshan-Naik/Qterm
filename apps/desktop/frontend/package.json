@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src/features/terminal/*.test.ts src/features/updates/*.test.ts src/lib/snippets/*.test.ts"
+    "test": "node --experimental-strip-types --test src/features/terminal/*.test.ts src/features/updates/*.test.ts src/lib/snippets/*.test.ts src/features/onboarding/*.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.20",

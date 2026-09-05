@@ -22,6 +22,10 @@ export function CheckForAppUpdate() {
   return window['go']['main']['App']['CheckForAppUpdate']();
 }
 
+export function CompleteSetup() {
+  return window['go']['main']['App']['CompleteSetup']();
+}
+
 export function CreateSession(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSession'](arg1, arg2, arg3);
 }

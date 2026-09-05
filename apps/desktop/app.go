@@ -357,6 +357,15 @@ func (a *App) SaveTheme(theme string) error {
 	})
 }
 
+func (a *App) CompleteSetup() error {
+	if a.store == nil {
+		return nil
+	}
+	return a.store.Update(func(cfg *config.AppConfig) {
+		cfg.SetupComplete = true
+	})
+}
+
 func (a *App) SaveShell(shell string) error {
 	a.pty.SetShell(shell)
 	return a.store.Update(func(cfg *config.AppConfig) {
