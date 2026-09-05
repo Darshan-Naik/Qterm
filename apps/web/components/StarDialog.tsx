@@ -5,11 +5,10 @@ import { StarArt } from "./StarArt";
 
 export function StarDialog({ onClose }: { onClose: () => void }) {
   return (
-    <DownloadDialog title="Cool. GitHub is free." step={3} onClose={onClose} closeOnOverlay>
+    <DownloadDialog title="Like it?" step={3} onClose={onClose} closeOnOverlay>
       <StarArt />
       <p className="text-[14px] leading-relaxed text-muted-foreground">
-        Star the repo. Zero dollars, takes a second, and it actually helps people find Qterm. No Apple
-        paperwork involved.
+        Drop a star on GitHub. It takes a second, and it helps people find Qterm.
       </p>
       <DialogActions>
         <button
@@ -35,7 +34,7 @@ export function StarDialog({ onClose }: { onClose: () => void }) {
           >
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 6.82 21.02 8 14.14 3 9.27 9.91 8.26 12 2" />
           </svg>
-          Star Qterm
+          Star on GitHub
         </a>
       </DialogActions>
     </DownloadDialog>

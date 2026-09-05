@@ -5,20 +5,30 @@ import { SponsorArt } from "./SponsorArt";
 
 export function SponsorDialog({ onNext }: { onNext: () => void }) {
   return (
-    <DownloadDialog title="Want to help kill that warning?" step={2} onClose={onNext} closeOnOverlay>
+    <DownloadDialog title="Keep it. Love it." step={2} onClose={onNext} closeOnOverlay>
       <SponsorArt />
       <p className="text-[14px] leading-relaxed text-muted-foreground">
-        Signing the app needs Apple&apos;s Developer Program, which is $99 a year. You do not have to sponsor
-        $99. If you like Qterm, sponsor whatever feels right. If not, no guilt trip.
+        If you keep Qterm and you love it, sponsor to help it grow.
       </p>
       <DialogActions>
-        <button
-          type="button"
+        <a
+          href={SITE.github}
+          target="_blank"
+          rel="noreferrer"
           onClick={onNext}
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/12 bg-white/4 px-4 text-[14px] font-medium transition hover:border-white/20 hover:bg-white/8"
         >
-          Not today
-        </button>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 6.82 21.02 8 14.14 3 9.27 9.91 8.26 12 2" />
+          </svg>
+          Star on GitHub
+        </a>
         <a
           href={SITE.sponsors}
           target="_blank"
