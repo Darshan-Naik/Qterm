@@ -56,13 +56,8 @@ export function DownloadDialog({
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <p className="sr-only">Step {step} of 3</p>
-            <p className="mb-2 flex items-center gap-1.5" aria-hidden="true">
-              {([1, 2, 3] as const).map((item) => (
-                <span
-                  key={item}
-                  className={`size-1.5 rounded-full ${item === step ? "bg-foreground" : "bg-white/20"}`}
-                />
-              ))}
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              {step} of 3
             </p>
             <h2 id={titleId} className="text-[20px] font-semibold tracking-tight">
               {title}
