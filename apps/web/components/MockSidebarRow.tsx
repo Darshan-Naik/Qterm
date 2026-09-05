@@ -1,24 +1,41 @@
+import { cn } from "@/lib/cn";
+import { MockAgentIcon } from "./MockAgentIcon";
+import { MockStatusDot } from "./MockStatusDot";
+
 export function MockSidebarRow({
   label,
-  active,
+  agent,
+  focused = false,
+  open = false,
   indent = false,
-  pulse = false,
+  thinking = false,
+  needsInput = false,
 }: {
   label: string;
-  active?: boolean;
+  agent?: string;
+  focused?: boolean;
+  open?: boolean;
   indent?: boolean;
-  pulse?: boolean;
+  thinking?: boolean;
+  needsInput?: boolean;
 }) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-md px-2 py-1 text-[12px] ${
-        active ? "bg-white/8 text-foreground" : "text-muted-foreground"
-      } ${indent ? "ml-3" : ""}`}
+      className={cn(
+        "relative flex items-center gap-2 rounded-md py-1.5 pr-2 text-[12px]",
+        indent ? "ml-3 pl-2" : "px-2",
+        focused &&
+          "bg-white/8 font-medium text-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-primary",
+        open && !focused && "bg-white/5 text-foreground/80",
+        !focused && !open && "text-muted-foreground",
+        needsInput && "session-needs-input"
+      )}
     >
-      <span
-        className={`size-1.5 rounded-full ${pulse ? "bg-amber-400" : active ? "bg-emerald-400" : "bg-white/25"}`}
-      />
-      {label}
+      <span className="relative flex size-4 shrink-0 items-center justify-center">
+        <MockAgentIcon agent={agent} thinking={thinking} />
+        {needsInput ? <MockStatusDot /> : null}
+      </span>
+      <span className={cn("min-w-0 flex-1 truncate leading-4", thinking && "session-flow-title")}>{label}</span>
     </div>
   );
 }
