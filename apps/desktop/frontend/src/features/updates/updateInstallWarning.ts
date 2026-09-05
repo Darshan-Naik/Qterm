@@ -9,6 +9,9 @@ export type UpdateRisk = {
   busy: BusyTerminal[];
 };
 
+export const restartUpdateLabel = "Restart to update";
+export const remindLaterLabel = "Remind me later";
+
 function formatList(items: string[]): string {
   if (items.length === 0) return "";
   if (items.length === 1) return items[0];
@@ -25,45 +28,34 @@ export function countAgentTasks(anims: Record<string, string> | undefined): numb
   return n;
 }
 
-/** Copy for the install confirm. Null when nothing would be killed. */
+/** Copy for the restart confirm. Null when no running process would be killed. */
 export function updateInstallWarning(opts: {
   sessionCount: number;
   busy: { name: string; commands: string[] }[];
   agentTasks: number;
 }): { title: string; description: string; destructive: boolean } | null {
-  const sessionCount = Math.max(0, opts.sessionCount | 0);
   const busy = Array.isArray(opts.busy) ? opts.busy : [];
   const agentTasks = Math.max(0, opts.agentTasks | 0);
-  if (sessionCount <= 0 && agentTasks <= 0 && busy.length === 0) return null;
-
   const cmds = [...new Set(busy.flatMap((b) => b.commands).filter(Boolean))].slice(0, 4);
+  if (cmds.length === 0 && agentTasks <= 0) return null;
+
   const cmdList = formatList(cmds);
-  const sessionWord = sessionCount === 1 ? "terminal" : "terminals";
-  const hasWork = cmds.length > 0 || agentTasks > 0;
-
-  if (hasWork) {
-    const parts: string[] = [];
-    if (sessionCount > 0) {
-      parts.push(`You have ${sessionCount} open ${sessionWord}.`);
-    }
-    if (cmdList) {
-      parts.push(`${cmdList} ${cmds.length === 1 ? "is" : "are"} still running.`);
-    } else if (agentTasks === 1) {
-      parts.push("An agent is still working in a terminal.");
-    } else if (agentTasks > 1) {
-      parts.push(`Agents are still working in ${agentTasks} terminals.`);
-    }
-    parts.push("Quitting Qterm to install this update will kill that work.");
-    return {
-      title: "Running work will be killed",
-      description: parts.join(" "),
-      destructive: true,
-    };
+  const parts: string[] = [];
+  if (cmdList) {
+    parts.push(`${cmdList} ${cmds.length === 1 ? "is" : "are"} still running.`);
+  } else if (agentTasks === 1) {
+    parts.push("An agent is still working in a terminal.");
+  } else if (agentTasks > 1) {
+    parts.push(`Agents are still working in ${agentTasks} terminals.`);
   }
-
+  parts.push(
+    cmds.length === 1 && agentTasks === 0
+      ? "Restarting Qterm to install this update will terminate it."
+      : "Restarting Qterm to install this update will terminate that work.",
+  );
   return {
-    title: "Open terminals will close",
-    description: `You have ${sessionCount} open ${sessionWord}. Quitting Qterm to install this update will close them.`,
-    destructive: false,
+    title: cmds.length === 1 && agentTasks === 0 ? "A process is still running" : "Running work will be killed",
+    description: parts.join(" "),
+    destructive: true,
   };
 }

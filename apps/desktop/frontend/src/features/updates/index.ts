@@ -4,9 +4,10 @@ export { SidebarUpdateOverlay } from "./SidebarUpdateOverlay";
 export {
   fetchAppUpdate,
   rememberAppUpdate,
-  requestDownloadAppUpdate,
+  remindLaterAppUpdate,
+  requestRestartAppUpdate,
   runManualUpdateCheck,
-  showUpdateAvailableToast,
+  showUpdateReadyToast,
   skipAppUpdate,
   type AppUpdateStatus,
 } from "./checkAppUpdate";
