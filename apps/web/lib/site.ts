@@ -4,6 +4,7 @@ export const SITE = {
   description:
     "A fast, focused terminal for people who live in the shell. Projects, splits, and your agents in one calm Mac window.",
   github: "https://github.com/Darshan-Naik/Qterm",
+  sponsors: "https://github.com/sponsors/Darshan-Naik",
   repo: "Darshan-Naik/Qterm",
   url: "https://qterm.darshannaik.com",
   releases: "https://github.com/Darshan-Naik/Qterm/releases/latest",
