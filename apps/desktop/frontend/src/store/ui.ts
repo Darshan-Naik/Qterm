@@ -57,7 +57,7 @@ export {
   setUiZoom,
   toggleProjectCollapsed,
 } from "./prefs";
-export { addSnippet, removeSnippet, saveSnippets, updateSnippet } from "./snippets";
+export { addSnippet, newSnippet, removeSnippet, saveSnippet, saveSnippets, updateSnippet } from "./snippets";
 export {
   collectSessionIds,
   findFirstLeaf,

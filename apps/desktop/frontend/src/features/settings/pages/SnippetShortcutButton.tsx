@@ -36,13 +36,22 @@ export function SnippetShortcutButton({
         stop();
         return;
       }
+      if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        setConflict("Shortcuts need ⌘ or Ctrl, like ⌘G. Return does not save a shortcut.");
+        return;
+      }
       if (e.key === "Backspace" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         onChange(undefined);
         stop();
         return;
       }
       const next = chordFromEvent(e);
-      if (!next) return;
+      if (!next) {
+        if (e.key !== "Meta" && e.key !== "Control" && e.key !== "Alt" && e.key !== "Shift") {
+          setConflict("Shortcuts need ⌘ or Ctrl, like ⌘G.");
+        }
+        return;
+      }
       const other = describeChordConflict(next, {
         keybindings: uiStore.get().keybindings,
         snippets: uiStore.get().snippets,
@@ -73,16 +82,16 @@ export function SnippetShortcutButton({
   const chords = chord ? [chord] : [];
 
   return (
-    <div ref={wrapRef} className="flex flex-col items-end gap-1">
+    <div ref={wrapRef} className="flex flex-col items-start gap-1">
       <div className="flex items-center gap-0.5">
         <button
           type="button"
           title={
             recording
-              ? "Press new keys. Esc cancels. Backspace clears."
+              ? "Press ⌘ or Ctrl and a key. Esc cancels. Backspace clears."
               : chord
                 ? `Edit shortcut (${formatChords(chords)})`
-                : "Add a keyboard shortcut"
+                : "Click, then press ⌘ or Ctrl and a key"
           }
           onClick={() => {
             if (recording) return;
@@ -95,14 +104,14 @@ export function SnippetShortcutButton({
           )}
         >
           {recording ? (
-            <span className="animate-pulse px-1.5 text-[12px] text-muted-foreground">Press keys…</span>
+            <span className="animate-pulse px-1.5 text-[12px] text-muted-foreground">Press ⌘ plus a key…</span>
           ) : chord ? (
             <>
               <ShortcutKeys chords={chords} />
               <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
             </>
           ) : (
-            <span className="px-1.5 text-[12px] text-muted-foreground">Shortcut</span>
+            <span className="px-1.5 text-[12px] text-muted-foreground">Click to set ⌘ shortcut</span>
           )}
         </button>
         {chord && !recording && (
@@ -116,7 +125,7 @@ export function SnippetShortcutButton({
           </button>
         )}
       </div>
-      {conflict && <div className="max-w-[220px] text-right text-[11px] text-destructive">{conflict}</div>}
+      {conflict && <div className="max-w-[260px] text-[11px] text-destructive">{conflict}</div>}
     </div>
   );
 }

@@ -13,19 +13,25 @@ export async function saveSnippets(next: Snippet[]) {
   await persist(next);
 }
 
+export async function saveSnippet(snippet: Snippet) {
+  const cur = uiStore.get().snippets;
+  const idx = cur.findIndex((s) => s.id === snippet.id);
+  const next = idx >= 0 ? cur.map((s) => (s.id === snippet.id ? snippet : s)) : [...cur, snippet];
+  await persist(next);
+}
+
 export function newSnippet(): Snippet {
   const id =
     typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `snip-${Date.now().toString(36)}`;
-  return { id, name: "New snippet", body: "", send: true };
+  return { id, name: "", body: "", send: true };
 }
 
 export async function addSnippet() {
   const cur = uiStore.get().snippets;
   if (cur.length >= MAX_SNIPPETS) return null;
   const snippet = newSnippet();
-  await persist([...cur, snippet]);
   return snippet;
 }
 
