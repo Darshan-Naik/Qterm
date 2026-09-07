@@ -19,8 +19,6 @@ export function DownloadButton({
     <a
       href={href || SITE.releases}
       download={MAC_ASSET}
-      target="_blank"
-      rel="noreferrer"
       onClick={() => {
         trackCTA("download_click");
         guide?.beginDownload();
