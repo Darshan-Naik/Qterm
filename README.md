@@ -41,7 +41,7 @@ Qterm is built for Apple Silicon. Traffic lights, menus, and chrome that feel at
 
 ## Get started
 
-Download Qterm from [qterm.darshannaik.com](https://qterm.darshannaik.com), open the app, and create a terminal, or add a project folder and go. When a newer version is out, Qterm will offer an update in the app.
+Download Qterm from [qterm](https://qterm.darshannaik.com), open the app, and create a terminal, or add a project folder and go. When a newer version is out, Qterm will offer an update in the app.
 
 ---
 
