@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import { OnboardingWelcomeArt } from "./OnboardingWelcomeArt";
 import { OnboardingWelcomeBg } from "./OnboardingWelcomeBg";
 import { OnboardingWelcomeTitle } from "./OnboardingWelcomeTitle";
@@ -13,7 +14,7 @@ export function OnboardingWelcome({
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0a] text-white">
       <OnboardingWelcomeBg />
-      <div className="relative z-10 h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden />
+      <div className="relative z-10 h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden onDoubleClick={handleTitlebarDoubleClick} />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-12">
         <OnboardingWelcomeArt />
         <OnboardingWelcomeTitle />

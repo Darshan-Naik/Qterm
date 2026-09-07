@@ -5,6 +5,7 @@ import { WithTooltip } from "@/components/ui/tooltip";
 import { persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
 import { isUnbound } from "@/lib/sessions";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import {
   dropSessionOnOpenWorkspace,
   getActiveSessionDragId,
@@ -66,6 +67,7 @@ export function OpenWorkspace() {
         <div
           className="flex h-[var(--titlebar-height)] shrink-0 items-center titlebar-drag"
           style={{ paddingLeft: "var(--traffic-inset)" }}
+          onDoubleClick={handleTitlebarDoubleClick}
         >
           <WithTooltip label="Show sidebar">
             <Button

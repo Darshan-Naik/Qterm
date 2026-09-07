@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import { UpdatesPage } from "@/features/updates";
 import { uiStore, useUI } from "@/store/ui";
 import { NAV } from "./nav";
@@ -33,7 +34,7 @@ export function SettingsMode() {
       <SettingsSidebar query={query} onQueryChange={setQuery} filteredNav={filteredNav} />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden />
+        <div className="h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden onDoubleClick={handleTitlebarDoubleClick} />
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-[640px] px-8 pb-16 pt-4">
             {page === "appearance" && <AppearancePage />}

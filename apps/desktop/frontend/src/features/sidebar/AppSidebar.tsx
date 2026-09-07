@@ -6,6 +6,7 @@ import { SidebarUpdateOverlay } from "@/features/updates";
 import { persistUIPrefs, collectSessionIds, uiStore, useUI } from "@/store/ui";
 import { createDefaultTerminal, isUnbound } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import { SessionRow } from "./SessionRow";
 import { ProjectsSection } from "./ProjectsSection";
 import { SidebarFooter } from "./SidebarFooter";
@@ -39,7 +40,10 @@ export function AppSidebar() {
           style={{ width }}
           className="flex h-full min-w-0 flex-col select-none bg-sidebar text-sidebar-foreground titlebar-no-drag"
         >
-          <div className="flex h-[var(--titlebar-height)] shrink-0 items-center titlebar-drag pl-[var(--traffic-inset)]">
+          <div
+            className="flex h-[var(--titlebar-height)] shrink-0 items-center titlebar-drag pl-[var(--traffic-inset)]"
+            onDoubleClick={handleTitlebarDoubleClick}
+          >
             <WithTooltip label="Hide sidebar">
               <Button
                 size="icon"
