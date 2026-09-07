@@ -85,7 +85,6 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 		"description": "Connect Claude Code to the Qterm macOS terminal — live status, rename, and app control.",
 		"author":      map[string]any{"name": "Qterm", "url": "https://github.com/Darshan-Naik/Qterm"},
 		"keywords":    []string{"terminal", "hooks", "mcp"},
-		"hooks":       "./hooks/hooks.json",
 		"mcpServers":  "./.mcp.json",
 	}); err != nil {
 		return core.InstallResult{CLI: "claude"}, err

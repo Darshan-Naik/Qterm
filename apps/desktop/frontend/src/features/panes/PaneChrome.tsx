@@ -1,6 +1,7 @@
 import { PanelLeft } from "lucide-react";
 import { listLeaves, persistUIPrefs, uiStore, useUI } from "@/store/ui";
 import { isUnbound } from "@/lib/sessions";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useExclusiveMenu } from "@/hooks/useExclusiveMenu";
@@ -41,6 +42,7 @@ export function PaneChrome({
     <div
       className="group/chrome flex h-[var(--titlebar-height)] shrink-0 select-none items-center gap-1.5 pr-3 titlebar-drag"
       style={{ paddingLeft: trafficInset ? "var(--traffic-inset)" : "10px" }}
+      onDoubleClick={handleTitlebarDoubleClick}
     >
       {showSidebarToggle && (
         <WithTooltip label="Show sidebar">

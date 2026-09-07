@@ -1,6 +1,7 @@
 import { ArrowLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import { closeSettings, uiStore, useUI, type SettingsPage } from "@/store/ui";
 import { NAV } from "./nav";
 
@@ -21,6 +22,7 @@ export function SettingsSidebar({
         className="h-[var(--titlebar-height)] shrink-0 titlebar-drag"
         style={{ paddingLeft: "var(--traffic-inset)" }}
         aria-hidden
+        onDoubleClick={handleTitlebarDoubleClick}
       />
       <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
         <button

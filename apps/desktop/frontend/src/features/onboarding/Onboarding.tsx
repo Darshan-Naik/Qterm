@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { handleTitlebarDoubleClick } from "@/lib/window";
 import { completeSetup } from "./completeSetup";
 import { OnboardingAgents } from "./OnboardingAgents";
 import { OnboardingNav } from "./OnboardingNav";
@@ -54,7 +55,7 @@ export function Onboarding() {
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col bg-background text-foreground">
-      <div className="h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden />
+      <div className="h-[var(--titlebar-height)] shrink-0 titlebar-drag" aria-hidden onDoubleClick={handleTitlebarDoubleClick} />
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-6 pb-10">
         <div className="w-full max-w-[420px]">
           {step === "theme" ? <OnboardingTheme /> : null}
