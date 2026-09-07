@@ -41,7 +41,7 @@ export async function getMacDownloads(): Promise<MacDownloads> {
       next: { revalidate: 120 },
     });
     if (res.status === 404) {
-      return { version: null, dmg: SITE.releases };
+      return fallback;
     }
     if (!res.ok) return fallback;
     const data = (await res.json()) as GithubRelease;

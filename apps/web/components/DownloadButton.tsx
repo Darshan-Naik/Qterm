@@ -5,6 +5,10 @@ import { cn } from "@/lib/cn";
 import { trackCTA } from "@/lib/analytics";
 import { useDownloadGuide } from "./DownloadGuide";
 
+function directDownloadUrl() {
+  return `${SITE.github}/releases/latest/download/${MAC_ASSET}`;
+}
+
 export function DownloadButton({
   href,
   className,
@@ -17,10 +21,8 @@ export function DownloadButton({
   const guide = useDownloadGuide();
   return (
     <a
-      href={href || SITE.releases}
+      href={href || directDownloadUrl()}
       download={MAC_ASSET}
-      target="_blank"
-      rel="noreferrer"
       onClick={() => {
         trackCTA("download_click");
         guide?.beginDownload();
