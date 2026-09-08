@@ -316,9 +316,11 @@ input[type="number"]::-webkit-outer-spin-button {
   animation: session-complete-flash 0.85s ease-in-out 2;
 }
 .titlebar-drag {
+  --wails-draggable: drag;
   -webkit-app-region: drag;
 }
 .titlebar-no-drag {
+  --wails-draggable: no-drag;
   -webkit-app-region: no-drag;
 }
 
