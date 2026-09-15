@@ -2,6 +2,7 @@ import { resetAllKeybindings, useUI } from "@/store/ui";
 import { SHORTCUT_GROUPS, SHORTCUT_META } from "@/lib/shortcuts";
 import { SectionLabel } from "../ui/SectionLabel";
 import { SettingCard } from "../ui/SettingCard";
+import { GlobalHotkeyRow } from "./GlobalHotkeyRow";
 import { ShortcutRow } from "./ShortcutRow";
 
 export function ShortcutsPage() {
@@ -21,6 +22,13 @@ export function ShortcutsPage() {
             Reset all
           </button>
         )}
+      </div>
+
+      <div className="mb-6">
+        <SectionLabel>System</SectionLabel>
+        <SettingCard>
+          <GlobalHotkeyRow />
+        </SettingCard>
       </div>
 
       {SHORTCUT_GROUPS.map((group) => {

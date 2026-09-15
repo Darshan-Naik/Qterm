@@ -18,6 +18,7 @@ export {
 
 export {
   DEFAULT_BINDINGS,
+  DEFAULT_GLOBAL_HOTKEY,
   SHORTCUT_GROUPS,
   SHORTCUT_META,
   metaFor,

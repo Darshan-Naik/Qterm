@@ -4,6 +4,7 @@ import {
   applyConfigChrome,
   applyTheme,
   clampFontSize,
+  clampNotifyCommandMinSec,
   DEFAULT_IDE,
   isThemeMode,
   persistUIPrefs,
@@ -45,6 +46,12 @@ export async function hydrateWorkspace() {
     sessions: [],
     keybindings: sanitizeKeybindings(cfg.keybindings),
     snippets: sanitizeSnippets(cfg.snippets),
+    notifyAgent: cfg.notifyAgent !== false,
+    notifyCommand: cfg.notifyCommand !== false,
+    notifyCommandMinSec: clampNotifyCommandMinSec(
+      typeof cfg.notifyCommandMinSec === "number" ? cfg.notifyCommandMinSec : 0,
+    ),
+    globalHotkey: cfg.globalHotkey && typeof cfg.globalHotkey === "object" ? cfg.globalHotkey : null,
   });
   // Persist chrome after seed — never before, and never block listing.
   void persistUIPrefs();

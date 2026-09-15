@@ -63,6 +63,9 @@ function codesForEvent(e: KeyboardEvent): string[] | undefined {
     case "Tab":
     case "Backspace":
     case "Comma":
+    case "ArrowUp":
+    case "ArrowDown":
+    case "Backquote":
       return [e.code];
     default:
       return undefined;
@@ -90,6 +93,12 @@ function keyFromEvent(e: KeyboardEvent): string {
       return "Tab";
     case "Backspace":
       return "Backspace";
+    case "ArrowUp":
+      return "ArrowUp";
+    case "ArrowDown":
+      return "ArrowDown";
+    case "Backquote":
+      return "`";
     default:
       return eventKey(e);
   }
@@ -126,6 +135,12 @@ function displayKey(key: string): string {
   switch (key.toLowerCase()) {
     case "backspace":
       return "backspace";
+    case "arrowup":
+      return "↑";
+    case "arrowdown":
+      return "↓";
+    case "`":
+      return "`";
     case "tab":
       return "Tab";
     case ",":

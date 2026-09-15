@@ -1,4 +1,4 @@
-import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin } from "lucide-react";
+import { MoreHorizontal, Columns2, Rows2, X, Trash2, Pencil, Pin, ClipboardCopy } from "lucide-react";
 import { closePane, requestDeleteSession } from "@/lib/panes";
 import { toggleSessionPin } from "@/lib/sessionPin";
 import { TerminalShortcuts } from "@/lib/menuShortcuts";
@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { requestSessionRename } from "./PaneTitle";
+import { CopyLastCommandOutput } from "../../../wailsjs/go/main/App";
+import { toast } from "sonner";
 import { chromeReveal } from "./chromeReveal";
 
 export function PaneMenu({
@@ -84,6 +86,18 @@ export function PaneMenu({
         <DropdownMenuItem onClick={() => void toggleSessionPin(sessionId)}>
           <Pin className={cn("size-3.5 opacity-70", pinned && "fill-current")} />
           {pinned ? "Unpin terminal" : "Pin terminal"}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          shortcut={TerminalShortcuts.copyLastOutput.label}
+          onClick={() => {
+            void CopyLastCommandOutput(sessionId).then(
+              () => toast.message("Copied last command output"),
+              (e) => toast.error(String((e as { message?: string })?.message || e || "No command output yet")),
+            );
+          }}
+        >
+          <ClipboardCopy className="size-3.5 opacity-70" />
+          Copy last output
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

@@ -5,6 +5,7 @@ export {
   detachTerminal,
   disposeSession,
   findInSession,
+  jumpSessionCommand,
   focusTerminal,
   refreshAllTerminalThemes,
   terminalThemeFromCss,

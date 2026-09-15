@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { createDefaultTerminal } from "@/lib/sessions";
 import { toggleGitToolkit } from "@/features/git";
 import {
@@ -100,6 +101,24 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
       agentSessionsOpen: false,
       terminalFindOpen: false,
     });
+  },
+  copyLastOutput: () => {
+    const id = uiStore.get().focusedSessionId;
+    if (!id) return;
+    void import("../../wailsjs/go/main/App").then(({ CopyLastCommandOutput }) =>
+      CopyLastCommandOutput(id).then(
+        () => toast.message("Copied last command output"),
+        (e) => toast.error(String(e?.message || e || "No command output yet")),
+      ),
+    );
+  },
+  prevCommand: () => {
+    const id = uiStore.get().focusedSessionId;
+    if (id) void import("@/features/terminal/sessionTerminals").then((m) => m.jumpSessionCommand(id, -1));
+  },
+  nextCommand: () => {
+    const id = uiStore.get().focusedSessionId;
+    if (id) void import("@/features/terminal/sessionTerminals").then((m) => m.jumpSessionCommand(id, 1));
   },
 };
 

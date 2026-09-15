@@ -39,6 +39,16 @@ export function clampUiZoom(zoom: number) {
   return Math.min(UI_ZOOM_MAX, Math.max(UI_ZOOM_MIN, stepped));
 }
 
+export const NOTIFY_COMMAND_MIN_DEFAULT = 8;
+export const NOTIFY_COMMAND_MIN_MIN = 3;
+export const NOTIFY_COMMAND_MIN_MAX = 120;
+
+export function clampNotifyCommandMinSec(n: number) {
+  const v = Math.round(Number(n) || NOTIFY_COMMAND_MIN_DEFAULT);
+  if (v <= 0) return NOTIFY_COMMAND_MIN_DEFAULT;
+  return Math.min(NOTIFY_COMMAND_MIN_MAX, Math.max(NOTIFY_COMMAND_MIN_MIN, v));
+}
+
 export function clampSidebarWidth(width: number) {
   const n = Math.round(Number(width) || SIDEBAR_DEFAULT);
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, n));

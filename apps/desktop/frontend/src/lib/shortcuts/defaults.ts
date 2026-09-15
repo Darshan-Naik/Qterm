@@ -163,6 +163,27 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     whenSettings: "block",
   },
   {
+    id: "copyLastOutput",
+    label: "Copy last command output",
+    description: "Copy the output of the last shell command",
+    group: "Terminal",
+    whenSettings: "block",
+  },
+  {
+    id: "prevCommand",
+    label: "Previous command",
+    description: "Scroll to the previous prompt mark",
+    group: "Terminal",
+    whenSettings: "block",
+  },
+  {
+    id: "nextCommand",
+    label: "Next command",
+    description: "Scroll to the next prompt mark",
+    group: "Terminal",
+    whenSettings: "block",
+  },
+  {
     id: "snippetPalette",
     label: "Insert snippet",
     description: "Search saved commands and type them into the focused terminal",
@@ -170,6 +191,13 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     whenSettings: "block",
   },
 ];
+
+/** System-wide show/hide. Control+` (grave). Not in the in-app binding catalog. */
+export const DEFAULT_GLOBAL_HOTKEY: KeyChord = {
+  key: "`",
+  codes: ["Backquote"],
+  ctrlOnly: true,
+};
 
 const mod = (key: string, extra?: Partial<KeyChord>): KeyChord => ({
   key,
@@ -214,6 +242,9 @@ export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   removeProject: [modShift("Backspace", { codes: ["Backspace"], alt: true })],
   gitToolkit: [modShift("g")],
   snippetPalette: [modShift("s")],
+  copyLastOutput: [modShift("c")],
+  prevCommand: [modShift("ArrowUp", { codes: ["ArrowUp"] })],
+  nextCommand: [modShift("ArrowDown", { codes: ["ArrowDown"] })],
 };
 
 export const SHORTCUT_GROUPS: Array<ShortcutMeta["group"]> = ["General", "View", "Terminal", "Project"];

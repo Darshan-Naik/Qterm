@@ -16,7 +16,10 @@ import { invalidateAgentCLIs } from "@/queries";
 import { PageTitle } from "../ui/PageTitle";
 import { SectionLabel } from "../ui/SectionLabel";
 import { SettingCard } from "../ui/SettingCard";
+import { SettingRow } from "../ui/SettingRow";
 import { AgentToolsPanel } from "../ui/AgentToolsPanel";
+import { Switch } from "@/components/ui/switch";
+import { saveNotifyPrefs, uiStore, useUI } from "@/store/ui";
 
 type CLIInfo = {
   id: string;
@@ -72,6 +75,7 @@ function sameList(a: CLIInfo[], b: CLIInfo[]) {
 }
 
 export function AgentPage() {
+  const notifyAgent = useUI((s) => s.notifyAgent);
   const [clis, setClis] = useState<CLIInfo[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,6 +171,24 @@ export function AgentPage() {
         drive terminals, projects, and theme from the agent.
       </p>
 
+      <SectionLabel>Notifications</SectionLabel>
+      <SettingCard>
+        <SettingRow
+          title="Agent status"
+          description="Banner and dock badge when an agent needs input or finishes and Qterm is in the background."
+          control={
+            <Switch
+              checked={notifyAgent}
+              onCheckedChange={(on) => {
+                const s = uiStore.get();
+                void saveNotifyPrefs(on, s.notifyCommand, s.notifyCommandMinSec);
+              }}
+            />
+          }
+        />
+      </SettingCard>
+
+      <div className="mt-6">
       <SectionLabel>CLI</SectionLabel>
       <SettingCard>
         {loading && clis.length === 0 ? (
@@ -290,6 +312,7 @@ export function AgentPage() {
           </div>
         ) : null}
       </SettingCard>
+      </div>
 
       {toolsCLI ? (
         <AgentToolsPanel

@@ -28,6 +28,9 @@ export const TerminalShortcuts = {
   get prev() {
     return { label: label("cycleTerminalPrev") };
   },
+  get copyLastOutput() {
+    return { label: label("copyLastOutput") };
+  },
 };
 
 export const ProjectShortcuts = {

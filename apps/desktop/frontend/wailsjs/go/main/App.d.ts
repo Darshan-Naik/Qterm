@@ -19,6 +19,8 @@ export function CheckForAppUpdate():Promise<update.Status>;
 
 export function CompleteSetup():Promise<void>;
 
+export function CopyLastCommandOutput(arg1:string):Promise<string>;
+
 export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
 
 export function GetAgentToolsCaps(arg1:string):Promise<core.ToolsCaps>;
@@ -127,9 +129,13 @@ export function SaveDefaultIDE(arg1:string):Promise<void>;
 
 export function SaveFontSize(arg1:number):Promise<void>;
 
+export function SaveGlobalHotkey(arg1:config.KeyChord):Promise<void>;
+
 export function SaveKeybindings(arg1:config.KeybindingOverrides):Promise<void>;
 
 export function SaveLayout(arg1:string,arg2:config.SplitNode):Promise<void>;
+
+export function SaveNotifyPrefs(arg1:boolean,arg2:boolean,arg3:number):Promise<void>;
 
 export function SaveShell(arg1:string):Promise<void>;
 

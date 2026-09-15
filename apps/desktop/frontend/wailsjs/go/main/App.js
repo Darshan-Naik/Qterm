@@ -26,6 +26,10 @@ export function CompleteSetup() {
   return window['go']['main']['App']['CompleteSetup']();
 }
 
+export function CopyLastCommandOutput(arg1) {
+  return window['go']['main']['App']['CopyLastCommandOutput'](arg1);
+}
+
 export function CreateSession(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSession'](arg1, arg2, arg3);
 }
@@ -242,12 +246,20 @@ export function SaveFontSize(arg1) {
   return window['go']['main']['App']['SaveFontSize'](arg1);
 }
 
+export function SaveGlobalHotkey(arg1) {
+  return window['go']['main']['App']['SaveGlobalHotkey'](arg1);
+}
+
 export function SaveKeybindings(arg1) {
   return window['go']['main']['App']['SaveKeybindings'](arg1);
 }
 
 export function SaveLayout(arg1, arg2) {
   return window['go']['main']['App']['SaveLayout'](arg1, arg2);
+}
+
+export function SaveNotifyPrefs(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SaveNotifyPrefs'](arg1, arg2, arg3);
 }
 
 export function SaveShell(arg1) {
