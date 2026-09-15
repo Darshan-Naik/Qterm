@@ -27,13 +27,14 @@ export function AppearancePage() {
       <SettingCard>
         <SettingRow
           title="Color theme"
-          description="Choose light, dark, or follow the system appearance."
+          description="Choose light, dark, Modern Dark, or follow the system appearance."
           control={
             <PillSelect
               value={theme}
               options={[
                 { value: "system", label: "System" },
                 { value: "dark", label: "Dark" },
+                { value: "modern-dark", label: "Modern Dark" },
                 { value: "light", label: "Light" },
               ]}
               onChange={async (v) => {

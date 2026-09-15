@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { Check, Monitor, Moon, MoonStar, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import { setThemeMode, useUI, type ThemeMode } from "@/store/ui";
 const THEMES: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
   { id: "system", label: "System", icon: Monitor },
   { id: "dark", label: "Dark", icon: Moon },
+  { id: "modern-dark", label: "Modern Dark", icon: MoonStar },
   { id: "light", label: "Light", icon: Sun },
 ];
 
@@ -26,6 +27,7 @@ export function SidebarThemeMenu() {
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
   const shortcut = shortcutLabelFor("toggleTheme", keybindings);
   const current = THEMES.find((t) => t.id === theme)?.label ?? "System";
+  const CurrentIcon = THEMES.find((t) => t.id === theme)?.icon ?? Monitor;
 
   return (
     <DropdownMenu
@@ -52,13 +54,7 @@ export function SidebarThemeMenu() {
             aria-label={`Theme: ${current}`}
             {...tipTriggerProps}
           >
-            {theme === "light" ? (
-              <Sun className="size-4" />
-            ) : theme === "dark" ? (
-              <Moon className="size-4" />
-            ) : (
-              <Monitor className="size-4" />
-            )}
+            <CurrentIcon className="size-4" />
           </Button>
         </DropdownMenuTrigger>
       </WithTooltip>

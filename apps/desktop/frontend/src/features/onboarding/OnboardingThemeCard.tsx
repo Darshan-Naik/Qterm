@@ -12,6 +12,15 @@ export function OnboardingThemeCard({
   hint: string;
   selected: boolean;
 }) {
+  const isLight = id === "light";
+  const isModern = id === "modern-dark";
+  const paneBg = isLight ? "bg-[#f7f7f5]" : isModern ? "bg-[#1f1f1f]" : "bg-[#1c1c1b]";
+  const sideBg = isLight ? "bg-[#ecece8]" : isModern ? "bg-[#181818]" : "bg-[#141413]";
+  const sideBorder = isLight ? "border-black/8" : isModern ? "border-[#2b2b2b]" : "border-white/8";
+  const lineStrong = isLight ? "bg-black/20" : isModern ? "bg-[#cccccc]/50" : "bg-white/20";
+  const lineSoft = isLight ? "bg-black/10" : isModern ? "bg-[#9d9d9d]/40" : "bg-white/10";
+  const lineMid = isLight ? "bg-black/18" : isModern ? "bg-[#cccccc]/35" : "bg-white/18";
+
   return (
     <button
       type="button"
@@ -29,6 +38,7 @@ export function OnboardingThemeCard({
           "relative block h-[72px] overflow-hidden rounded-lg border",
           id === "light" && "border-black/10 bg-[#f7f7f5]",
           id === "dark" && "border-white/10 bg-[#1c1c1b]",
+          id === "modern-dark" && "border-[#2b2b2b] bg-[#1f1f1f]",
           id === "system" && "border-black/10 dark:border-white/10",
           selected && "border-primary/40",
         )}
@@ -50,35 +60,19 @@ export function OnboardingThemeCard({
             <span
               className={cn(
                 "absolute inset-y-0 left-0 w-[28%] border-r",
-                id === "light" ? "border-black/8 bg-[#ecece8]" : "border-white/8 bg-[#141413]",
+                sideBorder,
+                sideBg,
               )}
             >
-              <span
-                className={cn(
-                  "mx-1 mt-4 block h-1 rounded-full",
-                  id === "light" ? "bg-black/20" : "bg-white/20",
-                )}
-              />
-              <span
-                className={cn(
-                  "mx-1 mt-1 block h-1 w-2/3 rounded-full",
-                  id === "light" ? "bg-black/10" : "bg-white/10",
-                )}
-              />
+              <span className={cn("mx-1 mt-4 block h-1 rounded-full", lineStrong)} />
+              <span className={cn("mx-1 mt-1 block h-1 w-2/3 rounded-full", lineSoft)} />
+              {isModern ? (
+                <span className="absolute bottom-2 left-1 right-1 h-0.5 rounded-full bg-[#0078d4]" />
+              ) : null}
             </span>
-            <span className="absolute inset-y-0 left-[28%] right-0 px-1.5 pt-4">
-              <span
-                className={cn(
-                  "block h-1 w-3/4 rounded-full",
-                  id === "light" ? "bg-black/18" : "bg-white/18",
-                )}
-              />
-              <span
-                className={cn(
-                  "mt-1 block h-1 w-1/2 rounded-full",
-                  id === "light" ? "bg-black/10" : "bg-white/10",
-                )}
-              />
+            <span className={cn("absolute inset-y-0 left-[28%] right-0 px-1.5 pt-4", paneBg)}>
+              <span className={cn("block h-1 w-3/4 rounded-full", lineMid)} />
+              <span className={cn("mt-1 block h-1 w-1/2 rounded-full", lineSoft)} />
             </span>
           </>
         )}

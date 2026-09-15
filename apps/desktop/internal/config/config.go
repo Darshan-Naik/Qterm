@@ -104,7 +104,7 @@ type AppConfig struct {
 	Sessions    []SessionMeta `json:"sessions"`
 	Layouts     LayoutStore   `json:"layouts"`
 	ActiveScope string        `json:"activeScope"`
-	Theme       string        `json:"theme"` // system | dark | light
+	Theme       string        `json:"theme"` // system | dark | modern-dark | light
 	Shell       string        `json:"shell"`
 	FontSize    int           `json:"fontSize"`
 	// DefaultIDE is an editor id (cursor, vscode, …). Empty = first installed.

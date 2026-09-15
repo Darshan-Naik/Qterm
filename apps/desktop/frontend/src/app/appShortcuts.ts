@@ -65,7 +65,8 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
   },
   openSettings: () => openSettings(),
   toggleTheme: () => {
-    const next = uiStore.get().theme === "dark" ? "light" : "dark";
+    const current = uiStore.get().theme;
+    const next = current === "dark" || current === "modern-dark" ? "light" : "dark";
     setThemeMode(next);
   },
   zoomIn: () => void adjustUiZoom(1),

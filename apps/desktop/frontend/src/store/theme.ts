@@ -2,11 +2,15 @@ import { SaveTheme } from "../../wailsjs/go/main/App";
 import { uiStore } from "./store";
 import type { ThemeMode } from "./types";
 
+const THEME_MODERN_DARK_CLASS = "theme-modern-dark";
+
 export function applyTheme(theme: ThemeMode) {
   const root = document.documentElement;
   const preferDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = theme === "dark" || (theme === "system" && preferDark);
+  const dark =
+    theme === "dark" || theme === "modern-dark" || (theme === "system" && preferDark);
   root.classList.toggle("dark", dark);
+  root.classList.toggle(THEME_MODERN_DARK_CLASS, theme === "modern-dark");
   // Native form controls (number spinners, <select> arrows) follow color-scheme.
   root.style.colorScheme = dark ? "dark" : "light";
 }
