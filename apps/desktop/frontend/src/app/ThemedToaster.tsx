@@ -4,7 +4,7 @@ import { useUI } from "@/store/ui";
 import type { ThemeMode } from "@/store/types";
 
 function resolveSonnerTheme(theme: ThemeMode): "light" | "dark" {
-  if (theme === "dark") return "dark";
+  if (theme === "dark" || theme === "modern-dark") return "dark";
   if (theme === "light") return "light";
   // Match applyTheme: .dark on <html> is the source of truth for system.
   if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) {

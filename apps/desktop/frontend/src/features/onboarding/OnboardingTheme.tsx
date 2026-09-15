@@ -4,6 +4,7 @@ import { OnboardingThemeCard } from "./OnboardingThemeCard";
 const THEMES: { id: ThemeMode; label: string; hint: string }[] = [
   { id: "system", label: "System", hint: "Match the Mac" },
   { id: "dark", label: "Dark", hint: "Dim and quiet" },
+  { id: "modern-dark", label: "Modern Dark", hint: "VS Code dark" },
   { id: "light", label: "Light", hint: "Bright and clean" },
 ];
 
@@ -16,7 +17,7 @@ export function OnboardingTheme() {
       <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
         Pick a look. You can change this anytime in Settings.
       </p>
-      <div className="mt-6 grid grid-cols-3 gap-2.5">
+      <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {THEMES.map((item) => (
           <OnboardingThemeCard
             key={item.id}

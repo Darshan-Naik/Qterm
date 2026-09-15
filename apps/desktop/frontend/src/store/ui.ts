@@ -16,6 +16,8 @@ export type {
   Snippet,
 } from "./types";
 
+export { THEME_MODES, isThemeMode } from "./types";
+
 export {
   DEFAULT_SCOPE,
   FONT_SIZE_DEFAULT,

@@ -1,6 +1,6 @@
 import { focusSession } from "@/lib/sessions";
 import { agentsFromLiveSessions, mapLiveSessions, sortSessionsByStart } from "@/lib/sessionTitles";
-import { applyTheme, openAbout, openSettings, uiStore, type ThemeMode } from "@/store/ui";
+import { applyTheme, openAbout, openSettings, uiStore, isThemeMode } from "@/store/ui";
 import { ListSessions } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 
@@ -64,9 +64,9 @@ export function subscribeAppEvents(): () => void {
     }),
 
     on("app:theme", (theme?: string) => {
-      if (theme === "dark" || theme === "light" || theme === "system") {
+      if (theme && isThemeMode(theme)) {
         applyTheme(theme);
-        uiStore.set({ theme: theme as ThemeMode });
+        uiStore.set({ theme });
       }
     }),
 

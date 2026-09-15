@@ -1,7 +1,13 @@
 import type { Snippet } from "@/lib/snippets";
 import type { KeybindingOverrides } from "@/lib/shortcuts/types";
 
-export type ThemeMode = "system" | "dark" | "light";
+export type ThemeMode = "system" | "dark" | "modern-dark" | "light";
+
+export const THEME_MODES: ThemeMode[] = ["system", "dark", "modern-dark", "light"];
+
+export function isThemeMode(value: string): value is ThemeMode {
+  return (THEME_MODES as string[]).includes(value);
+}
 export type AnimateState = "none" | "idle" | "action_required" | "task_complete" | "thinking";
 export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "snippets" | "updates";
 export type AppMode = "workspace" | "settings" | "setup";

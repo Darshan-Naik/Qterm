@@ -5,6 +5,7 @@ import {
   applyTheme,
   clampFontSize,
   DEFAULT_IDE,
+  isThemeMode,
   persistUIPrefs,
   sanitizeKeybindings,
   uiStore,
@@ -25,7 +26,7 @@ export async function hydrateWorkspace() {
     return;
   }
 
-  const themeMode = ((cfg.theme as ThemeMode) || "system") as ThemeMode;
+  const themeMode: ThemeMode = isThemeMode(cfg.theme) ? cfg.theme : "system";
   applyTheme(themeMode);
   applyConfigChrome(cfg);
 

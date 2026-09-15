@@ -240,6 +240,15 @@ export function CommandPalette() {
         },
       },
       {
+        id: "theme-modern-dark",
+        label: "Theme: Modern Dark",
+        run: async () => {
+          uiStore.set({ theme: "modern-dark" });
+          applyTheme("modern-dark");
+          await SaveTheme("modern-dark");
+        },
+      },
+      {
         id: "theme-light",
         label: "Theme: Light",
         run: async () => {

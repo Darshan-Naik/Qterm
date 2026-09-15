@@ -125,6 +125,41 @@ html.drag-resize * {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* VS Code Dark Modern workbench palette */
+.dark.theme-modern-dark {
+  --background: #1f1f1f;
+  --foreground: #cccccc;
+  --card: #252526;
+  --card-foreground: #cccccc;
+  --popover: #1f1f1f;
+  --popover-foreground: #cccccc;
+  --primary: #0078d4;
+  --primary-foreground: #ffffff;
+  --secondary: #313131;
+  --secondary-foreground: #cccccc;
+  --muted: #2b2b2b;
+  --muted-foreground: #9d9d9d;
+  --accent: #04395e;
+  --accent-foreground: #ffffff;
+  --destructive: #f85149;
+  --border: #2b2b2b;
+  --input: #313131;
+  --ring: #0078d4;
+  --chart-1: #4daafc;
+  --chart-2: #0078d4;
+  --chart-3: #2ea043;
+  --chart-4: #bb8009;
+  --chart-5: #f85149;
+  --sidebar: #181818;
+  --sidebar-foreground: #cccccc;
+  --sidebar-primary: #0078d4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a2d2e;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2b2b2b;
+  --sidebar-ring: #0078d4;
+}
+
 html,
 body,
 #root {
