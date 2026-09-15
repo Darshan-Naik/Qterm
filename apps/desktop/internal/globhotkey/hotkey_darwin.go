@@ -2,46 +2,15 @@
 
 package globhotkey
 
+// Declarations only. Implementations live in hotkey_darwin.c. cgo copies this
+// preamble into two C files whenever //export is used, so definitions here
+// would duplicate at link time (Wails "Generating bindings" on macOS).
 /*
 #cgo LDFLAGS: -framework Carbon
-#include <Carbon/Carbon.h>
 #include <stdint.h>
 
-extern void qtermHotkeyFired(void);
-
-static EventHandlerRef qtermHotKeyHandlerRef = NULL;
-static EventHotKeyRef qtermHotKeyRef = NULL;
-
-static OSStatus qtermHotKeyHandler(EventHandlerCallRef next, EventRef event, void *userData) {
-	(void)next;
-	(void)event;
-	(void)userData;
-	qtermHotkeyFired();
-	return noErr;
-}
-
-int qtermRegisterHotKey(uint32_t keyCode, uint32_t modifiers) {
-	if (qtermHotKeyRef) {
-		UnregisterEventHotKey(qtermHotKeyRef);
-		qtermHotKeyRef = NULL;
-	}
-	if (qtermHotKeyHandlerRef == NULL) {
-		EventTypeSpec spec = { kEventClassKeyboard, kEventHotKeyPressed };
-		InstallApplicationEventHandler(NewEventHandlerUPP(qtermHotKeyHandler), 1, &spec, NULL, &qtermHotKeyHandlerRef);
-	}
-	EventHotKeyID hid;
-	hid.signature = 'QTRM';
-	hid.id = 1;
-	OSStatus err = RegisterEventHotKey(keyCode, modifiers, hid, GetApplicationEventTarget(), 0, &qtermHotKeyRef);
-	return (int)err;
-}
-
-void qtermUnregisterHotKey(void) {
-	if (qtermHotKeyRef) {
-		UnregisterEventHotKey(qtermHotKeyRef);
-		qtermHotKeyRef = NULL;
-	}
-}
+int qtermRegisterHotKey(uint32_t keyCode, uint32_t modifiers);
+void qtermUnregisterHotKey(void);
 */
 import "C"
 import (
