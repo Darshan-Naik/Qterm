@@ -1,6 +1,7 @@
 package shellint
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,7 +15,6 @@ func TestInstallWritesFiles(t *testing.T) {
 	for _, p := range []string{
 		filepath.Join(dir, "bash.rc"),
 		filepath.Join(dir, "zsh.zsh"),
-		filepath.Join(dir, "zdot", ".zshrc"),
 	} {
 		b, err := os.ReadFile(p)
 		if err != nil {
@@ -23,6 +23,13 @@ func TestInstallWritesFiles(t *testing.T) {
 		if !strings.Contains(string(b), "133;A") {
 			t.Fatalf("%s missing OSC 133: %s", p, b)
 		}
+	}
+	zshrc, err := os.ReadFile(filepath.Join(dir, "zdot", ".zshrc"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(zshrc), "zsh.zsh") {
+		t.Fatalf(".zshrc should source zsh.zsh: %s", zshrc)
 	}
 }
 
