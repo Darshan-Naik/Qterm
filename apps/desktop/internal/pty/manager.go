@@ -10,6 +10,8 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/google/uuid"
+
+	"qterm/internal/shellint"
 )
 
 type Session struct {
@@ -33,6 +35,7 @@ type Manager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
 	shell    string
+	integDir string
 	onData   DataHandler
 	onExit   ExitHandler
 }
@@ -67,6 +70,12 @@ func (m *Manager) SetShell(shell string) {
 	}
 }
 
+func (m *Manager) SetIntegrationDir(dir string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.integDir = dir
+}
+
 type CreateOpts struct {
 	ID        string
 	Name      string
@@ -99,9 +108,14 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 
 	m.mu.RLock()
 	shell := m.shell
+	integDir := m.integDir
 	m.mu.RUnlock()
 
 	cmd := exec.Command(shell)
+	args, extra := shellint.Wrap(shell, integDir, "")
+	if len(args) > 0 {
+		cmd = exec.Command(shell, args...)
+	}
 	cmd.Dir = cwd
 	cmd.Env = append(os.Environ(),
 		"TERM=xterm-256color",
@@ -114,6 +128,9 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 		"QTERM_SESSION_ID="+id,
 		"QTERM_PROJECT_ID="+opts.ProjectID,
 	)
+	if len(extra) > 0 {
+		cmd.Env = append(cmd.Env, extra...)
+	}
 
 	ptmx, err := pty.Start(cmd)
 	if err != nil {

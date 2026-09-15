@@ -27,6 +27,10 @@ type ControlAPI interface {
 	SetTheme(theme string) error
 	GetTheme() string
 	FocusSession(id string) error
+	SplitTerminal(id, direction, name string) (map[string]any, error)
+	WriteTerminal(id, data string, submit bool) error
+	NotifyUser(title, body, sessionID string) error
+	OpenPathInIDE(path, sessionID string) error
 }
 
 // Server is the local HTTP hook + tools bridge.
@@ -235,6 +239,65 @@ func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		writeHTTPJSON(w, map[string]any{"ok": true}, s.api.FocusSession(id))
+	case strings.HasPrefix(path, "terminals/") && strings.HasSuffix(path, "/split") && r.Method == http.MethodPost:
+		id := strings.TrimSuffix(strings.TrimPrefix(path, "terminals/"), "/split")
+		if id == "" || id == "focused" || id == "current" || id == "." {
+			if hint := strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id")); hint != "" {
+				id = hint
+			}
+		}
+		var req struct {
+			Direction string `json:"direction"`
+			Name      string `json:"name"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		out, err := s.api.SplitTerminal(id, req.Direction, req.Name)
+		writeHTTPJSON(w, out, err)
+	case strings.HasPrefix(path, "terminals/") && strings.HasSuffix(path, "/write") && r.Method == http.MethodPost:
+		id := strings.TrimSuffix(strings.TrimPrefix(path, "terminals/"), "/write")
+		if id == "" || id == "focused" || id == "current" || id == "." {
+			if hint := strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id")); hint != "" {
+				id = hint
+			}
+		}
+		var req struct {
+			Data   string `json:"data"`
+			Text   string `json:"text"`
+			Submit bool   `json:"submit"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		data := req.Data
+		if data == "" {
+			data = req.Text
+		}
+		writeHTTPJSON(w, map[string]any{"ok": true}, s.api.WriteTerminal(id, data, req.Submit))
+	case path == "notify" && r.Method == http.MethodPost:
+		var req struct {
+			Title string `json:"title"`
+			Body  string `json:"body"`
+			ID    string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		if req.ID == "" {
+			req.ID = strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id"))
+		}
+		writeHTTPJSON(w, map[string]any{"ok": true}, s.api.NotifyUser(req.Title, req.Body, req.ID))
+	case path == "open-ide" && r.Method == http.MethodPost:
+		var req struct {
+			Path string `json:"path"`
+			ID   string `json:"id"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.ID == "" {
+			req.ID = strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id"))
+		}
+		writeHTTPJSON(w, map[string]any{"ok": true}, s.api.OpenPathInIDE(req.Path, req.ID))
 	case path == "projects" && r.Method == http.MethodGet:
 		list, err := s.api.ListProjects()
 		writeHTTPJSON(w, list, err)

@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"qterm/internal/agentcli"
 	"qterm/internal/agentcli/bridge"
 	"qterm/internal/config"
+	"qterm/internal/notify"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -51,7 +53,7 @@ func (a *App) startAgentBridge() {
 		if a.ctx == nil {
 			return
 		}
-		runtime.EventsEmit(a.ctx, "hook:intent", intent)
+		a.emitHookIntent(intent)
 	}
 	srv, err := bridge.NewServer(a.store.DataDir(), onIntent, &bridgeAPI{app: a})
 	if err != nil {
@@ -258,9 +260,95 @@ func (b *bridgeAPI) FocusSession(id string) error {
 	if _, ok := b.app.pty.Get(id); !ok {
 		return fmt.Errorf("session not found")
 	}
-	b.app.focusedSessionID = id
+	b.app.SetFocusedSession(id)
 	if b.app.ctx != nil {
 		runtime.EventsEmit(b.app.ctx, "app:focus-session", id)
 	}
 	return nil
+}
+
+func (b *bridgeAPI) SplitTerminal(id, direction, name string) (map[string]any, error) {
+	id = b.app.resolveSessionForAgent(id, "", id)
+	if id == "" {
+		return nil, fmt.Errorf("session not found")
+	}
+	src, ok := b.app.pty.Get(id)
+	if !ok {
+		return nil, fmt.Errorf("session not found")
+	}
+	dir := strings.ToLower(strings.TrimSpace(direction))
+	switch dir {
+	case "down", "below", "vertical":
+		dir = "down"
+	default:
+		dir = "right"
+	}
+	sess, err := b.app.CreateSession(src.ProjectID, strings.TrimSpace(name), src.Cwd)
+	if err != nil {
+		return nil, err
+	}
+	if b.app.ctx != nil {
+		runtime.EventsEmit(b.app.ctx, "app:split-session", map[string]any{
+			"besideId":  id,
+			"newId":     sess.ID,
+			"name":      sess.Name,
+			"projectId": sess.ProjectID,
+			"cwd":       sess.Cwd,
+			"direction": dir,
+		})
+	}
+	return map[string]any{
+		"id": sess.ID, "name": sess.Name, "projectId": sess.ProjectID, "cwd": sess.Cwd, "direction": dir,
+	}, nil
+}
+
+func (b *bridgeAPI) WriteTerminal(id, data string, submit bool) error {
+	id = b.app.resolveSessionForAgent(id, "", id)
+	if id == "" {
+		return fmt.Errorf("session not found")
+	}
+	if data == "" && !submit {
+		return fmt.Errorf("data is empty")
+	}
+	if submit && !strings.HasSuffix(data, "\r") && !strings.HasSuffix(data, "\n") {
+		data += "\r"
+	}
+	return b.app.WriteSession(id, data)
+}
+
+func (b *bridgeAPI) NotifyUser(title, body, sessionID string) error {
+	if b.app.poster == nil {
+		return nil
+	}
+	sessionID = b.app.resolveSessionForAgent(sessionID, "", sessionID)
+	if strings.TrimSpace(title) == "" {
+		title = b.app.sessionNotifyName(sessionID)
+	}
+	if strings.TrimSpace(body) == "" {
+		body = "An agent needs you in Qterm."
+	}
+	b.app.poster.Post(notify.Note{
+		ID:        "mcp-" + sessionID,
+		Title:     title,
+		Body:      body,
+		SessionID: sessionID,
+	})
+	b.app.revealWindow()
+	if sessionID != "" && b.app.ctx != nil {
+		runtime.EventsEmit(b.app.ctx, "app:focus-session", sessionID)
+	}
+	return nil
+}
+
+func (b *bridgeAPI) OpenPathInIDE(path, sessionID string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		sessionID = b.app.resolveSessionForAgent(sessionID, "", sessionID)
+		if sessionID != "" {
+			if s, ok := b.app.pty.Get(sessionID); ok {
+				path = s.Cwd
+			}
+		}
+	}
+	return b.app.OpenInIDE(path)
 }

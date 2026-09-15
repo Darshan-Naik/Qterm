@@ -12,7 +12,7 @@ const PluginName = "qterm"
 
 // Version is bumped when plugin artifacts change (hooks, MCP, skills, relay).
 // Connected CLIs with an older recorded version are marked outdated and reinstalled.
-const Version = "1.2.5"
+const Version = "1.3.0"
 
 // PluginVersion is the qterm plugin package version shipped with this app build.
 func PluginVersion() string { return Version }
@@ -95,7 +95,7 @@ func WriteQtermSkill(dir string) error {
 	skill := strings.Join([]string{
 		"---",
 		"name: qterm-terminal",
-		"description: Control Qterm terminals via MCP. Use get_terminal_id, rename_terminal, create_terminal.",
+		"description: Control Qterm terminals via MCP. Use get_terminal_id, rename_terminal, create_terminal, split_terminal, write_terminal, notify_user, open_in_ide.",
 		"allowed-tools: mcp__plugin_qterm_qterm mcp__plugin_qterm_qterm__* mcp__qterm mcp__qterm__*",
 		"---",
 		"",
@@ -127,7 +127,14 @@ func WriteQtermSkill(dir string) error {
 		"Call create_terminal with {\"name\":\"...\"} and omit projectId to inherit this agent's project,",
 		"or pass projectId from list_projects / get_terminal_id.",
 		"",
-		"Other tools: list_terminals, list_projects, set_theme.",
+		"## Split / write / notify",
+		"",
+		"split_terminal: {\"direction\":\"right\"|\"down\"} splits THIS pane (or pass id). A new shell opens beside it.",
+		"write_terminal: {\"data\":\"...\",\"submit\":true} types into a pane. Prefer this over OSC title hacks.",
+		"notify_user: {\"title\":\"...\",\"body\":\"...\"} when the human must look at Qterm (permission, question, done).",
+		"open_in_ide: omit path to open this terminal's folder.",
+		"",
+		"Other tools: list_terminals, list_projects, focus_terminal, set_theme.",
 		"",
 	}, "\n")
 	return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(skill), 0o644)

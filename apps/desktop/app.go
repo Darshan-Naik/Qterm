@@ -16,11 +16,15 @@ import (
 	"qterm/internal/appmode"
 	"qterm/internal/config"
 	"qterm/internal/git"
+	"qterm/internal/globhotkey"
 	"qterm/internal/hooks"
+	"qterm/internal/notify"
+	"qterm/internal/osc133"
 	"qterm/internal/project"
 	ptymgr "qterm/internal/pty"
 	"qterm/internal/ptyemit"
 	"qterm/internal/scrollback"
+	"qterm/internal/shellint"
 	"qterm/internal/termquery"
 
 	"github.com/wailsapp/wails/v2/pkg/menu"
@@ -48,6 +52,13 @@ type App struct {
 	nudgeTimers      map[string][]*time.Timer // sessionID → 10s/20s/50s checks
 	ready            bool
 	upd              *appUpdateDL
+	poster           notify.Poster
+	waitingMu        sync.Mutex
+	waiting          map[string]struct{}
+	lastNeeds        map[string]time.Time
+	shells           *osc133.Tracker
+	windowMu         sync.Mutex
+	windowHidden     bool
 }
 
 func NewApp() *App {
@@ -74,6 +85,13 @@ func (a *App) startup(ctx context.Context) {
 
 	a.ptyOut = ptyemit.New(a.emitPtyData)
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
+	intDir := filepath.Join(store.DataDir(), "shellint")
+	if err := shellint.Install(intDir); err == nil {
+		a.pty.SetIntegrationDir(intDir)
+	}
+	a.initNotify()
+	a.initShellTracker()
+	a.initGlobalHotkey()
 	// Finder-launched apps miss Homebrew/nvm PATH — enrich before CLI detection.
 	agentcli.EnsureUserPath()
 	a.hooks = hooks.NewHost(store.HooksDir(), a.onHookIntent)
@@ -158,6 +176,7 @@ func (a *App) setupMenu() {
 
 func (a *App) shutdown(ctx context.Context) {
 	a.shuttingDown = true
+	globhotkey.Unregister()
 	if a.ptyOut != nil {
 		a.ptyOut.FlushAll()
 	}
@@ -249,6 +268,9 @@ func (a *App) onPtyData(sessionID string, data []byte) {
 }
 
 func (a *App) emitPtyData(sessionID string, data []byte) {
+	if a.shells != nil {
+		a.shells.Feed(sessionID, data)
+	}
 	var seq uint64
 	if a.scrollback != nil {
 		seq = a.scrollback.Append(sessionID, data)
@@ -265,6 +287,10 @@ func (a *App) emitPtyData(sessionID string, data []byte) {
 
 func (a *App) onPtyExit(sessionID string, code int) {
 	a.cancelConnectNudgeChecks(sessionID)
+	a.markWaiting(sessionID, false)
+	if a.shells != nil {
+		a.shells.Remove(sessionID)
+	}
 	runtime.EventsEmit(a.ctx, "pty:exit", map[string]any{
 		"sessionId": sessionID,
 		"code":      code,
@@ -333,7 +359,13 @@ func pruneSessionFromLayout(node config.SplitNode, sessionID string) (config.Spl
 }
 
 func (a *App) onHookIntent(intent hooks.Intent) {
-	runtime.EventsEmit(a.ctx, "hook:intent", intent)
+	a.emitHookIntent(agentcli.Intent{
+		ID:        intent.ID,
+		HookID:    intent.HookID,
+		SessionID: intent.SessionID,
+		Type:      intent.Type,
+		Payload:   intent.Payload,
+	})
 }
 
 // --- About ---
@@ -829,6 +861,7 @@ func (a *App) KillSession(id string) error {
 // SetFocusedSession records which terminal the UI is focused on.
 func (a *App) SetFocusedSession(id string) {
 	a.focusedSessionID = id
+	a.refreshBadge()
 }
 
 func (a *App) PromoteSession(id, projectID string) error {
