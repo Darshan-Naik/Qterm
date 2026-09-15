@@ -28,6 +28,10 @@ const (
 
 	// DefaultIDE empty means first installed editor from the Open in IDE catalog.
 	DefaultIDE = ""
+
+	DefaultNotifyCommandMinSec = 8
+	MinNotifyCommandMinSec     = 3
+	MaxNotifyCommandMinSec     = 120
 )
 
 // DefaultSidebarFooter is agent + settings. Nil in config means this default; empty hides the footer.
@@ -41,6 +45,34 @@ func ClampSidebarWidth(width int) int {
 		return MaxSidebarWidth
 	}
 	return width
+}
+
+func BoolOr(p *bool, def bool) bool {
+	if p == nil {
+		return def
+	}
+	return *p
+}
+
+func NotifyAgentEnabled(cfg AppConfig) bool {
+	return BoolOr(cfg.NotifyAgent, true)
+}
+
+func NotifyCommandEnabled(cfg AppConfig) bool {
+	return BoolOr(cfg.NotifyCommand, true)
+}
+
+func ClampNotifyCommandMinSec(n int) int {
+	if n <= 0 {
+		return DefaultNotifyCommandMinSec
+	}
+	if n < MinNotifyCommandMinSec {
+		return MinNotifyCommandMinSec
+	}
+	if n > MaxNotifyCommandMinSec {
+		return MaxNotifyCommandMinSec
+	}
+	return n
 }
 
 func ClampUiZoom(zoom int) int {
@@ -127,6 +159,14 @@ type AppConfig struct {
 	SkippedAppUpdate string `json:"skippedAppUpdate,omitempty"`
 	// SetupComplete is true after first-run setup (or skipped). Fresh installs stay false.
 	SetupComplete bool `json:"setupComplete,omitempty"`
+	// NotifyAgent: nil means on. Banner + dock badge when an agent needs input or finishes in the background.
+	NotifyAgent *bool `json:"notifyAgent,omitempty"`
+	// NotifyCommand: nil means on. Banner when a long command finishes while Qterm is in the background.
+	NotifyCommand *bool `json:"notifyCommand,omitempty"`
+	// NotifyCommandMinSec is the minimum runtime before a finished command notifies. 0 means default.
+	NotifyCommandMinSec int `json:"notifyCommandMinSec,omitempty"`
+	// GlobalHotkey shows or hides the window from any app. Nil means Control+`.
+	GlobalHotkey *KeyChord `json:"globalHotkey,omitempty"`
 }
 
 // UIPrefs is the subset of config written by the frontend chrome (sidebar/zoom/collapse).

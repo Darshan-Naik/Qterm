@@ -152,6 +152,41 @@ func mcpTools() []map[string]any {
 				"terminalId": map[string]any{"type": "string"},
 			},
 		}),
+		tool("split_terminal", "Split a Qterm pane and create a sibling terminal. direction is right or down. Omit id to split THIS agent pane.", map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"id":         map[string]any{"type": "string", "description": "Terminal id from get_terminal_id"},
+				"terminalId": map[string]any{"type": "string"},
+				"direction":  map[string]any{"type": "string", "description": "right or down"},
+				"name":       map[string]any{"type": "string"},
+			},
+		}),
+		tool("write_terminal", "Type text into a Qterm terminal. Set submit true to press Return. Omit id to write to THIS agent pane.", map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"id":         map[string]any{"type": "string"},
+				"terminalId": map[string]any{"type": "string"},
+				"data":       map[string]any{"type": "string"},
+				"text":       map[string]any{"type": "string", "description": "Alias for data"},
+				"submit":     map[string]any{"type": "boolean"},
+			},
+		}),
+		tool("notify_user", "Show a macOS notification and bring Qterm forward. Use when the human must look at this pane.", map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"title": map[string]any{"type": "string"},
+				"body":  map[string]any{"type": "string"},
+				"id":    map[string]any{"type": "string"},
+			},
+		}),
+		tool("open_in_ide", "Open a folder in the user's default IDE. Omit path to open this terminal's cwd.", map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"path":       map[string]any{"type": "string"},
+				"id":         map[string]any{"type": "string"},
+				"terminalId": map[string]any{"type": "string"},
+			},
+		}),
 		tool("create_project", "Add a project folder to Qterm", map[string]any{
 			"type":     "object",
 			"required": []any{"path"},
@@ -220,6 +255,22 @@ func callTool(base, token, terminalHint, name string, args map[string]any) (stri
 		id := argString(args, "id", "terminalId")
 		method, path = http.MethodPost, "/v1/tools/terminals/"+id+"/focus"
 		body = map[string]any{}
+	case "split_terminal":
+		id := argString(args, "id", "terminalId")
+		if id == "" {
+			id = "focused"
+		}
+		method, path, body = http.MethodPost, "/v1/tools/terminals/"+id+"/split", args
+	case "write_terminal":
+		id := argString(args, "id", "terminalId")
+		if id == "" {
+			id = "focused"
+		}
+		method, path, body = http.MethodPost, "/v1/tools/terminals/"+id+"/write", args
+	case "notify_user":
+		method, path, body = http.MethodPost, "/v1/tools/notify", args
+	case "open_in_ide":
+		method, path, body = http.MethodPost, "/v1/tools/open-ide", args
 	case "list_projects":
 		method, path = http.MethodGet, "/v1/tools/projects"
 	case "create_project":
