@@ -17,6 +17,7 @@ import { GitWorktreePicker, openGitToolkit, runScopedGit } from "@/features/git"
 import { asStatus } from "@/features/git/types";
 import { toast } from "sonner";
 import {
+  CopyLastCommandOutput,
   CreateSession,
   GetGitStatus,
   SaveLayout,
@@ -180,6 +181,45 @@ export function CommandPalette() {
         id: "split-down",
         label: "Split down",
         run: async () => splitCurrent("vertical"),
+      },
+      {
+        id: "copy-last-output",
+        label: "Copy last command output",
+        run: async () => {
+          const id = uiStore.get().focusedSessionId;
+          if (!id) {
+            toast.error("No focused terminal");
+            return;
+          }
+          try {
+            await CopyLastCommandOutput(id);
+            toast.message("Copied last command output");
+          } catch (e) {
+            toast.error(String((e as { message?: string })?.message || e || "No command output yet"));
+          }
+        },
+      },
+      {
+        id: "prev-command",
+        label: "Previous command",
+        run: async () => {
+          const id = uiStore.get().focusedSessionId;
+          if (id) {
+            const { jumpSessionCommand } = await import("@/features/terminal/sessionTerminals");
+            jumpSessionCommand(id, -1);
+          }
+        },
+      },
+      {
+        id: "next-command",
+        label: "Next command",
+        run: async () => {
+          const id = uiStore.get().focusedSessionId;
+          if (id) {
+            const { jumpSessionCommand } = await import("@/features/terminal/sessionTerminals");
+            jumpSessionCommand(id, 1);
+          }
+        },
       },
       {
         id: "next-terminal",

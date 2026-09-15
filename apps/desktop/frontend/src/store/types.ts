@@ -1,5 +1,5 @@
 import type { Snippet } from "@/lib/snippets";
-import type { KeybindingOverrides } from "@/lib/shortcuts/types";
+import type { KeybindingOverrides, KeyChord } from "@/lib/shortcuts/types";
 
 export type ThemeMode = "system" | "dark" | "modern-dark" | "light";
 
@@ -107,6 +107,13 @@ export type UIState = {
   keybindings: KeybindingOverrides;
   /** User-defined command snippets. */
   snippets: Snippet[];
+  /** Banner when an agent needs input or finishes in the background. Default on. */
+  notifyAgent: boolean;
+  /** Banner when a long command finishes in the background. Default on. */
+  notifyCommand: boolean;
+  notifyCommandMinSec: number;
+  /** System-wide show/hide. Null means Control+`. */
+  globalHotkey: KeyChord | null;
   /** Enabled sidebar footer icons. Empty hides the footer. */
   sidebarFooter: SidebarFooterId[];
   /** Which git chip should show the toolkit popover. */

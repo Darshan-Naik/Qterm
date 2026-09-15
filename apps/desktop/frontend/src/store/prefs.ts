@@ -1,10 +1,11 @@
-import { chordsEqual } from "@/lib/shortcuts/chords";
-import { DEFAULT_BINDINGS } from "@/lib/shortcuts/defaults";
+import { chordId, chordsEqual } from "@/lib/shortcuts/chords";
+import { DEFAULT_BINDINGS, DEFAULT_GLOBAL_HOTKEY } from "@/lib/shortcuts/defaults";
 import type { KeyChord, KeybindingOverrides, ShortcutId } from "@/lib/shortcuts/types";
-import { SaveKeybindings, SaveUIPrefs } from "../../wailsjs/go/main/App";
+import { SaveKeybindings, SaveNotifyPrefs, SaveGlobalHotkey, SaveUIPrefs } from "../../wailsjs/go/main/App";
 import {
   clampSidebarWidth,
   clampUiZoom,
+  clampNotifyCommandMinSec,
   sanitizeSidebarFooter,
   SIDEBAR_DEFAULT,
   SIDEBAR_FOOTER_IDS,
@@ -148,4 +149,22 @@ export async function resetAllKeybindings() {
   if (!Object.keys(uiStore.get().keybindings).length) return;
   uiStore.set({ keybindings: {} });
   await persistKeybindings({});
+}
+
+export async function saveNotifyPrefs(agent: boolean, command: boolean, minSec: number) {
+  const next = clampNotifyCommandMinSec(minSec);
+  uiStore.set({
+    notifyAgent: agent,
+    notifyCommand: command,
+    notifyCommandMinSec: next,
+  });
+  await SaveNotifyPrefs(agent, command, next);
+}
+
+export async function saveGlobalHotkey(chord: KeyChord | null) {
+  const payload = chord ?? DEFAULT_GLOBAL_HOTKEY;
+  uiStore.set({
+    globalHotkey: chordId(payload) === chordId(DEFAULT_GLOBAL_HOTKEY) ? null : payload,
+  });
+  await SaveGlobalHotkey(payload);
 }

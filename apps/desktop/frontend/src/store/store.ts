@@ -7,6 +7,7 @@ import {
   SIDEBAR_DEFAULT,
   SIDEBAR_FOOTER_DEFAULT,
   UI_ZOOM_DEFAULT,
+  NOTIFY_COMMAND_MIN_DEFAULT,
 } from "./defaults";
 
 export {
@@ -24,9 +25,13 @@ export {
   UI_ZOOM_MAX,
   UI_ZOOM_MIN,
   UI_ZOOM_STEP,
+  NOTIFY_COMMAND_MIN_DEFAULT,
+  NOTIFY_COMMAND_MIN_MIN,
+  NOTIFY_COMMAND_MIN_MAX,
   clampFontSize,
   clampSidebarWidth,
   clampUiZoom,
+  clampNotifyCommandMinSec,
   sanitizeSidebarFooter,
 } from "./defaults";
 
@@ -60,6 +65,10 @@ export const uiStore = createStore<UIState>({
   collapsedProjects: {},
   keybindings: {},
   snippets: [],
+  notifyAgent: true,
+  notifyCommand: true,
+  notifyCommandMinSec: NOTIFY_COMMAND_MIN_DEFAULT,
+  globalHotkey: null,
   sidebarFooter: [...SIDEBAR_FOOTER_DEFAULT],
   gitPanel: null,
   appUpdate: null,

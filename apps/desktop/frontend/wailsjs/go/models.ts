@@ -168,6 +168,10 @@ export namespace config {
 	    snippets?: Snippet[];
 	    skippedAppUpdate?: string;
 	    setupComplete?: boolean;
+	    notifyAgent?: boolean;
+	    notifyCommand?: boolean;
+	    notifyCommandMinSec?: number;
+	    globalHotkey?: KeyChord;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -193,6 +197,10 @@ export namespace config {
 	        this.snippets = this.convertValues(source["snippets"], Snippet);
 	        this.skippedAppUpdate = source["skippedAppUpdate"];
 	        this.setupComplete = source["setupComplete"];
+	        this.notifyAgent = source["notifyAgent"];
+	        this.notifyCommand = source["notifyCommand"];
+	        this.notifyCommandMinSec = source["notifyCommandMinSec"];
+	        this.globalHotkey = this.convertValues(source["globalHotkey"], KeyChord);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

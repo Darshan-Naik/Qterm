@@ -1,7 +1,7 @@
 import { focusSession } from "@/lib/sessions";
 import { agentsFromLiveSessions, mapLiveSessions, sortSessionsByStart } from "@/lib/sessionTitles";
-import { applyTheme, openAbout, openSettings, uiStore, isThemeMode } from "@/store/ui";
-import { ListSessions } from "../../wailsjs/go/main/App";
+import { applyTheme, openAbout, openSettings, splitPane, uiStore, isThemeMode, findLeafBySession, listLeaves, leaf } from "@/store/ui";
+import { ListSessions, SaveLayout } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 
 type Off = (() => void) | undefined;
@@ -72,6 +72,47 @@ export function subscribeAppEvents(): () => void {
 
     on("app:focus-session", (sessionId?: string) => {
       if (sessionId) void focusSession(sessionId);
+    }),
+
+    on("app:split-session", (payload?: {
+      besideId?: string;
+      newId?: string;
+      name?: string;
+      projectId?: string;
+      cwd?: string;
+      direction?: string;
+    }) => {
+      const besideId = payload?.besideId;
+      const newId = payload?.newId;
+      if (!besideId || !newId) return;
+      const state = uiStore.get();
+      const info = {
+        id: newId,
+        name: String(payload?.name || "Terminal"),
+        projectId: String(payload?.projectId || ""),
+        cwd: String(payload?.cwd || ""),
+      };
+      const sessions = [...state.sessions.filter((s) => s.id !== newId), info];
+      let tree = state.splitTree;
+      const direction = payload?.direction === "down" ? "vertical" : "horizontal";
+      const beside = tree ? findLeafBySession(tree, besideId) : null;
+      if (tree && beside) {
+        tree = splitPane(tree, beside.id, direction, newId);
+      } else if (tree) {
+        const paneId = state.focusedPaneId || listLeaves(tree)[0]?.id;
+        tree = paneId ? splitPane(tree, paneId, direction, newId) : leaf(newId);
+      } else {
+        tree = leaf(newId);
+      }
+      const shown = findLeafBySession(tree, newId);
+      uiStore.set({
+        sessions,
+        splitTree: tree,
+        focusedPaneId: shown?.id ?? null,
+        focusedSessionId: newId,
+      });
+      void SaveLayout(state.activeScope, tree as never);
+      void focusSession(newId);
     }),
   ];
 

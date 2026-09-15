@@ -1,6 +1,6 @@
 /** Long-lived xterm instances so switching panes/scopes does not wipe content. */
 
-import { Terminal, type ILinkHandler, type ITheme } from "@xterm/xterm";
+import { Terminal, type ILinkHandler, type IMarker, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon, type ISearchOptions } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -117,6 +117,9 @@ type Entry = {
   dataDisposable: { dispose: () => void };
   binaryDisposable: { dispose: () => void };
   protocolGuard: { dispose: () => void };
+  osc133: { dispose: () => void };
+  commandMarks: IMarker[];
+  commandMarkIdx: number;
 };
 
 const OSC8_LINK_HANDLER: ILinkHandler = {
@@ -168,6 +171,27 @@ function ensureShellProtocolPipeline(entry: Entry, sessionId: string) {
 
 const entries = new Map<string, Entry>();
 let listening = false;
+
+const MAX_MARKS = 80;
+
+function installOsc133(entry: Entry) {
+  entry.osc133.dispose();
+  for (const m of entry.commandMarks) m.dispose();
+  entry.commandMarks = [];
+  entry.commandMarkIdx = 0;
+  entry.osc133 = entry.term.parser.registerOscHandler(133, (data) => {
+    const kind = data.charAt(0);
+    if (kind === "A" || kind === "C") {
+      const marker = entry.term.registerMarker(0);
+      if (marker) {
+        entry.commandMarks.push(marker);
+        if (entry.commandMarks.length > MAX_MARKS) entry.commandMarks.shift()?.dispose();
+        entry.commandMarkIdx = entry.commandMarks.length - 1;
+      }
+    }
+    return true;
+  });
+}
 
 const FIND_DECORATIONS: NonNullable<ISearchOptions["decorations"]> = {
   matchBackground: "#5c4b1f",
@@ -256,8 +280,12 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     dataDisposable: noop,
     binaryDisposable: noop,
     protocolGuard: noop,
+    osc133: noop,
+    commandMarks: [],
+    commandMarkIdx: -1,
   };
   ensureShellProtocolPipeline(entry, sessionId);
+  installOsc133(entry);
   entries.set(sessionId, entry);
 
   void (async () => {
@@ -271,6 +299,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
       cur.term.reset();
       // reset() may clear CSI handlers / core patches — reinstall while still muted.
       ensureShellProtocolPipeline(cur, sessionId);
+      installOsc133(cur);
       const finishSeed = () => {
         // Scrollback may end mid-alt with mouse still armed (truncated 1049l)
         // while the live PTY is already a normal shell. Order matters:
@@ -346,6 +375,7 @@ export function disposeSession(sessionId: string) {
   entry.dataDisposable.dispose();
   entry.binaryDisposable.dispose();
   entry.protocolGuard.dispose();
+  entry.osc133.dispose();
   entry.search.dispose();
   entry.links.dispose();
   entry.term.dispose();
@@ -382,6 +412,22 @@ export function findInSession(
     decorations: FIND_DECORATIONS,
   };
   return direction === "next" ? entry.search.findNext(term, opts) : entry.search.findPrevious(term, opts);
+}
+
+export function jumpSessionCommand(sessionId: string, dir: -1 | 1): boolean {
+  const entry = entries.get(sessionId);
+  if (!entry) return false;
+  entry.commandMarks = entry.commandMarks.filter((m) => m.line >= 0);
+  if (entry.commandMarks.length === 0) return false;
+  const next = Math.min(
+    entry.commandMarks.length - 1,
+    Math.max(0, entry.commandMarkIdx + dir),
+  );
+  entry.commandMarkIdx = next;
+  const line = entry.commandMarks[next]?.line;
+  if (line == null || line < 0) return false;
+  entry.term.scrollToLine(line);
+  return true;
 }
 
 export function clearSessionFind(sessionId: string) {

@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useInstalledIDEs } from "@/queries";
+import { Switch } from "@/components/ui/switch";
 import {
   clampFontSize,
+  clampNotifyCommandMinSec,
   DEFAULT_IDE,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  NOTIFY_COMMAND_MIN_MAX,
+  NOTIFY_COMMAND_MIN_MIN,
+  saveNotifyPrefs,
   uiStore,
   useUI,
 } from "@/store/ui";
@@ -20,6 +25,8 @@ export function TerminalPage() {
   const fontSize = useUI((s) => s.fontSize);
   const shell = useUI((s) => s.shell);
   const defaultIDE = useUI((s) => s.defaultIDE);
+  const notifyCommand = useUI((s) => s.notifyCommand);
+  const notifyCommandMinSec = useUI((s) => s.notifyCommandMinSec);
   const installed = useInstalledIDEs().data ?? [];
   const [shellDraft, setShellDraft] = useState(shell);
 
@@ -91,6 +98,43 @@ export function TerminalPage() {
                   const next = shellDraft.trim();
                   uiStore.set({ shell: next });
                   await SaveShell(next);
+                }}
+              />
+            }
+          />
+        </SettingCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionLabel>Notifications</SectionLabel>
+        <SettingCard>
+          <SettingRow
+            title="Command finished"
+            description="Notify when a command longer than the threshold finishes while Qterm is in the background."
+            control={
+              <Switch
+                checked={notifyCommand}
+                onCheckedChange={(on) => {
+                  const s = uiStore.get();
+                  void saveNotifyPrefs(s.notifyAgent, on, s.notifyCommandMinSec);
+                }}
+              />
+            }
+          />
+          <SettingRow
+            title="Minimum runtime"
+            description="Seconds a command must run before Qterm notifies."
+            control={
+              <Input
+                type="number"
+                min={NOTIFY_COMMAND_MIN_MIN}
+                max={NOTIFY_COMMAND_MIN_MAX}
+                className="h-8 w-20 rounded-lg border-border/60 bg-secondary/50 text-center text-[12.5px] shadow-none"
+                value={notifyCommandMinSec}
+                onChange={(e) => {
+                  const s = uiStore.get();
+                  const n = clampNotifyCommandMinSec(Number(e.target.value));
+                  void saveNotifyPrefs(s.notifyAgent, s.notifyCommand, n);
                 }}
               />
             }
