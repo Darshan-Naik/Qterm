@@ -1,4 +1,12 @@
-/** Long-lived xterm instances so switching panes/scopes does not wipe content. */
+/**
+ * Long-lived xterm instances with minimal state manipulation.
+ *
+ * Follows VS Code and Hyper terminal patterns:
+ * - Terminal elements are preserved across mount/unmount (no destroy on tab switch)
+ * - PTY data flows directly through without filtering
+ * - No terminal state manipulation during normal operation
+ * - Scrollback restore is simple write + flush pending data
+ */
 
 import { Terminal, type ILinkHandler, type IMarker, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -10,12 +18,6 @@ import { isAppShortcut } from "@/app/appShortcuts";
 import { keywordExpandPayload } from "@/lib/snippets";
 import { uiStore } from "@/store/ui";
 import { openTerminalLink } from "@/features/terminal/openTerminalLink";
-import {
-  clearLeakingDecModes,
-  forcePrimaryScreen,
-  installShellProtocolGuard,
-  shouldForwardToPty,
-} from "@/features/terminal/shellProtocolGuard";
 
 function b64encode(u8: Uint8Array) {
   const CHUNK = 0x8000;
@@ -116,7 +118,6 @@ type Entry = {
   pending: Pending[];
   dataDisposable: { dispose: () => void };
   binaryDisposable: { dispose: () => void };
-  protocolGuard: { dispose: () => void };
   osc133: { dispose: () => void };
   commandMarks: IMarker[];
   commandMarkIdx: number;
@@ -129,24 +130,27 @@ const OSC8_LINK_HANDLER: ILinkHandler = {
   allowNonHttpProtocols: true,
 };
 
-/** Forward xterm→PTY bytes only when the shell-protocol gate allows it. */
+/**
+ * Forward xterm→PTY bytes.
+ *
+ * Following VS Code and Hyper's approach: forward all data directly without filtering.
+ * Mouse events are handled naturally by xterm.js. Only block during scrollback seed
+ * (display-only writes) to prevent replayed sequences from feeding the live PTY.
+ */
 function bindPtyWriters(entry: Entry, sessionId: string) {
   entry.dataDisposable.dispose();
   entry.binaryDisposable.dispose();
+
   entry.dataDisposable = entry.term.onData((data) => {
-    // Display-only writes (scrollback seed) must never feed the live PTY —
-    // replayed DA/OSC/CPR queries would regenerate late "keystrokes".
+    // During seed, don't forward anything to PTY
     if (entry.seeding) return;
-    if (!shouldForwardToPty(entry.term, data)) return;
     const bytes = new TextEncoder().encode(data);
     void WriteSessionBytes(sessionId, b64encode(bytes));
   });
-  // DEFAULT mouse encoding uses onBinary (not onData). Gate it the same way so
-  // normal-buffer storms cannot bypass onData-only filtering; alt-screen TUIs
-  // still receive reports via shouldForwardToPty → true.
+
   entry.binaryDisposable = entry.term.onBinary((data) => {
+    // During seed, don't forward anything to PTY
     if (entry.seeding) return;
-    if (!shouldForwardToPty(entry.term, data)) return;
     const bytes = new Uint8Array(data.length);
     for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i) & 0xff;
     void WriteSessionBytes(sessionId, b64encode(bytes));
@@ -154,19 +158,10 @@ function bindPtyWriters(entry: Entry, sessionId: string) {
 }
 
 /**
- * Reinstall protocol guard + PTY writers. Long-lived `entries` survive Vite HMR
- * of other modules; without this, attach can keep a terminal that never got the
- * CSI handlers / core intercept (or whose patches were from an older guard).
- * Always call after term.open() and after term.reset() so instance shadows are
- * stripped and the prototype mouse guard stays reachable.
+ * Bind PTY writers. Called after term.open() and after term.reset().
  */
-function ensureShellProtocolPipeline(entry: Entry, sessionId: string) {
-  entry.protocolGuard.dispose();
-  entry.protocolGuard = installShellProtocolGuard(entry.term, {
-    isMuted: () => entry.seeding,
-  });
+function ensurePtyWriters(entry: Entry, sessionId: string) {
   bindPtyWriters(entry, sessionId);
-  if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
 }
 
 const entries = new Map<string, Entry>();
@@ -202,13 +197,15 @@ const FIND_DECORATIONS: NonNullable<ISearchOptions["decorations"]> = {
   activeMatchColorOverviewRuler: "#cb4b16",
 };
 
+/**
+ * Write PTY data to terminal.
+ *
+ * Following VS Code's approach: just write the data directly, no mode clearing.
+ * Let xterm.js and the application handle terminal state naturally.
+ */
 function applyChunk(entry: Entry, data: string, seq: number) {
   if (seq && seq <= entry.appliedSeq) return;
-  // DECSET guard blocks mouse/focus on normal during parse; still sync-clear
-  // after write in case modes were armed on alt and the chunk switches back.
-  entry.term.write(b64decode(data), () => {
-    if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
-  });
+  entry.term.write(b64decode(data));
   if (seq) entry.appliedSeq = seq;
 }
 
@@ -265,9 +262,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     }
     return true;
   });
-  // Block mouse/focus DECSET on normal; mute emulator→PTY while seeding so
-  // scrollback queries cannot write replies into the live shell. DA/CPR/OSC
-  // are answered on the Go side (or flushed urgently) for live prompts.
+
   const noop = { dispose() {} };
   entry = {
     term,
@@ -279,88 +274,102 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     pending: [],
     dataDisposable: noop,
     binaryDisposable: noop,
-    protocolGuard: noop,
     osc133: noop,
     commandMarks: [],
     commandMarkIdx: -1,
   };
-  ensureShellProtocolPipeline(entry, sessionId);
+  ensurePtyWriters(entry, sessionId);
   installOsc133(entry);
   entries.set(sessionId, entry);
 
+  // Restore scrollback asynchronously
+  // Following VS Code/Hyper: simple write without state manipulation
   void (async () => {
     try {
       const snap = (await GetScrollback(sessionId)) as { data?: string; seq?: number };
       const cur = entries.get(sessionId);
       if (!cur) return;
       const seq = Number(snap?.seq || 0);
-      // Reset parser state so a cut mid-sequence from a prior session
-      // doesn't paint the next restore as literal garbage.
+
+      // Reset parser state so incomplete sequences from prior session
+      // don't corrupt the restore
       cur.term.reset();
-      // reset() may clear CSI handlers / core patches — reinstall while still muted.
-      ensureShellProtocolPipeline(cur, sessionId);
+      ensurePtyWriters(cur, sessionId);
       installOsc133(cur);
+
       const finishSeed = () => {
-        // Scrollback may end mid-alt with mouse still armed (truncated 1049l)
-        // while the live PTY is already a normal shell. Order matters:
-        // force-primary → clear mouse → flush pending (live TUI may 1049h again).
-        const flushAfterPrimary = () => {
-          clearLeakingDecModes(cur.term);
-          cur.appliedSeq = Math.max(cur.appliedSeq, seq);
-          cur.seeding = false;
-          const pending = cur.pending;
-          cur.pending = [];
-          for (const p of pending) applyChunk(cur, p.data, p.seq);
-          // Scroll to bottom after restore so user sees prompt/input area.
-          cur.term.scrollToBottom();
-        };
-        forcePrimaryScreen(cur.term, flushAfterPrimary);
+        cur.appliedSeq = Math.max(cur.appliedSeq, seq);
+        cur.seeding = false;
+        // Flush any PTY data that arrived during restore
+        const pending = cur.pending;
+        cur.pending = [];
+        for (const p of pending) applyChunk(cur, p.data, p.seq);
+        // Scroll to bottom so user sees the prompt
+        cur.term.scrollToBottom();
       };
+
       if (snap?.data) {
         const bytes = b64decode(snap.data);
         if (bytes.length) {
+          // Write scrollback, then finish
           cur.term.write(bytes, finishSeed);
           return;
         }
       }
       finishSeed();
     } catch {
+      // On error, just finish seeding so terminal is usable
       const cur = entries.get(sessionId);
       if (!cur) return;
-      forcePrimaryScreen(cur.term, () => {
-        clearLeakingDecModes(cur.term);
-        cur.seeding = false;
-        const pending = cur.pending;
-        cur.pending = [];
-        for (const p of pending) applyChunk(cur, p.data, p.seq);
-        cur.term.scrollToBottom();
-      });
+      cur.seeding = false;
+      const pending = cur.pending;
+      cur.pending = [];
+      for (const p of pending) applyChunk(cur, p.data, p.seq);
+      cur.term.scrollToBottom();
     }
   })();
 
   return entry;
 }
 
+/**
+ * Attach terminal to a DOM host element.
+ *
+ * Following VS Code and Hyper's approach:
+ * 1. Terminal element is preserved across mount/unmount cycles (Hyper pattern)
+ * 2. Tab switching just moves the DOM element without altering terminal state
+ * 3. No terminal state manipulation during attach (VS Code pattern)
+ *
+ * This ensures TUI apps (Claude CLI, vim, etc.) continue working correctly
+ * when switching tabs or reloading the window.
+ */
 export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fontSize: number }) {
   const entry = getOrCreateTerminal(sessionId, opts);
   const { term, fit } = entry;
-  // open() binds DOM mouse handlers that call coreMouseService.triggerMouseEvent.
-  // Guard must be live after open (prototype patch is global; still reinstall so
-  // instance shadows from older builds are stripped and writers rebound).
+
+  // First time: open the terminal in the DOM
   if (!term.element) {
     term.open(host);
   } else if (term.element.parentElement !== host) {
+    // Tab switch: just move the element (Hyper pattern)
+    // Do NOT touch terminal state - TUI apps depend on it being preserved
     host.appendChild(term.element);
   }
-  ensureShellProtocolPipeline(entry, sessionId);
+
+  // Ensure PTY writers are connected (idempotent)
+  ensurePtyWriters(entry, sessionId);
+
+  // Apply visual settings only (theme/font/ruler)
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
-  if (term.buffer.active.type === "normal") clearLeakingDecModes(term);
+
+  // Fit to container size after layout settles
   requestAnimationFrame(() => {
     fit.fit();
     void ResizeSession(sessionId, term.cols, term.rows);
   });
+
   return entry;
 }
 
@@ -377,7 +386,6 @@ export function disposeSession(sessionId: string) {
   if (!entry) return;
   entry.dataDisposable.dispose();
   entry.binaryDisposable.dispose();
-  entry.protocolGuard.dispose();
   entry.osc133.dispose();
   entry.search.dispose();
   entry.links.dispose();
