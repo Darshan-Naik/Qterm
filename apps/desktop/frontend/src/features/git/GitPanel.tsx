@@ -72,12 +72,12 @@ export function GitPanel({
   const worktreeQuery = useGitWorktrees(path, open && view === "worktrees");
   const snap = asSnapshot(snapQuery.data);
   
-  // Fallback branches state for direct fetch
-  const [fallbackBranches, setFallbackBranches] = useState<GitBranch[]>([]);
+  // Direct fetch state for branches (more reliable than query)
+  const [fetchedBranches, setFallbackBranches] = useState<GitBranch[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
   
-  // Use query data if available, otherwise fallback
-  const branches = (branchQuery.data || fallbackBranches) as Array<{
+  // Prefer directly fetched data, fall back to query data
+  const branches = (fetchedBranches.length > 0 ? fetchedBranches : branchQuery.data || []) as Array<{
     name?: string;
     current?: boolean;
     date?: number;
@@ -94,14 +94,10 @@ export function GitPanel({
     }
   }, [open, requestedView, linked]);
 
-  // Directly fetch branches when view changes to "branches"
-  useEffect(() => {
-    if (!open || view !== "branches" || linked) return;
-    
-    // If query has data, use it
-    if (branchQuery.data && branchQuery.data.length > 0) return;
-    
-    // Direct fetch as fallback
+  // Always fetch branches directly when view becomes "branches"
+  // This ensures branches load reliably regardless of query state
+  const fetchBranches = useCallback(() => {
+    if (!path || linked) return;
     setBranchesLoading(true);
     ListGitBranches(path)
       .then((data) => {
@@ -113,7 +109,13 @@ export function GitPanel({
       .finally(() => {
         setBranchesLoading(false);
       });
-  }, [open, view, linked, path, branchQuery.data]);
+  }, [path, linked]);
+
+  useEffect(() => {
+    if (open && view === "branches" && !linked) {
+      fetchBranches();
+    }
+  }, [open, view, linked, fetchBranches]);
 
   useEffect(() => {
     if (!open || busy) return;
