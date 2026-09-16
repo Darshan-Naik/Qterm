@@ -50,12 +50,24 @@ apps/web/
   lib/           # site copy, URLs, class helpers
 
 .github/workflows/
-  release.yml    # tag v* or workflow_dispatch: build macOS DMGs, git tag, GitHub Release
+  release.yml    # tag v* or workflow_dispatch: build macOS DMGs, changelog notes, GitHub Release
+.github/scripts/
+  release-notes.sh  # What's Changed since the prior release (changelog only)
 ```
 
 App code talks to **agentcli** (not CLI paths). Resume = `adapter.Resume(id)` → open PTY → type command.
 
 Run Wails from `apps/desktop` (`wails dev` / `wails build`). The marketing site is `npm run dev:web` from the repo root.
+
+## Releases
+
+GitHub Release notes and the in-app Updates UI come from the same changelog body (no static download blurb).
+
+- **Version source of truth** — `apps/desktop/wails.json` → `info.productVersion`. The release workflow refuses a tag that does not match it.
+- **Bump when shipping** — if the change should reach users via GitHub Releases / in-app update, bump the patch (or minor) in `wails.json` in its own commit: `chore: bump version to X.Y.Z`. Do not leave user-facing work on an already-published version.
+- **Merge to main ships** — pushing `productVersion` to `main` (when that release does not exist yet) triggers `.github/workflows/release.yml`, which builds the DMG and publishes notes via `release-notes.sh`.
+- **Commits and PR titles feed the changelog** — release notes are auto-generated from merged PRs since the previous tag. Prefer clear conventional titles that read well in What's Changed, for example `feat(updates): …`, `fix(notify): …`, `chore: bump version to …`. Avoid noisy merge-only or vague titles when they will be the only changelog line.
+- **One logical change per commit / PR** when practical so each What's Changed entry is understandable on its own.
 
 ## Rules
 
