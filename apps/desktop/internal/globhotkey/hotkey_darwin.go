@@ -1,10 +1,9 @@
 //go:build darwin
 
+// C bodies live in hotkey_darwin.c. Keep this preamble declarations-only:
+// cgo copies it twice when //export is used, and Wails binding gen links both.
 package globhotkey
 
-// Declarations only. Implementations live in hotkey_darwin.c. cgo copies this
-// preamble into two C files whenever //export is used, so definitions here
-// would duplicate at link time (Wails "Generating bindings" on macOS).
 /*
 #cgo LDFLAGS: -framework Carbon
 #include <stdint.h>
