@@ -12,5 +12,6 @@ func (s *stubPoster) RequestAuth()                    {}
 func (s *stubPoster) Post(Note)                       {}
 func (s *stubPoster) SetBadge(int)                    {}
 func (s *stubPoster) SetOnActivate(h ActivateHandler) { s.onActivate = h }
+func (s *stubPoster) SetOnActiveChange(func())        {}
 func (s *stubPoster) AppActive() bool                 { return true }
 func (s *stubPoster) BringToFront()                   {}

@@ -67,3 +67,18 @@ func TestCommandLongEnoughDefaultMin(t *testing.T) {
 		t.Fatal("8s meets default")
 	}
 }
+
+func TestBadgeCountBackgroundKeepsFocusedWaiting(t *testing.T) {
+	if BadgeCount(1, true, false) != 1 {
+		t.Fatal("background app should badge the last focused waiting pane")
+	}
+	if BadgeCount(1, true, true) != 0 {
+		t.Fatal("front app looking at that pane should clear the badge")
+	}
+	if BadgeCount(2, true, true) != 1 {
+		t.Fatal("other waiting panes still badge")
+	}
+	if BadgeCount(0, false, false) != 0 {
+		t.Fatal("empty")
+	}
+}

@@ -23,6 +23,9 @@ func (a *App) initNotify() {
 			runtime.EventsEmit(a.ctx, "app:focus-session", sessionID)
 		}
 	})
+	a.poster.SetOnActiveChange(func() {
+		a.refreshBadge()
+	})
 	a.poster.RequestAuth()
 }
 
@@ -138,36 +141,38 @@ func (a *App) markWaiting(sessionID string, on bool) {
 		delete(a.waiting, sessionID)
 		delete(a.lastNeeds, sessionID)
 	}
-	n := len(a.waiting)
-	if a.focusedSessionID != "" {
-		if _, ok := a.waiting[a.focusedSessionID]; ok {
-			n--
-		}
-	}
+	n, focusedWaiting := a.waitingSnapshotLocked()
 	a.waitingMu.Unlock()
-	if n < 0 {
-		n = 0
-	}
 	if a.poster != nil {
-		a.poster.SetBadge(n)
+		a.poster.SetBadge(notify.BadgeCount(n, focusedWaiting, a.appIsFront()))
 	}
 }
 
 func (a *App) refreshBadge() {
 	a.waitingMu.Lock()
-	n := len(a.waiting)
-	if a.focusedSessionID != "" {
-		if _, ok := a.waiting[a.focusedSessionID]; ok {
-			n--
-		}
-	}
+	n, focusedWaiting := a.waitingSnapshotLocked()
 	a.waitingMu.Unlock()
-	if n < 0 {
-		n = 0
-	}
 	if a.poster != nil {
-		a.poster.SetBadge(n)
+		a.poster.SetBadge(notify.BadgeCount(n, focusedWaiting, a.appIsFront()))
 	}
+}
+
+func (a *App) waitingSnapshotLocked() (waiting int, focusedWaiting bool) {
+	waiting = len(a.waiting)
+	if a.focusedSessionID != "" {
+		_, focusedWaiting = a.waiting[a.focusedSessionID]
+	}
+	return waiting, focusedWaiting
+}
+
+func (a *App) appIsFront() bool {
+	if a.poster == nil {
+		return false
+	}
+	a.windowMu.Lock()
+	hidden := a.windowHidden
+	a.windowMu.Unlock()
+	return a.poster.AppActive() && !hidden
 }
 
 func (a *App) revealWindow() {
@@ -182,6 +187,7 @@ func (a *App) revealWindow() {
 	if a.poster != nil {
 		a.poster.BringToFront()
 	}
+	a.refreshBadge()
 }
 
 func (a *App) toggleWindow() {
@@ -203,6 +209,7 @@ func (a *App) toggleWindow() {
 	a.windowHidden = true
 	a.windowMu.Unlock()
 	runtime.WindowHide(a.ctx)
+	a.refreshBadge()
 }
 
 // SaveNotifyPrefs persists agent/command notification toggles.

@@ -17,6 +17,7 @@ type Poster interface {
 	Post(n Note)
 	SetBadge(count int)
 	SetOnActivate(h ActivateHandler)
+	SetOnActiveChange(h func())
 	AppActive() bool
 	BringToFront()
 }

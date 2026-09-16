@@ -163,7 +163,7 @@ type AppConfig struct {
 	PendingUpdateFrom string `json:"pendingUpdateFrom,omitempty"`
 	// SetupComplete is true after first-run setup (or skipped). Fresh installs stay false.
 	SetupComplete bool `json:"setupComplete,omitempty"`
-	// NotifyAgent: nil means on. Banner + dock badge when an agent needs input or finishes in the background.
+	// NotifyAgent: nil means on. Alert + dock badge when an agent needs input or finishes in the background.
 	NotifyAgent *bool `json:"notifyAgent,omitempty"`
 	// NotifyCommand: nil means on. Banner when a long command finishes while Qterm is in the background.
 	NotifyCommand *bool `json:"notifyCommand,omitempty"`
