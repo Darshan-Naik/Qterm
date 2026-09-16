@@ -49,6 +49,10 @@ Download Qterm from [qterm](https://qterm.darshannaik.com), open the app, and cr
 
 Qterm is licensed under the [MIT License](LICENSE).
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding guidelines, and pull request expectations.
+
 ---
 
 *Qterm: terminal, without the noise.*
