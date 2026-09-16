@@ -28,7 +28,8 @@ func New() Poster {
 }
 
 // bounce runs h after returning so //export callbacks never call Wails/AppKit
-// on the same stack (that deadlocks main and looks like a crash).
+// on the same stack. A notification click can already be on main; syncing back
+// to the main queue from that stack deadlocks and looks like a crash.
 func bounce(h func()) {
 	if h == nil {
 		return
