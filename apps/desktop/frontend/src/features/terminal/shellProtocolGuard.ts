@@ -409,28 +409,73 @@ export type ShellProtocolGuardOptions = {
   isMuted?: () => boolean;
 };
 
-/** Install DECSET mouse/focus block + mouse wrap + core intercept for a terminal lifetime. */
+/**
+ * Install shell protocol guard for a terminal lifetime.
+ *
+ * Simplified approach matching standard terminals (iTerm2, VS Code, Terminal.app):
+ * 1. Block DECSET mouse/focus modes on normal buffer - prevents accidental enable
+ * 2. Clear mouse modes when switching from alternate to normal - one-time cleanup
+ *
+ * We do NOT intercept or filter mouse events after that. Let xterm.js and the
+ * application handle mouse tracking naturally. This avoids race conditions and
+ * inconsistent behavior that the previous over-engineered approach caused.
+ */
 export function installShellProtocolGuard(
   term: Terminal,
   opts?: ShellProtocolGuardOptions
 ): IDisposable {
-  clearLeakingDecModes(term);
+  // Initial cleanup if starting on normal buffer
+  if (onNormalBuffer(term)) clearLeakingDecModes(term);
+
+  // Block DECSET mouse/focus modes on normal buffer only
   const decSet = installNormalBufferDecSetGuard(term);
-  // Prototype patch + strip instance shadows. Safe across dispose/reinstall and
-  // across term.open()/reset() (service instance is not replaced).
-  const mouseGuard = installMouseEventGuard(term);
-  const coreIntercept = installCoreDataIntercept(term, { isMuted: opts?.isMuted });
-  // xterm leaves mouse armed after 1049l unless the app also DECRST mouse —
-  // clear as soon as we return to the normal buffer.
+
+  // Clear mouse modes when switching from alternate to normal buffer
+  // This is a one-time cleanup, not continuous filtering
   const bufferChange = term.buffer.onBufferChange((buf) => {
     if (buf.type === "normal") clearLeakingDecModes(term);
   });
+
+  // For muted mode (scrollback seed), we still need to prevent replay from
+  // feeding the PTY. But we do this in the onData handler, not via prototype patches.
+  const muted = () => opts?.isMuted?.() === true;
+  const seedGuard = installSeedGuard(term, muted);
+
   return {
     dispose() {
       decSet.dispose();
-      mouseGuard.dispose();
-      coreIntercept.dispose();
       bufferChange.dispose();
+      seedGuard.dispose();
+    },
+  };
+}
+
+/**
+ * During scrollback seed, prevent auto-replies from feeding the live PTY.
+ * This is simpler than the full core intercept - just drop DA/CPR/OSC replies
+ * that xterm generates during seed write.
+ */
+function installSeedGuard(
+  term: Terminal,
+  isMuted: () => boolean
+): IDisposable {
+  const cs = coreOf(term)?.coreService;
+  if (!cs?.triggerDataEvent) return { dispose() {} };
+
+  const origData = cs.triggerDataEvent.bind(cs);
+
+  cs.triggerDataEvent = (data: string, wasUserInput?: boolean) => {
+    // When muted (seed), drop auto-replies but allow user input
+    if (isMuted() && !wasUserInput) {
+      // Only drop if it looks like an auto-reply (DA/CPR/OSC), not user typing
+      if (isXtermAutoReply(data)) return;
+    }
+    origData(data, wasUserInput);
+  };
+
+  return {
+    dispose() {
+      cs.triggerDataEvent = origData;
     },
   };
 }

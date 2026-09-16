@@ -14,7 +14,6 @@ import {
   clearLeakingDecModes,
   forcePrimaryScreen,
   installShellProtocolGuard,
-  shouldForwardToPty,
 } from "@/features/terminal/shellProtocolGuard";
 
 function b64encode(u8: Uint8Array) {
@@ -129,24 +128,28 @@ const OSC8_LINK_HANDLER: ILinkHandler = {
   allowNonHttpProtocols: true,
 };
 
-/** Forward xterm→PTY bytes only when the shell-protocol gate allows it. */
+/**
+ * Forward xterm→PTY bytes.
+ *
+ * Simplified approach: only block during scrollback seed (display-only writes).
+ * Mouse events are handled naturally by xterm.js - we no longer filter them.
+ * The DECSET guard prevents mouse tracking from being enabled on normal buffer,
+ * so there's no need to filter mouse reports here.
+ */
 function bindPtyWriters(entry: Entry, sessionId: string) {
   entry.dataDisposable.dispose();
   entry.binaryDisposable.dispose();
+
   entry.dataDisposable = entry.term.onData((data) => {
-    // Display-only writes (scrollback seed) must never feed the live PTY —
-    // replayed DA/OSC/CPR queries would regenerate late "keystrokes".
+    // During seed, don't forward anything to PTY
     if (entry.seeding) return;
-    if (!shouldForwardToPty(entry.term, data)) return;
     const bytes = new TextEncoder().encode(data);
     void WriteSessionBytes(sessionId, b64encode(bytes));
   });
-  // DEFAULT mouse encoding uses onBinary (not onData). Gate it the same way so
-  // normal-buffer storms cannot bypass onData-only filtering; alt-screen TUIs
-  // still receive reports via shouldForwardToPty → true.
+
   entry.binaryDisposable = entry.term.onBinary((data) => {
+    // During seed, don't forward anything to PTY
     if (entry.seeding) return;
-    if (!shouldForwardToPty(entry.term, data)) return;
     const bytes = new Uint8Array(data.length);
     for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i) & 0xff;
     void WriteSessionBytes(sessionId, b64encode(bytes));
