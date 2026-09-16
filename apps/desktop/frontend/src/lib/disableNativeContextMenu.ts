@@ -1,22 +1,30 @@
 /**
- * Block the WebKit/WKWebView default menu (includes Inspect Element) in all builds,
- * but allow Radix UI context menus to work.
+ * Block the WebKit/WKWebView default "Inspect Element" menu in specific areas,
+ * while allowing Radix UI context menus to work everywhere else.
  *
- * We use the bubble phase (not capture) so that Radix's contextmenu handlers run first.
- * If Radix handled the event (opened its menu and called preventDefault), we don't need
- * to do anything. If no handler processed it, we block the native WebKit menu.
+ * Radix ContextMenu components call preventDefault() when they handle the event,
+ * which automatically blocks the native menu. We only need to block the native
+ * menu in areas that don't have a Radix context menu (like the terminal canvas).
  */
 export function disableNativeContextMenu() {
-  window.addEventListener(
+  document.addEventListener(
     "contextmenu",
     (e) => {
-      // If the event was already handled (e.g., by Radix ContextMenu), skip
-      if (e.defaultPrevented) {
+      const target = e.target as Element | null;
+      if (!target) return;
+
+      // Block native menu only on terminal canvas and other non-interactive areas
+      // that don't have their own context menu
+      const isTerminalCanvas = target.closest(".xterm-screen, .xterm-viewport, canvas");
+      if (isTerminalCanvas) {
+        e.preventDefault();
         return;
       }
-      // Block the native WebKit/WKWebView context menu
-      e.preventDefault();
+
+      // For all other areas, let the event propagate normally.
+      // If there's a Radix ContextMenu, it will handle it and call preventDefault.
+      // If not, the native menu will appear (which is acceptable for most UI areas).
     },
-    false, // bubble phase, not capture
+    false,
   );
 }
