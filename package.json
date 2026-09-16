@@ -1,6 +1,7 @@
 {
   "name": "qterm",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "apps/desktop/frontend",
     "apps/web"
