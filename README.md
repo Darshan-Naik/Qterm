@@ -6,6 +6,14 @@ Fast, clean, and light. Projects, splits, and your agents in one quiet window.
 
 [Download for Mac](https://qterm.darshannaik.com) · [Latest release](https://github.com/Darshan-Naik/Qterm/releases/latest)
 
+<p align="center">
+  <img src="docs/images/hero.png" alt="Qterm with a shell and Claude side by side" width="920" />
+</p>
+
+<p align="center">
+  <img src="docs/images/hero-input.png" alt="Qterm when an agent needs input" width="920" />
+</p>
+
 ---
 
 ## Why Qterm
@@ -17,7 +25,7 @@ Map local folders as projects. Open as many terminals as you need under each one
 Split right or down and work side by side. Each pane has its own title and menu. No crowded tab strip fighting for attention.
 
 **Built for flow.**
-Command palette, thoughtful shortcuts, dark and light themes, and a sidebar that stays out of your way until you need it.
+Command palette, thoughtful shortcuts, dark and light themes, and a sidebar that stays out of the way until you need it.
 
 **Ready for agents.**
 Keep your coding agents in the same window as your terminals, without turning Qterm into another chat app.
