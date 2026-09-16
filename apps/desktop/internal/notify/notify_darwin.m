@@ -4,6 +4,7 @@
 #import <Cocoa/Cocoa.h>
 #import <UserNotifications/UserNotifications.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern void qtermNotifyActivated(char *sessionID);
 extern void qtermAppActiveChanged(void);
@@ -16,6 +17,10 @@ static QtermNotifyDelegate *qtermNotifyDelegate = nil;
 static id qtermBecameActiveObs = nil;
 static id qtermResignActiveObs = nil;
 static int qtermBadgeCount = 0;
+// Cached on the main-queue observers. Never read [NSApp isActive] via
+// dispatch_sync: a notification click can already be on main inside cgo,
+// and a bounced goroutine that syncs back deadlocks and looks like a crash.
+static int qtermAppActive = 1;
 
 @implementation QtermNotifyDelegate
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
@@ -35,11 +40,19 @@ static int qtermBadgeCount = 0;
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)(void))completionHandler {
 	NSString *sid = response.notification.request.content.userInfo[@"sessionId"];
+	char *copy = NULL;
 	if (sid.length > 0) {
-		qtermNotifyActivated((char *)[sid UTF8String]);
-	} else {
-		qtermNotifyActivated(NULL);
+		const char *utf8 = sid.UTF8String;
+		if (utf8 != NULL) {
+			copy = strdup(utf8);
+		}
 	}
+	// Finish Apple's callback before entering Go. WindowShow / badge work
+	// must not run on this stack (Wails + dispatch_sync deadlock).
+	dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+		qtermNotifyActivated(copy);
+		free(copy);
+	});
 	completionHandler();
 }
 @end
@@ -73,11 +86,13 @@ void QtermNotifyInit(void) {
 		                                                                     options:UNNotificationCategoryOptionNone];
 		[c setNotificationCategories:[NSSet setWithObject:cat]];
 		NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
+		qtermAppActive = [NSApp isActive] ? 1 : 0;
 		qtermBecameActiveObs = [nc addObserverForName:NSApplicationDidBecomeActiveNotification
 		                                       object:nil
 		                                        queue:[NSOperationQueue mainQueue]
 		                                   usingBlock:^(NSNotification *note) {
 			                                 (void)note;
+			                                 qtermAppActive = 1;
 			                                 qtermAppActiveChanged();
 		                                   }];
 		qtermResignActiveObs = [nc addObserverForName:NSApplicationDidResignActiveNotification
@@ -85,6 +100,7 @@ void QtermNotifyInit(void) {
 		                                        queue:[NSOperationQueue mainQueue]
 		                                   usingBlock:^(NSNotification *note) {
 			                                 (void)note;
+			                                 qtermAppActive = 0;
 			                                 qtermAppActiveChanged();
 		                                   }];
 	});
@@ -142,14 +158,7 @@ void QtermNotifyPost(const char *ident, const char *title, const char *body, con
 }
 
 int QtermAppIsActive(void) {
-	__block int active = 0;
-	if ([NSThread isMainThread]) {
-		return [NSApp isActive] ? 1 : 0;
-	}
-	dispatch_sync(dispatch_get_main_queue(), ^{
-		active = [NSApp isActive] ? 1 : 0;
-	});
-	return active;
+	return qtermAppActive;
 }
 
 void QtermBringToFront(void) {

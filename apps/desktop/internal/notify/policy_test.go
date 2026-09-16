@@ -82,3 +82,21 @@ func TestBadgeCountBackgroundKeepsFocusedWaiting(t *testing.T) {
 		t.Fatal("empty")
 	}
 }
+
+func TestBounceDoesNotRunInline(t *testing.T) {
+	ran := false
+	bounce(func() { ran = true })
+	if ran {
+		t.Fatal("handler must not run on the //export stack")
+	}
+}
+
+func TestBounceRunsAsync(t *testing.T) {
+	done := make(chan struct{})
+	bounce(func() { close(done) })
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("handler never ran")
+	}
+}
