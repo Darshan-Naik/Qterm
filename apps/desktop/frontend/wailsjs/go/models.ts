@@ -691,6 +691,7 @@ export namespace update {
 	    latestVersion: string;
 	    downloadUrl: string;
 	    releaseUrl: string;
+	    releaseNotes: string;
 	    skipped: boolean;
 	    state: string;
 	    bytes: number;
@@ -708,6 +709,7 @@ export namespace update {
 	        this.latestVersion = source["latestVersion"];
 	        this.downloadUrl = source["downloadUrl"];
 	        this.releaseUrl = source["releaseUrl"];
+	        this.releaseNotes = source["releaseNotes"];
 	        this.skipped = source["skipped"];
 	        this.state = source["state"];
 	        this.bytes = source["bytes"];

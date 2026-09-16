@@ -14,6 +14,7 @@ function status(partial: Record<string, unknown> = {}) {
     latestVersion: "1.6.2",
     downloadUrl: "https://ex/1.6.2.dmg",
     releaseUrl: "",
+    releaseNotes: "",
     skipped: false,
     state: "ready",
     bytes: 10,
@@ -54,6 +55,13 @@ describe("applyUpdateStatus", () => {
     assert.equal(got.state, "downloading");
     assert.equal(got.bytes, 4);
     assert.equal(got.total, 10);
+  });
+
+  it("keeps release notes when a recheck omits the body", () => {
+    const prev = status({ latestVersion: "1.7.0", releaseNotes: "## What's Changed\n* fix" });
+    const next = status({ latestVersion: "1.7.0", releaseNotes: "" });
+    const got = applyUpdateStatus(prev, next);
+    assert.equal(got.releaseNotes, "## What's Changed\n* fix");
   });
 });
 

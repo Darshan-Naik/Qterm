@@ -40,6 +40,7 @@ type Status struct {
 	LatestVersion  string `json:"latestVersion"`
 	DownloadURL    string `json:"downloadUrl"`
 	ReleaseURL     string `json:"releaseUrl"`
+	ReleaseNotes   string `json:"releaseNotes,omitempty"`
 	Skipped        bool   `json:"skipped"`
 	State          string `json:"state,omitempty"`
 	Bytes          int64  `json:"bytes,omitempty"`
@@ -57,6 +58,7 @@ type Applied struct {
 type Release struct {
 	TagName    string  `json:"tag_name"`
 	HTMLURL    string  `json:"html_url"`
+	Body       string  `json:"body"`
 	Draft      bool    `json:"draft"`
 	Prerelease bool    `json:"prerelease"`
 	Assets     []Asset `json:"assets"`
@@ -319,6 +321,7 @@ func Evaluate(current, skipped string, rel Release) Status {
 	}
 	st.LatestVersion = latest
 	st.ReleaseURL = rel.HTMLURL
+	st.ReleaseNotes = strings.TrimSpace(rel.Body)
 	if url := PickAsset(rel.Assets); url != "" {
 		st.DownloadURL = url
 	} else {
@@ -330,4 +333,61 @@ func Evaluate(current, skipped string, rel Release) Status {
 	st.Available = true
 	st.Skipped = Normalize(skipped) != "" && Compare(Normalize(skipped), latest) >= 0
 	return st
+}
+
+// TagName returns a v-prefixed release tag for version strings like 1.8.3.
+func TagName(version string) string {
+	n := Normalize(version)
+	if n == "" {
+		return ""
+	}
+	return "v" + n
+}
+
+// Notes fetches release notes for a tag/version from the GitHub REST API.
+// Empty notes are not an error (older releases may have no body).
+func (c *Client) Notes(ctx context.Context, version string) (string, error) {
+	tag := TagName(version)
+	if tag == "" {
+		return "", nil
+	}
+	if cached, ok := c.loadCachedRelease(); ok && Normalize(cached.TagName) == Normalize(tag) {
+		if notes := strings.TrimSpace(cached.Body); notes != "" {
+			return notes, nil
+		}
+	}
+	url := c.notesURL(tag)
+	body, status, err := c.get(ctx, url, githubAccept, true)
+	if err != nil {
+		return "", err
+	}
+	if status == http.StatusNotFound {
+		return "", errNotFound
+	}
+	if status < 200 || status >= 300 {
+		return "", httpError{status: status, body: body}
+	}
+	var rel Release
+	if err := json.Unmarshal(body, &rel); err != nil {
+		return "", err
+	}
+	notes := strings.TrimSpace(rel.Body)
+	if notes != "" {
+		if cached, ok := c.loadCachedRelease(); ok && Normalize(cached.TagName) == Normalize(rel.TagName) {
+			cached.Body = notes
+			c.saveCachedRelease(cached)
+		}
+	}
+	return notes, nil
+}
+
+func (c *Client) notesURL(tag string) string {
+	base := c.apiURL()
+	if strings.HasSuffix(base, "/releases/latest") {
+		return strings.TrimSuffix(base, "/latest") + "/tags/" + tag
+	}
+	if strings.Contains(base, "/releases/tags/") {
+		return base
+	}
+	return strings.TrimRight(base, "/") + "/tags/" + tag
 }

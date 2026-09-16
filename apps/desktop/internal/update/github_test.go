@@ -61,6 +61,19 @@ func TestEvaluate(t *testing.T) {
 	if newer.Skipped {
 		t.Fatal("not skipped")
 	}
+	if newer.ReleaseNotes != "" {
+		t.Fatalf("empty body should stay empty: %q", newer.ReleaseNotes)
+	}
+
+	withNotes := Evaluate("1.6.2", "", Release{
+		TagName: "v1.6.3",
+		HTMLURL: rel.HTMLURL,
+		Body:    "## What's Changed\n* fix login",
+		Assets:  rel.Assets,
+	})
+	if withNotes.ReleaseNotes != "## What's Changed\n* fix login" {
+		t.Fatalf("notes: %q", withNotes.ReleaseNotes)
+	}
 
 	same := Evaluate("1.6.3", "", rel)
 	if same.Available {
@@ -271,6 +284,66 @@ func TestClientCheckNotFound(t *testing.T) {
 	}
 	if st.Available || st.CurrentVersion != "1.6.2" {
 		t.Fatalf("%+v", st)
+	}
+}
+
+func TestTagName(t *testing.T) {
+	if got := TagName("1.8.3"); got != "v1.8.3" {
+		t.Fatalf("got %q", got)
+	}
+	if got := TagName("v1.8.3"); got != "v1.8.3" {
+		t.Fatalf("got %q", got)
+	}
+	if got := TagName("  "); got != "" {
+		t.Fatalf("empty: %q", got)
+	}
+}
+
+func TestClientNotes(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/releases/tags/v1.8.3", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Accept"); got != githubAccept {
+			t.Errorf("Accept = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v1.8.3","body":"## What's Changed\n* fix pane"}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	cache := t.TempDir() + "/latest.json"
+	c := &Client{
+		HTTP:  srv.Client(),
+		API:   srv.URL + "/releases/latest",
+		Cache: cache,
+		UA:    "Qterm-test",
+	}
+	// Seed a cached release without notes so Notes can merge the body in.
+	c.saveCachedRelease(Release{
+		TagName: "v1.8.3",
+		HTMLURL: "https://github.com/Darshan-Naik/Qterm/releases/tag/v1.8.3",
+		Assets:  []Asset{{Name: AssetARM64, BrowserDownloadURL: latestDMG}},
+	})
+
+	notes, err := c.Notes(context.Background(), "1.8.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if notes != "## What's Changed\n* fix pane" {
+		t.Fatalf("notes: %q", notes)
+	}
+	cached, ok := c.loadCachedRelease()
+	if !ok || cached.Body != notes {
+		t.Fatalf("cache body: ok=%v body=%q", ok, cached.Body)
+	}
+	// Second call should hit cache, not the network.
+	srv.Close()
+	again, err := c.Notes(context.Background(), "v1.8.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again != notes {
+		t.Fatalf("cached notes: %q", again)
 	}
 }
 

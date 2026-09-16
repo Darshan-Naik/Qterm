@@ -4,6 +4,7 @@ type Status = {
   latestVersion: string;
   downloadUrl: string;
   releaseUrl: string;
+  releaseNotes: string;
   skipped: boolean;
   state: string;
   bytes: number;
@@ -46,6 +47,7 @@ export function applyUpdateStatus(prev: Status | null, next: Status): Status {
   ) {
     return {
       ...next,
+      releaseNotes: next.releaseNotes || prev.releaseNotes || "",
       state: next.state || prev.state || "",
       bytes: next.bytes || prev.bytes || 0,
       total: next.total || prev.total || 0,
@@ -64,6 +66,7 @@ export function applyUpdateProgress(cur: Status | null, progress: UpdateProgress
       latestVersion: version,
       downloadUrl: "",
       releaseUrl: "",
+      releaseNotes: "",
       skipped: false,
       state: progress.state,
       bytes: progress.bytes,

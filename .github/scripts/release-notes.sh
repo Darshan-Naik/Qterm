@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build GitHub Release notes: download blurb + auto changelog since the prior tag.
+# Build GitHub Release notes from PRs/commits since the prior tag.
 # Usage: release-notes.sh <tag> <version> [target_commitish]
 # Writes markdown to stdout. Requires gh + network (GITHUB_TOKEN / GH_TOKEN).
 set -euo pipefail
@@ -44,14 +44,10 @@ if [[ -n "$PREV_TAG" ]]; then
 fi
 
 CHANGELOG="$(gh api "repos/${REPO}/releases/generate-notes" "${ARGS[@]}" --jq .body)"
-
-{
-  printf '%s\n' \
-    "Qterm ${VERSION} for Mac (Apple Silicon)." \
-    "" \
-    "Download Qterm-macos-arm64.dmg." \
-    "If macOS blocks the app, open System Settings, Privacy and Security, and allow it."
-  if [[ -n "${CHANGELOG//[[:space:]]/}" ]]; then
-    printf '\n%s\n' "$CHANGELOG"
-  fi
-}
+CHANGELOG="${CHANGELOG#"${CHANGELOG%%[![:space:]]*}"}"
+CHANGELOG="${CHANGELOG%"${CHANGELOG##*[![:space:]]}"}"
+if [[ -z "$CHANGELOG" ]]; then
+  printf 'No changes recorded for %s.\n' "$TAG"
+  exit 0
+fi
+printf '%s\n' "$CHANGELOG"
