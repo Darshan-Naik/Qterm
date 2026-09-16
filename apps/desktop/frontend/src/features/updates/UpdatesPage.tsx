@@ -102,7 +102,7 @@ export function UpdatesPage() {
         ) : null}
         {shown?.releaseUrl ? (
           <Button variant="ghost" onClick={() => BrowserOpenURL(shown.releaseUrl)}>
-            View on GitHub
+            View changelog
           </Button>
         ) : null}
         {shown?.available && !shown.skipped ? (
