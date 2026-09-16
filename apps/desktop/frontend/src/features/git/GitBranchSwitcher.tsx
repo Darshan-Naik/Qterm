@@ -11,6 +11,7 @@ export function GitBranchSwitcher({
   current,
   dirty,
   busy,
+  loading,
   error,
   onBack,
   onCheckout,
@@ -22,6 +23,7 @@ export function GitBranchSwitcher({
   current: string;
   dirty: boolean;
   busy: string | null;
+  loading?: boolean;
   error?: string;
   onBack: () => void;
   onCheckout: (name: string) => void;
@@ -115,7 +117,11 @@ export function GitBranchSwitcher({
         ) : null}
         <Command.List className="min-h-0 flex-1 overflow-auto p-1.5">
           <Command.Empty className="px-2 py-6 text-center text-[12px] text-muted-foreground">
-            {query && !valid ? "Invalid branch name." : "No matching branches."}
+            {loading
+              ? "Loading branches…"
+              : query && !valid
+                ? "Invalid branch name."
+                : "No matching branches."}
           </Command.Empty>
           {query && !exact && valid ? (
             <Command.Item
