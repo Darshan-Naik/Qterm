@@ -86,6 +86,13 @@ export function GitPanel({
     }
   }, [open, requestedView, linked]);
 
+  // Force refetch branches when view changes to "branches"
+  useEffect(() => {
+    if (open && view === "branches" && !linked) {
+      void branchQuery.refetch();
+    }
+  }, [open, view, linked, branchQuery.refetch]);
+
   useEffect(() => {
     if (!open || busy) return;
     const t = window.setInterval(() => {
@@ -137,7 +144,8 @@ export function GitPanel({
     (error?.stderr || "").toLowerCase().includes("conflict");
 
   if (view === "branches" && !linked) {
-    const branchesLoading = branchQuery.isLoading && branches.length === 0;
+    const branchesLoading = (branchQuery.isLoading || branchQuery.isFetching) && branches.length === 0;
+    const branchError = branchQuery.error ? String(branchQuery.error) : undefined;
     return (
       <GitBranchSwitcher
         branches={branches.map((b) => ({
@@ -149,7 +157,7 @@ export function GitPanel({
         dirty={!!snap?.dirty}
         busy={busy}
         loading={branchesLoading}
-        error={!error?.ok ? error?.stderr : undefined}
+        error={branchError || (!error?.ok ? error?.stderr : undefined)}
         onBack={() => setView("main")}
         onCheckout={async (name) => {
           const ok = await run(`checkout:${name}`, () => GitCheckout(path, name));
