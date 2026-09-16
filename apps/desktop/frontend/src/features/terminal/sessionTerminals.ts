@@ -311,6 +311,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
           const pending = cur.pending;
           cur.pending = [];
           for (const p of pending) applyChunk(cur, p.data, p.seq);
+          // Scroll to bottom after restore so user sees prompt/input area.
+          cur.term.scrollToBottom();
         };
         forcePrimaryScreen(cur.term, flushAfterPrimary);
       };
@@ -331,6 +333,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
         const pending = cur.pending;
         cur.pending = [];
         for (const p of pending) applyChunk(cur, p.data, p.seq);
+        cur.term.scrollToBottom();
       });
     }
   })();

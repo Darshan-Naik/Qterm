@@ -348,7 +348,8 @@ func trimFront(data []byte, max int) []byte {
 }
 
 // syncStart skips a leading incomplete escape sequence so restore doesn't
-// paint control bytes as mojibake.
+// paint control bytes as mojibake. Returns original data as fallback when
+// no safe sync point can be found - garbled output is better than no output.
 func syncStart(data []byte) []byte {
 	if len(data) == 0 {
 		return data
@@ -369,7 +370,9 @@ func syncStart(data []byte) []byte {
 	if i := bytes.IndexByte(data, '\n'); i >= 0 {
 		return data[i+1:]
 	}
-	return nil
+	// No newline found - return original data rather than losing all content.
+	// Garbled leading output is better than an empty terminal on reload.
+	return data
 }
 
 func escapeEnd(data []byte) int {

@@ -205,12 +205,10 @@ func (a *App) restoreSessions() {
 	for i, meta := range cfg.Sessions {
 		resumeAgent := meta.AgentCLI != "" && meta.AgentSessionID != ""
 		if a.scrollback != nil {
-			if resumeAgent {
-				// Dead TUI bytes would mix with the new shell / resume redraw.
-				a.scrollback.Remove(meta.ID)
-			} else {
-				a.scrollback.Load(meta.ID)
-			}
+			// Always Load scrollback - it applies restoreFilter to strip TUI
+			// content (alt-screen, fullscreen clears) while preserving shell
+			// history. Agent sessions benefit from keeping prior context.
+			a.scrollback.Load(meta.ID)
 		}
 		cwd := meta.Cwd
 		if cwd == "" && meta.ProjectID != "" && meta.ProjectID != project.HomeID {

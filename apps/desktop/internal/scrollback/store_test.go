@@ -47,9 +47,31 @@ func TestSyncStartIncomplete(t *testing.T) {
 	if got := syncStart(in); !bytes.HasPrefix(got, []byte{0x1b}) {
 		t.Fatalf("expected keep complete esc, got %q", got)
 	}
-	partial := []byte("\x1b[38;2;250;250")
-	if got := syncStart(partial); len(got) != 0 {
-		t.Fatalf("expected drop incomplete, got %q", got)
+
+	// Incomplete OSC sequence with newline should skip to after newline.
+	// Using OSC (which ends with BEL or ST) to avoid false CSI match.
+	partialOSCWithNewline := []byte("\x1b]0;incomplete\nrest of content")
+	if got := syncStart(partialOSCWithNewline); !bytes.Equal(got, []byte("rest of content")) {
+		t.Fatalf("expected skip to newline for incomplete OSC, got %q", got)
+	}
+
+	// Incomplete sequence without newline should preserve data (garbled > empty).
+	partialNoNewline := []byte("\x1b]0;no terminator or newline")
+	if got := syncStart(partialNoNewline); !bytes.Equal(got, partialNoNewline) {
+		t.Fatalf("expected preserve data when no newline, got %q", got)
+	}
+}
+
+func TestSyncStartPreservesContentOnNoNewline(t *testing.T) {
+	// CLI tools like Claude Code may output escape sequences without newlines.
+	// We should preserve the content rather than return nil (empty terminal).
+	cliOutput := []byte("\x1b[?25l\x1b[2J\x1b[H> What can I help with?")
+	got := syncStart(cliOutput)
+	if len(got) == 0 {
+		t.Fatal("syncStart should not return empty for CLI output without newlines")
+	}
+	if !bytes.Contains(got, []byte("What can I help with?")) {
+		t.Fatalf("expected to preserve content, got %q", got)
 	}
 }
 
