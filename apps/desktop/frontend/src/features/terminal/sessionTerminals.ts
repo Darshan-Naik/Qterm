@@ -10,11 +10,7 @@ import { isAppShortcut } from "@/app/appShortcuts";
 import { keywordExpandPayload } from "@/lib/snippets";
 import { uiStore } from "@/store/ui";
 import { openTerminalLink } from "@/features/terminal/openTerminalLink";
-import {
-  clearLeakingDecModes,
-  forcePrimaryScreen,
-  installShellProtocolGuard,
-} from "@/features/terminal/shellProtocolGuard";
+import { clearLeakingDecModes, forcePrimaryScreen } from "@/features/terminal/shellProtocolGuard";
 
 function b64encode(u8: Uint8Array) {
   const CHUNK = 0x8000;
@@ -115,7 +111,6 @@ type Entry = {
   pending: Pending[];
   dataDisposable: { dispose: () => void };
   binaryDisposable: { dispose: () => void };
-  protocolGuard: { dispose: () => void };
   osc133: { dispose: () => void };
   commandMarks: IMarker[];
   commandMarkIdx: number;
@@ -131,10 +126,9 @@ const OSC8_LINK_HANDLER: ILinkHandler = {
 /**
  * Forward xterm→PTY bytes.
  *
- * Simplified approach: only block during scrollback seed (display-only writes).
- * Mouse events are handled naturally by xterm.js - we no longer filter them.
- * The DECSET guard prevents mouse tracking from being enabled on normal buffer,
- * so there's no need to filter mouse reports here.
+ * Following VS Code and Hyper's approach: forward all data directly without filtering.
+ * Mouse events are handled naturally by xterm.js. Only block during scrollback seed
+ * (display-only writes) to prevent replayed sequences from feeding the live PTY.
  */
 function bindPtyWriters(entry: Entry, sessionId: string) {
   entry.dataDisposable.dispose();
@@ -157,19 +151,10 @@ function bindPtyWriters(entry: Entry, sessionId: string) {
 }
 
 /**
- * Reinstall protocol guard + PTY writers. Long-lived `entries` survive Vite HMR
- * of other modules; without this, attach can keep a terminal that never got the
- * CSI handlers / core intercept (or whose patches were from an older guard).
- * Always call after term.open() and after term.reset() so instance shadows are
- * stripped and the prototype mouse guard stays reachable.
+ * Bind PTY writers. Called after term.open() and after term.reset().
  */
-function ensureShellProtocolPipeline(entry: Entry, sessionId: string) {
-  entry.protocolGuard.dispose();
-  entry.protocolGuard = installShellProtocolGuard(entry.term, {
-    isMuted: () => entry.seeding,
-  });
+function ensurePtyWriters(entry: Entry, sessionId: string) {
   bindPtyWriters(entry, sessionId);
-  if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
 }
 
 const entries = new Map<string, Entry>();
@@ -282,12 +267,11 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     pending: [],
     dataDisposable: noop,
     binaryDisposable: noop,
-    protocolGuard: noop,
     osc133: noop,
     commandMarks: [],
     commandMarkIdx: -1,
   };
-  ensureShellProtocolPipeline(entry, sessionId);
+  ensurePtyWriters(entry, sessionId);
   installOsc133(entry);
   entries.set(sessionId, entry);
 
@@ -300,8 +284,8 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
       // Reset parser state so a cut mid-sequence from a prior session
       // doesn't paint the next restore as literal garbage.
       cur.term.reset();
-      // reset() may clear CSI handlers / core patches — reinstall while still muted.
-      ensureShellProtocolPipeline(cur, sessionId);
+      // reset() clears listeners — reinstall PTY writers while still muted.
+      ensurePtyWriters(cur, sessionId);
       installOsc133(cur);
       const finishSeed = () => {
         // Scrollback may end mid-alt with mouse still armed (truncated 1049l)
@@ -355,7 +339,7 @@ export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fon
   } else if (term.element.parentElement !== host) {
     host.appendChild(term.element);
   }
-  ensureShellProtocolPipeline(entry, sessionId);
+  ensurePtyWriters(entry, sessionId);
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
@@ -380,7 +364,6 @@ export function disposeSession(sessionId: string) {
   if (!entry) return;
   entry.dataDisposable.dispose();
   entry.binaryDisposable.dispose();
-  entry.protocolGuard.dispose();
   entry.osc133.dispose();
   entry.search.dispose();
   entry.links.dispose();
