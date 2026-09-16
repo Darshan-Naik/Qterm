@@ -190,13 +190,15 @@ const FIND_DECORATIONS: NonNullable<ISearchOptions["decorations"]> = {
   activeMatchColorOverviewRuler: "#cb4b16",
 };
 
+/**
+ * Write PTY data to terminal.
+ *
+ * Following VS Code's approach: just write the data directly, no mode clearing.
+ * Let xterm.js and the application handle terminal state naturally.
+ */
 function applyChunk(entry: Entry, data: string, seq: number) {
   if (seq && seq <= entry.appliedSeq) return;
-  // DECSET guard blocks mouse/focus on normal during parse; still sync-clear
-  // after write in case modes were armed on alt and the chunk switches back.
-  entry.term.write(b64decode(data), () => {
-    if (entry.term.buffer.active.type === "normal") clearLeakingDecModes(entry.term);
-  });
+  entry.term.write(b64decode(data));
   if (seq) entry.appliedSeq = seq;
 }
 
@@ -328,26 +330,39 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   return entry;
 }
 
+/**
+ * Attach terminal to a DOM host element.
+ *
+ * Following VS Code's approach: just move the terminal element between DOM nodes
+ * without modifying terminal state. This ensures TUI apps continue working
+ * when switching tabs.
+ */
 export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fontSize: number }) {
   const entry = getOrCreateTerminal(sessionId, opts);
   const { term, fit } = entry;
-  // open() binds DOM mouse handlers that call coreMouseService.triggerMouseEvent.
-  // Guard must be live after open (prototype patch is global; still reinstall so
-  // instance shadows from older builds are stripped and writers rebound).
+
+  // First time: open the terminal in the DOM
   if (!term.element) {
     term.open(host);
   } else if (term.element.parentElement !== host) {
+    // Tab switch: just move the element, don't touch terminal state
     host.appendChild(term.element);
   }
+
+  // Ensure PTY writers are connected (idempotent)
   ensurePtyWriters(entry, sessionId);
+
+  // Apply theme/font settings
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
-  if (term.buffer.active.type === "normal") clearLeakingDecModes(term);
+
+  // Fit to container size
   requestAnimationFrame(() => {
     fit.fit();
     void ResizeSession(sessionId, term.cols, term.rows);
   });
+
   return entry;
 }
 
