@@ -2,10 +2,13 @@ package update
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -121,13 +124,85 @@ func TestRemoveStaleCache(t *testing.T) {
 }
 
 func TestDownloadHTTPError(t *testing.T) {
+	prevRetry := downloadRetry
+	downloadRetry = 0
+	t.Cleanup(func() { downloadRetry = prevRetry })
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nope", http.StatusBadGateway)
 	}))
 	t.Cleanup(srv.Close)
 	dest := filepath.Join(t.TempDir(), "x.dmg")
-	if err := Download(context.Background(), srv.URL, dest, nil); err == nil {
+	err := Download(context.Background(), srv.URL, dest, nil)
+	if err == nil {
 		t.Fatal("expected error")
+	}
+	if strings.Contains(err.Error(), "http") || strings.Contains(err.Error(), srv.URL) {
+		t.Fatalf("user-facing error leaked internals: %q", err)
+	}
+}
+
+func TestDownloadHTTPNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "missing", http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
+	dest := filepath.Join(t.TempDir(), "x.dmg")
+	err := Download(context.Background(), srv.URL, dest, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestDownloadRetriesUnexpectedEOF(t *testing.T) {
+	prevRetry := downloadRetry
+	downloadRetry = 0
+	t.Cleanup(func() { downloadRetry = prevRetry })
+
+	body := []byte("dmg-bytes-here")
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if hits.Add(1) == 1 {
+			hj, ok := w.(http.Hijacker)
+			if !ok {
+				t.Fatal("no hijack")
+			}
+			conn, _, err := hj.Hijack()
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = conn.Close()
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		_, _ = w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+
+	dest := filepath.Join(t.TempDir(), "Qterm-1.8.0-macos-arm64.dmg")
+	if err := Download(context.Background(), srv.URL, dest, nil); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(body) {
+		t.Fatalf("got %q", got)
+	}
+	if hits.Load() < 2 {
+		t.Fatalf("hits = %d, want retry", hits.Load())
+	}
+}
+
+func TestUserDownloadErrorHidesURL(t *testing.T) {
+	raw := errors.New(`Get "https://release-assets.githubusercontent.com/github-production-release-asset/1?sig=x": unexpected EOF`)
+	got := UserDownloadError(raw)
+	if strings.Contains(got, "http") || strings.Contains(got, "EOF") {
+		t.Fatalf("leaked: %q", got)
+	}
+	if got != "The download was interrupted. Check your network, then try again." {
+		t.Fatalf("got %q", got)
 	}
 }
 

@@ -9,14 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { uiStore, useUI } from "@/store/ui";
 import { ListUpdateRisk, StartAppUpdateDownload } from "../../../wailsjs/go/main/App";
+import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 import {
   applyReadyAppUpdate,
   closeUpdateDialog,
-  ensureReleaseNotes,
   remindLaterAppUpdate,
   subscribeUpdateDialog,
 } from "./checkAppUpdate";
-import { ReleaseNotes } from "./ReleaseNotes";
 import {
   closeUpdateLabel,
   countAgentTasks,
@@ -34,7 +33,7 @@ export function UpdateDialog() {
   const bytes = useUI((s) => s.appUpdate?.bytes ?? 0);
   const total = useUI((s) => s.appUpdate?.total ?? 0);
   const error = useUI((s) => s.appUpdate?.error ?? "");
-  const releaseNotes = useUI((s) => s.appUpdate?.releaseNotes ?? "");
+  const releaseUrl = useUI((s) => s.appUpdate?.releaseUrl ?? "");
   const [warning, setWarning] = useState<{ title: string; description: string; destructive: boolean } | null>(
     null,
   );
@@ -46,7 +45,6 @@ export function UpdateDialog() {
       setWarning(null);
       return;
     }
-    void ensureReleaseNotes(version);
     let cancelled = false;
     void (async () => {
       let busy: { name: string; commands: string[] }[] = [];
@@ -84,7 +82,6 @@ export function UpdateDialog() {
   const pct = downloadPercent(bytes, total);
   const barPct = ready ? 100 : pct;
   const indeterminate = copy.showProgress && barPct == null;
-  const notes = releaseNotes.trim();
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && closeUpdateDialog()}>
@@ -94,7 +91,15 @@ export function UpdateDialog() {
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
-        {notes ? <ReleaseNotes notes={notes} className="mt-4" /> : null}
+        {releaseUrl ? (
+          <button
+            type="button"
+            onClick={() => BrowserOpenURL(releaseUrl)}
+            className="mt-2 text-[12.5px] text-primary hover:underline"
+          >
+            View changelog on GitHub
+          </button>
+        ) : null}
 
         {warning ? (
           <div className="mt-4 rounded-md bg-destructive/10 px-2.5 py-2 text-[12.5px] text-destructive">

@@ -2,6 +2,8 @@ package update
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,7 +18,14 @@ const (
 	StateReady       = "ready"
 	StateError       = "error"
 
-	downloadTimeout = 10 * time.Minute
+	downloadTimeout       = 10 * time.Minute
+	downloadHeaderTimeout = 30 * time.Second
+	downloadTLSTimeout    = 15 * time.Second
+)
+
+var (
+	downloadAttempts = 4
+	downloadRetry    = 200 * time.Millisecond
 )
 
 // Progress is a download/install snapshot for the UI. Emitted off the PTY path.
@@ -114,8 +123,88 @@ func RemoveStaleCache(latest string) error {
 	return nil
 }
 
-func downloadClient() *http.Client {
-	return &http.Client{Timeout: downloadTimeout}
+func downloadClient(forceHTTP1 bool) *http.Client {
+	tr, _ := http.DefaultTransport.(*http.Transport)
+	if tr != nil {
+		tr = tr.Clone()
+	} else {
+		tr = &http.Transport{}
+	}
+	tr.ResponseHeaderTimeout = downloadHeaderTimeout
+	tr.TLSHandshakeTimeout = downloadTLSTimeout
+	if forceHTTP1 {
+		// GitHub's asset CDN sometimes closes HTTP/2 streams with unexpected EOF.
+		tr.ForceAttemptHTTP2 = false
+		tr.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{}
+	}
+	return &http.Client{Timeout: downloadTimeout, Transport: tr}
+}
+
+type downloadHTTPError struct{ status int }
+
+func (e downloadHTTPError) Error() string {
+	return fmt.Sprintf("update download: HTTP %d", e.status)
+}
+
+func isUnexpectedEOF(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unexpected eof") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "server closed idle connection")
+}
+
+func downloadRetryable(err error) bool {
+	if err == nil || errors.Is(err, context.Canceled) {
+		return false
+	}
+	var he downloadHTTPError
+	if errors.As(err, &he) {
+		return he.status == http.StatusTooManyRequests || he.status >= 500
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "http 4") {
+		return false
+	}
+	return true
+}
+
+// UserDownloadError is a short message for the update dialog. Never include URLs.
+func UserDownloadError(err error) string {
+	if err == nil {
+		return ""
+	}
+	if errors.Is(err, context.Canceled) {
+		return ""
+	}
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "unexpected eof"),
+		strings.Contains(msg, "connection reset"),
+		strings.Contains(msg, "broken pipe"),
+		strings.Contains(msg, "i/o timeout"),
+		strings.Contains(msg, "timeout"),
+		strings.Contains(msg, "incomplete"):
+		return "The download was interrupted. Check your network, then try again."
+	case strings.Contains(msg, "no such host"),
+		strings.Contains(msg, "network is unreachable"),
+		strings.Contains(msg, "connection refused"):
+		return "Could not reach GitHub. Check your network, then try again."
+	}
+	var he downloadHTTPError
+	if errors.As(err, &he) || strings.Contains(msg, "http ") {
+		return "GitHub did not send the installer. Try again in a bit."
+	}
+	return "Could not download the update. Try again."
 }
 
 type countWriter struct {
@@ -138,17 +227,52 @@ func (w *countWriter) Write(p []byte) (int, error) {
 }
 
 // Download fetches url into dest (tmp + rename). progress may be nil.
+// Transient GitHub CDN drops (unexpected EOF) are retried, then HTTP/1.1.
 func Download(ctx context.Context, url, dest string, progress func(bytes, total int64)) error {
 	if strings.TrimSpace(url) == "" {
-		return fmt.Errorf("update: empty download URL")
+		return fmt.Errorf("%s", UserDownloadError(fmt.Errorf("empty download URL")))
 	}
 	if dest == "" {
-		return fmt.Errorf("update: empty destination")
+		return fmt.Errorf("%s", UserDownloadError(fmt.Errorf("empty destination")))
 	}
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-		return err
+		return fmt.Errorf("%s", UserDownloadError(err))
 	}
 
+	var last error
+	http1 := false
+	for i := 0; i < downloadAttempts; i++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if i > 0 {
+			timer := time.NewTimer(time.Duration(i) * downloadRetry)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
+		}
+		err := downloadOnce(ctx, url, dest, progress, http1)
+		if err == nil {
+			return nil
+		}
+		last = err
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+		if !downloadRetryable(err) {
+			return fmt.Errorf("%s", UserDownloadError(err))
+		}
+		if isUnexpectedEOF(err) {
+			http1 = true
+		}
+	}
+	return fmt.Errorf("%s", UserDownloadError(last))
+}
+
+func downloadOnce(ctx context.Context, url, dest string, progress func(bytes, total int64), forceHTTP1 bool) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
@@ -156,13 +280,13 @@ func Download(ctx context.Context, url, dest string, progress func(bytes, total 
 	req.Header.Set("User-Agent", "Qterm")
 	req.Header.Set("Accept", "application/octet-stream")
 
-	res, err := downloadClient().Do(req)
+	res, err := downloadClient(forceHTTP1).Do(req)
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("update download: HTTP %d", res.StatusCode)
+		return downloadHTTPError{status: res.StatusCode}
 	}
 	total := res.ContentLength
 	if st, err := os.Stat(dest); err == nil && total > 0 && st.Size() == total {
@@ -191,6 +315,10 @@ func Download(ctx context.Context, url, dest string, progress func(bytes, total 
 	if closeErr != nil {
 		_ = os.Remove(part)
 		return closeErr
+	}
+	if total > 0 && cw.n != total {
+		_ = os.Remove(part)
+		return fmt.Errorf("update download: incomplete (%d of %d bytes)", cw.n, total)
 	}
 	if progress != nil {
 		progress(cw.n, total)
