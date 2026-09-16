@@ -26,8 +26,11 @@ const (
 	webAccept    = "application/json"
 	githubAPIVer = "2022-11-28"
 
-	httpTimeout = 8 * time.Second
-	maxBody     = 1 << 20
+	httpTimeout   = 8 * time.Second
+	maxBody       = 1 << 20
+	fetchAttempts = 3
+	fetchRetry    = 80 * time.Millisecond
+	cacheMaxAge   = 24 * time.Hour
 )
 
 // Status is the in-app update check result.
@@ -67,18 +70,20 @@ type Asset struct {
 
 // Client fetches GitHub Releases. HTTP and API are overridable in tests.
 type Client struct {
-	HTTP *http.Client
-	API  string
-	Web  string
-	UA   string
+	HTTP  *http.Client
+	API   string
+	Web   string
+	UA    string
+	Cache string
 }
 
 func Default() *Client {
 	return &Client{
-		HTTP: &http.Client{Timeout: 2 * httpTimeout},
-		API:  defaultAPI,
-		Web:  defaultWeb,
-		UA:   defaultUA,
+		HTTP:  &http.Client{Timeout: 2 * httpTimeout},
+		API:   defaultAPI,
+		Web:   defaultWeb,
+		UA:    defaultUA,
+		Cache: defaultCacheFile(),
 	}
 }
 
@@ -91,32 +96,73 @@ func (c *Client) Check(ctx context.Context, current, skipped string) (Status, er
 		if errors.Is(err, errNotFound) {
 			return st, nil
 		}
+		if cached, ok := c.loadCachedRelease(); ok {
+			return Evaluate(current, skipped, cached), nil
+		}
 		return st, err
 	}
+	c.saveCachedRelease(rel)
 	return Evaluate(current, skipped, rel), nil
 }
 
 func (c *Client) Latest(ctx context.Context) (Release, error) {
-	rel, err := c.latestJSON(ctx, c.apiURL(), githubAccept, true)
+	// Prefer github.com (no REST quota). api.github.com is 60/hour per IP and
+	// returns 403 when Cursor or the site has already used that budget.
+	var first error
+	if c.webURL() != "" {
+		rel, err := c.latestFromWeb(ctx)
+		if err == nil {
+			return rel, nil
+		}
+		first = err
+		if !shouldFallback(err) {
+			return Release{}, err
+		}
+	}
+	rel, err := c.latestWithRetry(ctx, func() (Release, error) {
+		return c.latestJSON(ctx, c.apiURL(), githubAccept, true)
+	})
 	if err == nil {
 		return rel, nil
 	}
-	if !shouldFallback(err) || c.webURL() == "" {
-		return Release{}, err
+	if first != nil {
+		return Release{}, first
 	}
-	web, werr := c.latestFromWeb(ctx)
-	if werr != nil {
-		return Release{}, err
-	}
-	return web, nil
+	return Release{}, err
 }
 
 func (c *Client) latestFromWeb(ctx context.Context) (Release, error) {
-	rel, err := c.latestJSON(ctx, c.webURL(), webAccept, false)
+	rel, err := c.latestWithRetry(ctx, func() (Release, error) {
+		return c.latestJSON(ctx, c.webURL(), webAccept, false)
+	})
 	if err != nil {
 		return Release{}, err
 	}
 	return webRelease(rel.TagName), nil
+}
+
+func (c *Client) latestWithRetry(ctx context.Context, fn func() (Release, error)) (Release, error) {
+	var last error
+	for i := 0; i < fetchAttempts; i++ {
+		if i > 0 {
+			timer := time.NewTimer(time.Duration(i) * fetchRetry)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return Release{}, ctx.Err()
+			case <-timer.C:
+			}
+		}
+		rel, err := fn()
+		if err == nil {
+			return rel, nil
+		}
+		last = err
+		if !retryable(err) {
+			return Release{}, err
+		}
+	}
+	return Release{}, last
 }
 
 func webRelease(tag string) Release {
@@ -215,6 +261,17 @@ func shouldFallback(err error) bool {
 			he.status == http.StatusForbidden ||
 			he.status == http.StatusTooManyRequests ||
 			he.status >= 500
+	}
+	return true
+}
+
+func retryable(err error) bool {
+	if err == nil || errors.Is(err, errNotFound) || errors.Is(err, context.Canceled) {
+		return false
+	}
+	var he httpError
+	if errors.As(err, &he) {
+		return he.status == http.StatusTooManyRequests || he.status >= 500
 	}
 	return true
 }
