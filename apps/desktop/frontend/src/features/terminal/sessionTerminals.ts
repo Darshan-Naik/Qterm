@@ -1,4 +1,12 @@
-/** Long-lived xterm instances so switching panes/scopes does not wipe content. */
+/**
+ * Long-lived xterm instances with minimal state manipulation.
+ *
+ * Follows VS Code and Hyper terminal patterns:
+ * - Terminal elements are preserved across mount/unmount (no destroy on tab switch)
+ * - PTY data flows directly through without filtering
+ * - No terminal state manipulation during normal operation
+ * - Scrollback restore is simple write + flush pending data
+ */
 
 import { Terminal, type ILinkHandler, type IMarker, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -10,7 +18,6 @@ import { isAppShortcut } from "@/app/appShortcuts";
 import { keywordExpandPayload } from "@/lib/snippets";
 import { uiStore } from "@/store/ui";
 import { openTerminalLink } from "@/features/terminal/openTerminalLink";
-import { clearLeakingDecModes, forcePrimaryScreen } from "@/features/terminal/shellProtocolGuard";
 
 function b64encode(u8: Uint8Array) {
   const CHUNK = 0x8000;
@@ -255,9 +262,7 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
     }
     return true;
   });
-  // Block mouse/focus DECSET on normal; mute emulator→PTY while seeding so
-  // scrollback queries cannot write replies into the live shell. DA/CPR/OSC
-  // are answered on the Go side (or flushed urgently) for live prompts.
+
   const noop = { dispose() {} };
   entry = {
     term,
@@ -277,53 +282,50 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   installOsc133(entry);
   entries.set(sessionId, entry);
 
+  // Restore scrollback asynchronously
+  // Following VS Code/Hyper: simple write without state manipulation
   void (async () => {
     try {
       const snap = (await GetScrollback(sessionId)) as { data?: string; seq?: number };
       const cur = entries.get(sessionId);
       if (!cur) return;
       const seq = Number(snap?.seq || 0);
-      // Reset parser state so a cut mid-sequence from a prior session
-      // doesn't paint the next restore as literal garbage.
+
+      // Reset parser state so incomplete sequences from prior session
+      // don't corrupt the restore
       cur.term.reset();
-      // reset() clears listeners — reinstall PTY writers while still muted.
       ensurePtyWriters(cur, sessionId);
       installOsc133(cur);
+
       const finishSeed = () => {
-        // Scrollback may end mid-alt with mouse still armed (truncated 1049l)
-        // while the live PTY is already a normal shell. Order matters:
-        // force-primary → clear mouse → flush pending (live TUI may 1049h again).
-        const flushAfterPrimary = () => {
-          clearLeakingDecModes(cur.term);
-          cur.appliedSeq = Math.max(cur.appliedSeq, seq);
-          cur.seeding = false;
-          const pending = cur.pending;
-          cur.pending = [];
-          for (const p of pending) applyChunk(cur, p.data, p.seq);
-          // Scroll to bottom after restore so user sees prompt/input area.
-          cur.term.scrollToBottom();
-        };
-        forcePrimaryScreen(cur.term, flushAfterPrimary);
+        cur.appliedSeq = Math.max(cur.appliedSeq, seq);
+        cur.seeding = false;
+        // Flush any PTY data that arrived during restore
+        const pending = cur.pending;
+        cur.pending = [];
+        for (const p of pending) applyChunk(cur, p.data, p.seq);
+        // Scroll to bottom so user sees the prompt
+        cur.term.scrollToBottom();
       };
+
       if (snap?.data) {
         const bytes = b64decode(snap.data);
         if (bytes.length) {
+          // Write scrollback, then finish
           cur.term.write(bytes, finishSeed);
           return;
         }
       }
       finishSeed();
     } catch {
+      // On error, just finish seeding so terminal is usable
       const cur = entries.get(sessionId);
       if (!cur) return;
-      forcePrimaryScreen(cur.term, () => {
-        clearLeakingDecModes(cur.term);
-        cur.seeding = false;
-        const pending = cur.pending;
-        cur.pending = [];
-        for (const p of pending) applyChunk(cur, p.data, p.seq);
-        cur.term.scrollToBottom();
-      });
+      cur.seeding = false;
+      const pending = cur.pending;
+      cur.pending = [];
+      for (const p of pending) applyChunk(cur, p.data, p.seq);
+      cur.term.scrollToBottom();
     }
   })();
 
@@ -333,9 +335,13 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
 /**
  * Attach terminal to a DOM host element.
  *
- * Following VS Code's approach: just move the terminal element between DOM nodes
- * without modifying terminal state. This ensures TUI apps continue working
- * when switching tabs.
+ * Following VS Code and Hyper's approach:
+ * 1. Terminal element is preserved across mount/unmount cycles (Hyper pattern)
+ * 2. Tab switching just moves the DOM element without altering terminal state
+ * 3. No terminal state manipulation during attach (VS Code pattern)
+ *
+ * This ensures TUI apps (Claude CLI, vim, etc.) continue working correctly
+ * when switching tabs or reloading the window.
  */
 export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fontSize: number }) {
   const entry = getOrCreateTerminal(sessionId, opts);
@@ -345,19 +351,20 @@ export function attachTerminal(sessionId: string, host: HTMLElement, opts: { fon
   if (!term.element) {
     term.open(host);
   } else if (term.element.parentElement !== host) {
-    // Tab switch: just move the element, don't touch terminal state
+    // Tab switch: just move the element (Hyper pattern)
+    // Do NOT touch terminal state - TUI apps depend on it being preserved
     host.appendChild(term.element);
   }
 
   // Ensure PTY writers are connected (idempotent)
   ensurePtyWriters(entry, sessionId);
 
-  // Apply theme/font settings
+  // Apply visual settings only (theme/font/ruler)
   term.options.theme = terminalThemeFromCss();
   term.options.fontSize = opts.fontSize;
   term.options.overviewRuler = { width: 4 };
 
-  // Fit to container size
+  // Fit to container size after layout settles
   requestAnimationFrame(() => {
     fit.fit();
     void ResizeSession(sessionId, term.cols, term.rows);
