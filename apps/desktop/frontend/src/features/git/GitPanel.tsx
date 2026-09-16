@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { FolderTree, GitBranch, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { FolderTree, GitBranch as GitBranchIcon, Loader2 } from "lucide-react";
 import { confirm } from "@/lib/confirm";
 import { invalidateGit, useGitBranches, useGitSnapshot, useGitStashes, useGitWorktrees } from "@/queries";
 import { useUI, type GitPanelView } from "@/store/ui";
@@ -23,7 +23,9 @@ import {
   GitStashPop,
   GitUnstage,
   GitUnstageAll,
+  ListGitBranches,
 } from "../../../wailsjs/go/main/App";
+import type { GitBranch } from "./types";
 import { GitActionRow } from "./GitActionRow";
 import { GitBranchSwitcher } from "./GitBranchSwitcher";
 import { GitCommitBox } from "./GitCommitBox";
@@ -69,7 +71,13 @@ export function GitPanel({
   const stashQuery = useGitStashes(path, open && view === "stashes");
   const worktreeQuery = useGitWorktrees(path, open && view === "worktrees");
   const snap = asSnapshot(snapQuery.data);
-  const branches = (branchQuery.data || []) as Array<{
+  
+  // Fallback branches state for direct fetch
+  const [fallbackBranches, setFallbackBranches] = useState<GitBranch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  
+  // Use query data if available, otherwise fallback
+  const branches = (branchQuery.data || fallbackBranches) as Array<{
     name?: string;
     current?: boolean;
     date?: number;
@@ -86,12 +94,26 @@ export function GitPanel({
     }
   }, [open, requestedView, linked]);
 
-  // Force refetch branches when view changes to "branches"
+  // Directly fetch branches when view changes to "branches"
   useEffect(() => {
-    if (open && view === "branches" && !linked) {
-      void branchQuery.refetch();
-    }
-  }, [open, view, linked, branchQuery.refetch]);
+    if (!open || view !== "branches" || linked) return;
+    
+    // If query has data, use it
+    if (branchQuery.data && branchQuery.data.length > 0) return;
+    
+    // Direct fetch as fallback
+    setBranchesLoading(true);
+    ListGitBranches(path)
+      .then((data) => {
+        setFallbackBranches(data as GitBranch[]);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch branches:", err);
+      })
+      .finally(() => {
+        setBranchesLoading(false);
+      });
+  }, [open, view, linked, path, branchQuery.data]);
 
   useEffect(() => {
     if (!open || busy) return;
@@ -144,7 +166,7 @@ export function GitPanel({
     (error?.stderr || "").toLowerCase().includes("conflict");
 
   if (view === "branches" && !linked) {
-    const branchesLoading = (branchQuery.isLoading || branchQuery.isFetching) && branches.length === 0;
+    const isLoading = branchesLoading || ((branchQuery.isLoading || branchQuery.isFetching) && branches.length === 0);
     const branchError = branchQuery.error ? String(branchQuery.error) : undefined;
     return (
       <GitBranchSwitcher
@@ -156,7 +178,7 @@ export function GitPanel({
         current={snap?.branch || ""}
         dirty={!!snap?.dirty}
         busy={busy}
-        loading={branchesLoading}
+        loading={isLoading}
         error={branchError || (!error?.ok ? error?.stderr : undefined)}
         onBack={() => setView("main")}
         onCheckout={async (name) => {
@@ -299,7 +321,7 @@ export function GitPanel({
             ) : linked ? (
               <FolderTree className="size-3.5 shrink-0 text-muted-foreground" />
             ) : (
-              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+              <GitBranchIcon className="size-3.5 shrink-0 text-muted-foreground" />
             )}
             {linked ? (
               <span className="min-w-0 truncate text-[13px] font-medium">
