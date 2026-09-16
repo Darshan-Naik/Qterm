@@ -137,6 +137,7 @@ export function GitPanel({
     (error?.stderr || "").toLowerCase().includes("conflict");
 
   if (view === "branches" && !linked) {
+    const branchesLoading = branchQuery.isLoading && branches.length === 0;
     return (
       <GitBranchSwitcher
         branches={branches.map((b) => ({
@@ -147,6 +148,7 @@ export function GitPanel({
         current={snap?.branch || ""}
         dirty={!!snap?.dirty}
         busy={busy}
+        loading={branchesLoading}
         error={!error?.ok ? error?.stderr : undefined}
         onBack={() => setView("main")}
         onCheckout={async (name) => {
