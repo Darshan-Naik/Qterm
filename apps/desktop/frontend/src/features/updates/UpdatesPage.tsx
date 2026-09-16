@@ -7,13 +7,11 @@ import { SettingCard } from "@/features/settings/ui/SettingCard";
 import { SettingRow } from "@/features/settings/ui/SettingRow";
 import { useUI } from "@/store/ui";
 import {
-  ensureReleaseNotes,
   fetchAppUpdate,
   openUpdateDialog,
   skipAppUpdate,
   type AppUpdateStatus,
 } from "./checkAppUpdate";
-import { ReleaseNotes } from "./ReleaseNotes";
 import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 
 function statusHint(status: AppUpdateStatus | null, error: string | null): string {
@@ -58,13 +56,6 @@ export function UpdatesPage() {
   }, [refresh]);
 
   const shown = live ?? status;
-  const notes = shown?.releaseNotes?.trim() || "";
-
-  useEffect(() => {
-    if (shown?.latestVersion) {
-      void ensureReleaseNotes(shown.latestVersion);
-    }
-  }, [shown?.latestVersion, shown?.releaseNotes]);
 
   const skip = async () => {
     if (!shown?.latestVersion) return;
@@ -101,13 +92,6 @@ export function UpdatesPage() {
           control={<span className="text-[12.5px] text-muted-foreground">{latestLabel}</span>}
         />
       </SettingCard>
-
-      {notes ? (
-        <div className="mt-4">
-          <SectionLabel>Release notes</SectionLabel>
-          <ReleaseNotes notes={notes} />
-        </div>
-      ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button variant="secondary" disabled={busy} onClick={() => void refresh()}>
