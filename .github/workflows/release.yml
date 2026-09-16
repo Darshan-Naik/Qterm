@@ -144,18 +144,15 @@ jobs:
           TARGET: ${{ github.sha }}
         run: |
           set -euo pipefail
-          NOTES="$(printf '%s\n' \
-            "Qterm ${VERSION} for Mac (Apple Silicon)." \
-            "" \
-            "Download Qterm-macos-arm64.dmg." \
-            "If macOS blocks the app, open System Settings, Privacy and Security, and allow it.")"
+          chmod +x .github/scripts/release-notes.sh
+          .github/scripts/release-notes.sh "$TAG" "$VERSION" "$TARGET" > release-notes.md
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.dmg dist/SHA256SUMS --clobber
-            gh release edit "$TAG" --notes "$NOTES"
+            gh release edit "$TAG" --notes-file release-notes.md
           else
             gh release create "$TAG" dist/*.dmg dist/SHA256SUMS \
               --title "Qterm ${VERSION}" \
-              --notes "$NOTES" \
+              --notes-file release-notes.md \
               --target "$TARGET"
           fi
           gh release view "$TAG"
