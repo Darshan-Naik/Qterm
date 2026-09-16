@@ -4,7 +4,6 @@ import {
   ApplyAppUpdateAndRestart,
   CheckForAppUpdate,
   ConsumeAppUpdated,
-  FetchAppReleaseNotes,
   SkipAppUpdate,
 } from "../../../wailsjs/go/main/App";
 import { applyUpdateProgress, applyUpdateStatus, updatedToastCopy } from "./updateStatus";
@@ -15,7 +14,6 @@ const TOAST_ID = "app-update";
 
 let dialogOpen = false;
 const dialogListeners = new Set<(open: boolean) => void>();
-const notesInFlight = new Set<string>();
 
 function emitDialog() {
   for (const listener of dialogListeners) listener(dialogOpen);
@@ -24,7 +22,6 @@ function emitDialog() {
 export function openUpdateDialog() {
   dialogOpen = true;
   emitDialog();
-  void ensureReleaseNotes();
 }
 
 export function closeUpdateDialog() {
@@ -106,30 +103,7 @@ export async function fetchAppUpdate(): Promise<AppUpdateStatus> {
   }
   const prev = uiStore.get().appUpdate;
   rememberAppUpdate(applyUpdateStatus(prev, status));
-  void ensureReleaseNotes();
   return uiStore.get().appUpdate as AppUpdateStatus;
-}
-
-/** Lazy-load release notes when the web update check omitted the body. */
-export async function ensureReleaseNotes(version?: string): Promise<void> {
-  const cur = uiStore.get().appUpdate;
-  const ver = (version || cur?.latestVersion || "").trim();
-  if (!ver || !cur) return;
-  if (cur.releaseNotes?.trim()) return;
-  if (notesInFlight.has(ver)) return;
-  notesInFlight.add(ver);
-  try {
-    const notes = String((await FetchAppReleaseNotes(ver)) || "").trim();
-    if (!notes) return;
-    const latest = uiStore.get().appUpdate;
-    if (!latest || latest.latestVersion !== ver) return;
-    if (latest.releaseNotes?.trim()) return;
-    rememberAppUpdate({ ...latest, releaseNotes: notes });
-  } catch {
-    // Link to GitHub still works when the notes API is rate-limited.
-  } finally {
-    notesInFlight.delete(ver);
-  }
 }
 
 export async function runManualUpdateCheck(): Promise<AppUpdateStatus | null> {
