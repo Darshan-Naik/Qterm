@@ -129,11 +129,10 @@ func TestClientCheckHTTPError(t *testing.T) {
 }
 
 func TestClientCheckFallsBackOn403(t *testing.T) {
+	apiHits := 0
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("User-Agent") == "" {
-			t.Error("missing User-Agent")
-		}
+		apiHits++
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write([]byte(`{"message":"API rate limit exceeded"}`))
 	})
@@ -158,18 +157,19 @@ func TestClientCheckFallsBackOn403(t *testing.T) {
 	if st.DownloadURL != latestDMG {
 		t.Fatalf("download: %s", st.DownloadURL)
 	}
+	if apiHits != 0 {
+		t.Fatalf("web success should not touch the rate-limited API: hits=%d", apiHits)
+	}
 }
 
-func TestClientCheckDoesNotFallbackOn404(t *testing.T) {
-	webHits := 0
+func TestClientCheckAPIWhenWebForbidden(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v1.8.1","html_url":"https://github.com/Darshan-Naik/Qterm/releases/tag/v1.8.1","assets":[{"name":"Qterm-macos-arm64.dmg","browser_download_url":"https://ex/arm.dmg"}]}`))
 	})
 	mux.HandleFunc("/web", func(w http.ResponseWriter, r *http.Request) {
-		webHits++
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"tag_name":"v9.9.9"}`))
+		w.WriteHeader(http.StatusForbidden)
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
@@ -179,8 +179,82 @@ func TestClientCheckDoesNotFallbackOn404(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.Available || webHits != 0 {
-		t.Fatalf("404 means no releases, should not hit web: %+v hits=%d", st, webHits)
+	if !st.Available || st.LatestVersion != "1.8.1" || st.DownloadURL != "https://ex/arm.dmg" {
+		t.Fatalf("%+v", st)
+	}
+}
+
+func TestClientCheckRetriesThenSucceeds(t *testing.T) {
+	hits := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		if hits < 2 {
+			http.Error(w, "try again", http.StatusBadGateway)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v1.8.1","html_url":"https://github.com/Darshan-Naik/Qterm/releases/tag/v1.8.1","assets":[{"name":"Qterm-macos-arm64.dmg","browser_download_url":"https://ex/arm.dmg"}]}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := &Client{HTTP: srv.Client(), API: srv.URL}
+	st, err := c.Check(context.Background(), "1.8.0", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hits != 2 || !st.Available || st.LatestVersion != "1.8.1" {
+		t.Fatalf("hits=%d status=%+v", hits, st)
+	}
+}
+
+func TestClientCheckUsesCacheWhenRemoteFails(t *testing.T) {
+	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v1.8.1","html_url":"https://github.com/Darshan-Naik/Qterm/releases/tag/v1.8.1","assets":[{"name":"Qterm-macos-arm64.dmg","browser_download_url":"https://ex/arm.dmg"}]}`))
+	}))
+	t.Cleanup(ok.Close)
+	cache := t.TempDir() + "/latest.json"
+	c := &Client{HTTP: ok.Client(), API: ok.URL, Cache: cache}
+	if _, err := c.Check(context.Background(), "1.8.0", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	fail := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "nope", http.StatusInternalServerError)
+	}))
+	t.Cleanup(fail.Close)
+	c.HTTP = fail.Client()
+	c.API = fail.URL
+	st, err := c.Check(context.Background(), "1.8.0", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Available || st.LatestVersion != "1.8.1" {
+		t.Fatalf("cached: %+v", st)
+	}
+}
+
+func TestClientCheckWeb404SkipsAPI(t *testing.T) {
+	apiHits := 0
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+		apiHits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v9.9.9"}`))
+	})
+	mux.HandleFunc("/web", func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	c := &Client{HTTP: srv.Client(), API: srv.URL + "/api", Web: srv.URL + "/web"}
+	st, err := c.Check(context.Background(), "1.8.0", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Available || apiHits != 0 {
+		t.Fatalf("web 404 means no releases: %+v hits=%d", st, apiHits)
 	}
 }
 
