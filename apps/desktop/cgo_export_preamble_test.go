@@ -51,6 +51,9 @@ func TestCgoExportPreambleHasNoDefinitions(t *testing.T) {
 		if cgoPreambleDefines(preamble) {
 			t.Errorf("%s: //export preamble must only declare C symbols; move definitions to a .c/.m file", path)
 		}
+		if goCommentStuckToCgoPreamble(text) {
+			t.Errorf("%s: Go comments next to import \"C\" are compiled as C; leave a blank line", path)
+		}
 	}
 	if foundExport == 0 {
 		t.Fatal("expected at least one //export cgo file")
@@ -80,6 +83,26 @@ func cgoPreamble(src string) (string, bool) {
 	return before[start+2 : end], true
 }
 
+func goCommentStuckToCgoPreamble(src string) bool {
+	idx := strings.LastIndex(src, "import \"C\"")
+	if idx < 0 {
+		return false
+	}
+	before := strings.TrimRight(src[:idx], " \t\n")
+	start := strings.LastIndex(before, "/*")
+	if start < 0 {
+		return false
+	}
+	head := strings.TrimRight(before[:start], " \t\n")
+	nl := strings.LastIndex(head, "\n")
+	line := head
+	if nl >= 0 {
+		line = head[nl+1:]
+	}
+	line = strings.TrimSpace(line)
+	return strings.HasPrefix(line, "//") && !strings.HasPrefix(line, "//go:")
+}
+
 func cgoPreambleDefines(preamble string) bool {
 	var b strings.Builder
 	for _, line := range strings.Split(preamble, "\n") {
@@ -105,5 +128,16 @@ func TestCgoPreambleDefines(t *testing.T) {
 	}
 	if cgoPreambleDefines("#cgo LDFLAGS: -framework Cocoa\nvoid QtermSetDockBadge(int count);\nint QtermAppIsActive(void);\n") {
 		t.Fatal("declarations must be allowed")
+	}
+}
+
+func TestGoCommentStuckToCgoPreamble(t *testing.T) {
+	bad := "package p\n\n// Declarations only.\n/*\nvoid foo(void);\n*/\nimport \"C\"\n"
+	if !goCommentStuckToCgoPreamble(bad) {
+		t.Fatal("adjacent Go comments must be flagged")
+	}
+	ok := "// C lives in foo.c.\npackage p\n\n/*\nvoid foo(void);\n*/\nimport \"C\"\n"
+	if goCommentStuckToCgoPreamble(ok) {
+		t.Fatal("package comments separated by a blank line are fine")
 	}
 }

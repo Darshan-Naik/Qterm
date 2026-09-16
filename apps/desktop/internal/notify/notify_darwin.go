@@ -1,10 +1,9 @@
 //go:build darwin
 
+// C bodies live in notify_darwin.m. Keep this preamble declarations-only:
+// cgo copies it twice when //export is used, and Wails binding gen links both.
 package notify
 
-// Declarations only. Implementations live in notify_darwin.m. cgo copies this
-// preamble into two C files whenever //export is used, so definitions here
-// would duplicate at link time (Wails "Generating bindings" on macOS).
 /*
 #cgo LDFLAGS: -framework Cocoa -framework UserNotifications
 #include <stdlib.h>
