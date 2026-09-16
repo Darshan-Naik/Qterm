@@ -3,8 +3,10 @@ import { uiStore, type AppUpdateInfo } from "@/store/ui";
 import {
   ApplyAppUpdateAndRestart,
   CheckForAppUpdate,
+  ConsumeAppUpdated,
   SkipAppUpdate,
 } from "../../../wailsjs/go/main/App";
+import { applyUpdateProgress, applyUpdateStatus, updatedToastCopy } from "./updateStatus";
 
 export type AppUpdateStatus = AppUpdateInfo;
 
@@ -59,32 +61,14 @@ export function rememberAppUpdate(status: AppUpdateStatus | null) {
 export function mergeUpdateProgress(raw: unknown) {
   if (!raw || typeof raw !== "object") return;
   const o = raw as Record<string, unknown>;
-  const version = String(o.version || "");
-  const cur = uiStore.get().appUpdate;
-  if (!cur) {
-    if (!version) return;
-    rememberAppUpdate({
-      available: true,
-      currentVersion: "",
-      latestVersion: version,
-      downloadUrl: "",
-      releaseUrl: "",
-      skipped: false,
-      state: String(o.state || ""),
-      bytes: Number(o.bytes || 0),
-      total: Number(o.total || 0),
-      error: String(o.error || ""),
-    });
-    return;
-  }
-  if (version && cur.latestVersion && version !== cur.latestVersion) return;
-  rememberAppUpdate({
-    ...cur,
-    state: String(o.state || cur.state),
+  const next = applyUpdateProgress(uiStore.get().appUpdate, {
+    version: String(o.version || ""),
+    state: String(o.state || ""),
     bytes: Number(o.bytes || 0),
     total: Number(o.total || 0),
     error: String(o.error || ""),
   });
+  if (next) rememberAppUpdate(next);
 }
 
 export async function remindLaterAppUpdate(status?: AppUpdateStatus | null): Promise<void> {
@@ -117,12 +101,7 @@ export async function fetchAppUpdate(): Promise<AppUpdateStatus> {
     throw new Error("Could not check for updates");
   }
   const prev = uiStore.get().appUpdate;
-  rememberAppUpdate({
-    ...status,
-    state: status.state || prev?.state || "",
-    bytes: status.bytes || prev?.bytes || 0,
-    total: status.total || prev?.total || 0,
-  });
+  rememberAppUpdate(applyUpdateStatus(prev, status));
   return uiStore.get().appUpdate as AppUpdateStatus;
 }
 
@@ -155,6 +134,18 @@ export async function skipAppUpdate(version: string): Promise<void> {
   const cur = uiStore.get().appUpdate;
   if (!cur) return;
   rememberAppUpdate({ ...cur, skipped: Boolean(version.trim()) });
+}
+
+export async function showInstalledUpdateToast(): Promise<void> {
+  try {
+    const applied = await ConsumeAppUpdated();
+    const to = String(applied?.to || "").trim();
+    if (!to) return;
+    const copy = updatedToastCopy(String(applied?.from || ""), to);
+    toast.success(copy.title, { description: copy.description });
+  } catch {
+    // Launch still works if this IPC is missing on an older helper.
+  }
 }
 
 export { asStatus };

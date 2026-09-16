@@ -36,6 +36,12 @@ type Status struct {
 	Error          string `json:"error,omitempty"`
 }
 
+// Applied is a just-installed upgrade, shown once after restart.
+type Applied struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
 // Release is the GitHub latest-release payload we care about.
 type Release struct {
 	TagName    string  `json:"tag_name"`

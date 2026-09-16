@@ -157,6 +157,10 @@ type AppConfig struct {
 	Snippets []Snippet `json:"snippets,omitempty"`
 	// SkippedAppUpdate is a normalized version the user dismissed (no launch prompt).
 	SkippedAppUpdate string `json:"skippedAppUpdate,omitempty"`
+	// LastLaunchedAppVersion is the normalized version from the previous successful start.
+	LastLaunchedAppVersion string `json:"lastLaunchedAppVersion,omitempty"`
+	// PendingUpdateFrom is the version we upgraded from, until the UI shows the installed toast.
+	PendingUpdateFrom string `json:"pendingUpdateFrom,omitempty"`
 	// SetupComplete is true after first-run setup (or skipped). Fresh installs stay false.
 	SetupComplete bool `json:"setupComplete,omitempty"`
 	// NotifyAgent: nil means on. Banner + dock badge when an agent needs input or finishes in the background.

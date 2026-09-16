@@ -670,6 +670,21 @@ export namespace git {
 
 export namespace update {
 	
+	export class Applied {
+	    from: string;
+	    to: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Applied(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.from = source["from"];
+	        this.to = source["to"];
+	    }
+	}
+
 	export class Status {
 	    available: boolean;
 	    currentVersion: string;
