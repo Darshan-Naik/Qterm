@@ -45,4 +45,10 @@ Download Qterm from [qterm](https://qterm.darshannaik.com), open the app, and cr
 
 ---
 
+## License
+
+Qterm is licensed under the [MIT License](LICENSE).
+
+---
+
 *Qterm: terminal, without the noise.*

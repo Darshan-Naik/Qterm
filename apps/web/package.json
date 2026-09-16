@@ -2,6 +2,7 @@
   "name": "@qterm/web",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
