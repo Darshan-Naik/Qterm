@@ -175,7 +175,7 @@ export function AgentPage() {
       <SettingCard>
         <SettingRow
           title="Agent status"
-          description="Banner and dock badge when an agent needs input or finishes and Qterm is in the background."
+          description="Alert and dock badge when an agent needs input or finishes and Qterm is in the background. Alerts stay until you dismiss them."
           control={
             <Switch
               checked={notifyAgent}

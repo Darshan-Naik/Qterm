@@ -22,8 +22,9 @@ import (
 )
 
 var (
-	activateMu sync.Mutex
-	onActivate ActivateHandler
+	activateMu     sync.Mutex
+	onActivate     ActivateHandler
+	onActiveChange func()
 )
 
 //export qtermNotifyActivated
@@ -37,6 +38,16 @@ func qtermNotifyActivated(sessionID *C.char) {
 	activateMu.Unlock()
 	if h != nil {
 		h(sid)
+	}
+}
+
+//export qtermAppActiveChanged
+func qtermAppActiveChanged() {
+	activateMu.Lock()
+	h := onActiveChange
+	activateMu.Unlock()
+	if h != nil {
+		h()
 	}
 }
 
@@ -77,6 +88,12 @@ func (darwinPoster) SetBadge(count int) {
 func (darwinPoster) SetOnActivate(h ActivateHandler) {
 	activateMu.Lock()
 	onActivate = h
+	activateMu.Unlock()
+}
+
+func (darwinPoster) SetOnActiveChange(h func()) {
+	activateMu.Lock()
+	onActiveChange = h
 	activateMu.Unlock()
 }
 
