@@ -56,7 +56,7 @@ func (a *App) skippedAppUpdate() string {
 func (a *App) checkAppUpdate() (update.Status, error) {
 	current := appmode.AppVersion
 	c := update.Default()
-	c.UA = "Qterm/" + current
+	c.UA = "Qterm/" + current + " (+https://github.com/" + update.GitHubOwner + "/" + update.GitHubRepo + ")"
 	st, err := c.Check(a.updateContext(), current, a.skippedAppUpdate())
 	if err != nil {
 		return st, err
