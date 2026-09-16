@@ -26,3 +26,12 @@ type Poster interface {
 func New() Poster {
 	return newPoster()
 }
+
+// bounce runs h after returning so //export callbacks never call Wails/AppKit
+// on the same stack (that deadlocks main and looks like a crash).
+func bounce(h func()) {
+	if h == nil {
+		return
+	}
+	go h()
+}

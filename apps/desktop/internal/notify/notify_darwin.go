@@ -36,9 +36,10 @@ func qtermNotifyActivated(sessionID *C.char) {
 	activateMu.Lock()
 	h := onActivate
 	activateMu.Unlock()
-	if h != nil {
-		h(sid)
+	if h == nil {
+		return
 	}
+	bounce(func() { h(sid) })
 }
 
 //export qtermAppActiveChanged
@@ -46,9 +47,10 @@ func qtermAppActiveChanged() {
 	activateMu.Lock()
 	h := onActiveChange
 	activateMu.Unlock()
-	if h != nil {
-		h()
+	if h == nil {
+		return
 	}
+	bounce(h)
 }
 
 type darwinPoster struct{}

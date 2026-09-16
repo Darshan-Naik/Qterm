@@ -4,6 +4,7 @@
 #import <Cocoa/Cocoa.h>
 #import <UserNotifications/UserNotifications.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern void qtermNotifyActivated(char *sessionID);
 extern void qtermAppActiveChanged(void);
@@ -35,11 +36,15 @@ static int qtermBadgeCount = 0;
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)(void))completionHandler {
 	NSString *sid = response.notification.request.content.userInfo[@"sessionId"];
+	char *copy = NULL;
 	if (sid.length > 0) {
-		qtermNotifyActivated((char *)[sid UTF8String]);
-	} else {
-		qtermNotifyActivated(NULL);
+		const char *utf8 = sid.UTF8String;
+		if (utf8 != NULL) {
+			copy = strdup(utf8);
+		}
 	}
+	qtermNotifyActivated(copy);
+	free(copy);
 	completionHandler();
 }
 @end

@@ -82,3 +82,11 @@ func TestBadgeCountBackgroundKeepsFocusedWaiting(t *testing.T) {
 		t.Fatal("empty")
 	}
 }
+
+func TestBounceDoesNotRunInline(t *testing.T) {
+	ran := false
+	bounce(func() { ran = true })
+	if ran {
+		t.Fatal("handler must not run on the //export stack")
+	}
+}
