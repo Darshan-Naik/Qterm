@@ -17,7 +17,15 @@ const (
 
 	AssetARM64 = "Qterm-macos-arm64.dmg"
 
-	defaultAPI  = "https://api.github.com/repos/" + GitHubOwner + "/" + GitHubRepo + "/releases/latest"
+	defaultAPI = "https://api.github.com/repos/" + GitHubOwner + "/" + GitHubRepo + "/releases/latest"
+	defaultWeb = "https://github.com/" + GitHubOwner + "/" + GitHubRepo + "/releases/latest"
+	defaultUA  = "Qterm (+https://github.com/" + GitHubOwner + "/" + GitHubRepo + ")"
+	latestDMG  = "https://github.com/" + GitHubOwner + "/" + GitHubRepo + "/releases/latest/download/" + AssetARM64
+
+	githubAccept = "application/vnd.github+json"
+	webAccept    = "application/json"
+	githubAPIVer = "2022-11-28"
+
 	httpTimeout = 8 * time.Second
 	maxBody     = 1 << 20
 )
@@ -61,14 +69,16 @@ type Asset struct {
 type Client struct {
 	HTTP *http.Client
 	API  string
+	Web  string
 	UA   string
 }
 
 func Default() *Client {
 	return &Client{
-		HTTP: &http.Client{Timeout: httpTimeout},
+		HTTP: &http.Client{Timeout: 2 * httpTimeout},
 		API:  defaultAPI,
-		UA:   "Qterm",
+		Web:  defaultWeb,
+		UA:   defaultUA,
 	}
 }
 
@@ -87,46 +97,138 @@ func (c *Client) Check(ctx context.Context, current, skipped string) (Status, er
 }
 
 func (c *Client) Latest(ctx context.Context) (Release, error) {
-	httpClient := c.HTTP
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: httpTimeout}
+	rel, err := c.latestJSON(ctx, c.apiURL(), githubAccept, true)
+	if err == nil {
+		return rel, nil
 	}
-	api := c.API
-	if api == "" {
-		api = defaultAPI
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, api, nil)
-	if err != nil {
+	if !shouldFallback(err) || c.webURL() == "" {
 		return Release{}, err
 	}
-	ua := c.UA
-	if ua == "" {
-		ua = "Qterm"
+	web, werr := c.latestFromWeb(ctx)
+	if werr != nil {
+		return Release{}, err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", ua)
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	return web, nil
+}
 
-	res, err := httpClient.Do(req)
+func (c *Client) latestFromWeb(ctx context.Context) (Release, error) {
+	rel, err := c.latestJSON(ctx, c.webURL(), webAccept, false)
 	if err != nil {
 		return Release{}, err
 	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(res.Body, maxBody))
+	return webRelease(rel.TagName), nil
+}
+
+func webRelease(tag string) Release {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return Release{}
+	}
+	html := "https://github.com/" + GitHubOwner + "/" + GitHubRepo + "/releases/tag/" + tag
+	return Release{
+		TagName: tag,
+		HTMLURL: html,
+		Assets: []Asset{{
+			Name:               AssetARM64,
+			BrowserDownloadURL: latestDMG,
+		}},
+	}
+}
+
+func (c *Client) latestJSON(ctx context.Context, url, accept string, restAPI bool) (Release, error) {
+	body, status, err := c.get(ctx, url, accept, restAPI)
 	if err != nil {
 		return Release{}, err
 	}
-	if res.StatusCode == http.StatusNotFound {
+	if status == http.StatusNotFound {
 		return Release{}, errNotFound
 	}
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return Release{}, fmt.Errorf("github releases: HTTP %d", res.StatusCode)
+	if status < 200 || status >= 300 {
+		return Release{}, httpError{status: status, body: body}
 	}
 	var rel Release
 	if err := json.Unmarshal(body, &rel); err != nil {
 		return Release{}, err
 	}
+	if strings.TrimSpace(rel.TagName) == "" {
+		return Release{}, errNotFound
+	}
 	return rel, nil
+}
+
+func (c *Client) get(ctx context.Context, url, accept string, restAPI bool) ([]byte, int, error) {
+	httpClient := c.HTTP
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 2 * httpTimeout}
+	}
+	reqCtx, cancel := context.WithTimeout(ctx, httpTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Accept", accept)
+	req.Header.Set("User-Agent", c.userAgent())
+	if restAPI {
+		req.Header.Set("X-GitHub-Api-Version", githubAPIVer)
+	}
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxBody))
+	if err != nil {
+		return nil, 0, err
+	}
+	return body, res.StatusCode, nil
+}
+
+func (c *Client) apiURL() string {
+	if c != nil && c.API != "" {
+		return c.API
+	}
+	return defaultAPI
+}
+
+func (c *Client) webURL() string {
+	if c == nil {
+		return ""
+	}
+	return c.Web
+}
+
+func (c *Client) userAgent() string {
+	if c != nil && c.UA != "" {
+		return c.UA
+	}
+	return defaultUA
+}
+
+func shouldFallback(err error) bool {
+	if err == nil || errors.Is(err, errNotFound) || errors.Is(err, context.Canceled) {
+		return false
+	}
+	var he httpError
+	if errors.As(err, &he) {
+		return he.status == http.StatusUnauthorized ||
+			he.status == http.StatusForbidden ||
+			he.status == http.StatusTooManyRequests ||
+			he.status >= 500
+	}
+	return true
+}
+
+type httpError struct {
+	status int
+	body   []byte
+}
+
+func (e httpError) Error() string {
+	if e.status == http.StatusForbidden || e.status == http.StatusTooManyRequests {
+		return fmt.Sprintf("github releases: HTTP %d (rate limited). Try again in a few minutes.", e.status)
+	}
+	return fmt.Sprintf("github releases: HTTP %d", e.status)
 }
 
 var errNotFound = errors.New("github releases: not found")

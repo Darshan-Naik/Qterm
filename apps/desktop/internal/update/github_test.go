@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestCompare(t *testing.T) {
@@ -126,6 +128,62 @@ func TestClientCheckHTTPError(t *testing.T) {
 	}
 }
 
+func TestClientCheckFallsBackOn403(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("User-Agent") == "" {
+			t.Error("missing User-Agent")
+		}
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"message":"API rate limit exceeded"}`))
+	})
+	mux.HandleFunc("/web", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Accept"); got != webAccept {
+			t.Errorf("web Accept = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v1.8.1"}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	c := &Client{HTTP: srv.Client(), API: srv.URL + "/api", Web: srv.URL + "/web", UA: "Qterm-test"}
+	st, err := c.Check(context.Background(), "1.8.0", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Available || st.LatestVersion != "1.8.1" {
+		t.Fatalf("%+v", st)
+	}
+	if st.DownloadURL != latestDMG {
+		t.Fatalf("download: %s", st.DownloadURL)
+	}
+}
+
+func TestClientCheckDoesNotFallbackOn404(t *testing.T) {
+	webHits := 0
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
+	mux.HandleFunc("/web", func(w http.ResponseWriter, r *http.Request) {
+		webHits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v9.9.9"}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	c := &Client{HTTP: srv.Client(), API: srv.URL + "/api", Web: srv.URL + "/web"}
+	st, err := c.Check(context.Background(), "1.8.0", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Available || webHits != 0 {
+		t.Fatalf("404 means no releases, should not hit web: %+v hits=%d", st, webHits)
+	}
+}
+
 func TestClientCheckNotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
@@ -139,5 +197,20 @@ func TestClientCheckNotFound(t *testing.T) {
 	}
 	if st.Available || st.CurrentVersion != "1.6.2" {
 		t.Fatalf("%+v", st)
+	}
+}
+
+func TestDefaultCheckNetwork(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	st, err := Default().Check(ctx, "0.0.1", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Available || Normalize(st.LatestVersion) == "" {
+		t.Fatalf("expected a published release: %+v", st)
+	}
+	if !strings.HasSuffix(strings.ToLower(st.DownloadURL), ".dmg") {
+		t.Fatalf("download: %s", st.DownloadURL)
 	}
 }
