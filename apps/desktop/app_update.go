@@ -80,6 +80,14 @@ func (a *App) CheckForAppUpdate() (update.Status, error) {
 	return st, nil
 }
 
+// FetchAppReleaseNotes returns GitHub release notes for a version (lazy, off the PTY path).
+func (a *App) FetchAppReleaseNotes(version string) (string, error) {
+	current := appmode.AppVersion
+	c := update.Default()
+	c.UA = "Qterm/" + current + " (+https://github.com/" + update.GitHubOwner + "/" + update.GitHubRepo + ")"
+	return c.Notes(a.updateContext(), version)
+}
+
 func overlayUpdateProgress(a *App, st update.Status) update.Status {
 	if path, ok := update.CachedReady(st.LatestVersion); ok {
 		st.State = update.StateReady

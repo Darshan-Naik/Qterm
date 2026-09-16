@@ -38,6 +38,10 @@ export function CreateSession(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSession'](arg1, arg2, arg3);
 }
 
+export function FetchAppReleaseNotes(arg1) {
+  return window['go']['main']['App']['FetchAppReleaseNotes'](arg1);
+}
+
 export function GetAgentToolsCaps(arg1) {
   return window['go']['main']['App']['GetAgentToolsCaps'](arg1);
 }

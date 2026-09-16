@@ -25,6 +25,8 @@ export function CopyLastCommandOutput(arg1:string):Promise<string>;
 
 export function CreateSession(arg1:string,arg2:string,arg3:string):Promise<main.SessionDTO>;
 
+export function FetchAppReleaseNotes(arg1:string):Promise<string>;
+
 export function GetAgentToolsCaps(arg1:string):Promise<core.ToolsCaps>;
 
 export function GetConfig():Promise<config.AppConfig>;

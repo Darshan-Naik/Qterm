@@ -19,6 +19,7 @@ export type AppUpdateInfo = {
   latestVersion: string;
   downloadUrl: string;
   releaseUrl: string;
+  releaseNotes: string;
   skipped: boolean;
   state: string;
   bytes: number;
