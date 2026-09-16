@@ -26,6 +26,10 @@ export function CompleteSetup() {
   return window['go']['main']['App']['CompleteSetup']();
 }
 
+export function ConsumeAppUpdated() {
+  return window['go']['main']['App']['ConsumeAppUpdated']();
+}
+
 export function CopyLastCommandOutput(arg1) {
   return window['go']['main']['App']['CopyLastCommandOutput'](arg1);
 }

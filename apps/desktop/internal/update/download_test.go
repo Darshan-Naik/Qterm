@@ -71,6 +71,55 @@ func TestDownloadAndCachedReady(t *testing.T) {
 	}
 }
 
+func TestCacheVersion(t *testing.T) {
+	if got := cacheVersion("Qterm-1.6.2-macos-arm64.dmg"); got != "1.6.2" {
+		t.Fatalf("got %q", got)
+	}
+	if got := cacheVersion("Qterm-1.6.2-macos-arm64.dmg.part"); got != "1.6.2" {
+		t.Fatalf("part %q", got)
+	}
+	if got := cacheVersion("notes.txt"); got != "" {
+		t.Fatalf("other %q", got)
+	}
+}
+
+func TestRemoveStaleCache(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOME", root)
+	t.Setenv("XDG_CACHE_HOME", root)
+	dir, err := CacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := filepath.Join(dir, "Qterm-1.6.2-macos-arm64.dmg")
+	part := filepath.Join(dir, "Qterm-1.6.2-macos-arm64.dmg.part")
+	keep := filepath.Join(dir, "Qterm-1.7.0-macos-arm64.dmg")
+	if err := os.WriteFile(old, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(part, []byte("p"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(keep, []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := RemoveStaleCache("v1.7.0"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Fatal("older dmg should be removed")
+	}
+	if _, err := os.Stat(part); !os.IsNotExist(err) {
+		t.Fatal("older part should be removed")
+	}
+	if _, err := os.Stat(keep); err != nil {
+		t.Fatal("latest dmg should remain")
+	}
+}
+
 func TestDownloadHTTPError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nope", http.StatusBadGateway)

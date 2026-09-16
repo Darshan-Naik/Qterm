@@ -101,6 +101,7 @@ func (a *App) startup(ctx context.Context) {
 	a.restoreSessions()
 	a.setupMenu()
 	a.ready = true
+	a.noteLaunchVersion()
 	// Best-effort notify; DomReady also emits (EventsEmit is reliable there).
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "app:ready", nil)

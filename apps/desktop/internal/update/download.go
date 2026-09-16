@@ -72,6 +72,48 @@ func CachedReady(version string) (string, bool) {
 	return path, true
 }
 
+func cacheVersion(name string) string {
+	name = strings.TrimSuffix(name, ".part")
+	name = strings.TrimSuffix(name, ".dmg")
+	const prefix = "Qterm-"
+	const suffix = "-macos-arm64"
+	if !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+		return ""
+	}
+	return Normalize(strings.TrimSuffix(strings.TrimPrefix(name, prefix), suffix))
+}
+
+// RemoveStaleCache deletes cached installers older than latest so a ready 1.6.2
+// DMG cannot hide 1.7.0 after a newer GitHub Release is published.
+func RemoveStaleCache(latest string) error {
+	latest = Normalize(latest)
+	if latest == "" {
+		return nil
+	}
+	dir, err := CacheDir()
+	if err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		ver := cacheVersion(e.Name())
+		if ver == "" || Compare(ver, latest) >= 0 {
+			continue
+		}
+		_ = os.Remove(filepath.Join(dir, e.Name()))
+	}
+	return nil
+}
+
 func downloadClient() *http.Client {
 	return &http.Client{Timeout: downloadTimeout}
 }

@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	appUpdateNotifyDelay   = 4 * time.Second
-	appUpdateProgressEvent = "app:update-progress"
+	appUpdateNotifyDelay     = 4 * time.Second
+	appUpdateRecheckInterval = time.Hour
+	appUpdateProgressEvent   = "app:update-progress"
 )
 
 type appUpdateDL struct {
@@ -59,6 +60,10 @@ func (a *App) checkAppUpdate() (update.Status, error) {
 	st, err := c.Check(a.updateContext(), current, a.skippedAppUpdate())
 	if err != nil {
 		return st, err
+	}
+	if st.LatestVersion != "" {
+		_ = update.RemoveStaleCache(st.LatestVersion)
+		a.dropStaleDownload(st.LatestVersion)
 	}
 	return overlayUpdateProgress(a, st), nil
 }
@@ -106,6 +111,27 @@ func overlayUpdateProgress(a *App, st update.Status) update.Status {
 	return st
 }
 
+func (a *App) dropStaleDownload(latest string) {
+	dl := a.updateDL()
+	if dl == nil {
+		return
+	}
+	latest = update.Normalize(latest)
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+	if dl.prog.Version == "" || latest == "" {
+		return
+	}
+	if update.Normalize(dl.prog.Version) == latest {
+		return
+	}
+	if dl.cancel != nil {
+		dl.cancel()
+		dl.cancel = nil
+	}
+	dl.prog = update.Progress{}
+}
+
 // SkipAppUpdate records a version the user does not want to be prompted about.
 // Empty version clears the skip.
 func (a *App) SkipAppUpdate(version string) error {
@@ -139,13 +165,13 @@ func (a *App) ApplyAppUpdateAndRestart() error {
 	if a == nil {
 		return nil
 	}
-	version := a.currentUpdateVersion()
+	st, err := a.checkAppUpdate()
+	if err != nil {
+		return err
+	}
+	version := st.LatestVersion
 	if version == "" {
-		st, err := a.checkAppUpdate()
-		if err != nil {
-			return err
-		}
-		version = st.LatestVersion
+		return fmt.Errorf("The update is still downloading")
 	}
 	path, ok := update.CachedReady(version)
 	if !ok {
@@ -158,16 +184,6 @@ func (a *App) ApplyAppUpdateAndRestart() error {
 		runtime.Quit(a.ctx)
 	}
 	return nil
-}
-
-func (a *App) currentUpdateVersion() string {
-	dl := a.updateDL()
-	if dl == nil {
-		return ""
-	}
-	dl.mu.Lock()
-	defer dl.mu.Unlock()
-	return dl.prog.Version
 }
 
 func (a *App) startAppUpdateDownload(st update.Status) {
@@ -328,7 +344,21 @@ func (a *App) notifyAppUpdate() {
 	case <-a.updateContext().Done():
 		return
 	}
-	if a.shuttingDown {
+	a.emitAppUpdateIfAvailable()
+	tick := time.NewTicker(appUpdateRecheckInterval)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			a.emitAppUpdateIfAvailable()
+		case <-a.updateContext().Done():
+			return
+		}
+	}
+}
+
+func (a *App) emitAppUpdateIfAvailable() {
+	if a == nil || a.shuttingDown {
 		return
 	}
 	st, err := a.CheckForAppUpdate()
@@ -338,4 +368,38 @@ func (a *App) notifyAppUpdate() {
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "app:update-available", st)
 	}
+}
+
+func (a *App) noteLaunchVersion() {
+	if a == nil || a.store == nil {
+		return
+	}
+	current := update.Normalize(appmode.AppVersion)
+	if current == "" || current == "dev" {
+		return
+	}
+	_ = a.store.Update(func(cfg *config.AppConfig) {
+		prev := update.Normalize(cfg.LastLaunchedAppVersion)
+		if prev != "" && update.Compare(current, prev) > 0 {
+			cfg.PendingUpdateFrom = prev
+		}
+		cfg.LastLaunchedAppVersion = current
+	})
+}
+
+// ConsumeAppUpdated returns a just-installed upgrade once, then clears it.
+func (a *App) ConsumeAppUpdated() update.Applied {
+	if a == nil || a.store == nil {
+		return update.Applied{}
+	}
+	cfg := a.store.Get()
+	from := update.Normalize(cfg.PendingUpdateFrom)
+	to := update.Normalize(appmode.AppVersion)
+	if from == "" || to == "" || update.Compare(to, from) <= 0 {
+		return update.Applied{}
+	}
+	_ = a.store.Update(func(c *config.AppConfig) {
+		c.PendingUpdateFrom = ""
+	})
+	return update.Applied{From: from, To: to}
 }

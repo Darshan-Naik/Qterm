@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
-import { asStatus, mergeUpdateProgress, rememberAppUpdate, runManualUpdateCheck } from "./checkAppUpdate";
+import { uiStore } from "@/store/ui";
+import { asStatus, mergeUpdateProgress, rememberAppUpdate, runManualUpdateCheck, showInstalledUpdateToast } from "./checkAppUpdate";
+import { applyUpdateStatus } from "./updateStatus";
 
 type Off = (() => void) | undefined;
 
@@ -14,7 +16,7 @@ export function UpdateListener() {
     const offAvail = on("app:update-available", (raw) => {
       const status = asStatus(raw);
       if (!status) return;
-      rememberAppUpdate(status);
+      rememberAppUpdate(applyUpdateStatus(uiStore.get().appUpdate, status));
     });
     const offProg = on("app:update-progress", (raw) => {
       mergeUpdateProgress(raw);
@@ -22,6 +24,7 @@ export function UpdateListener() {
     const offCheck = on("app:check-updates", () => {
       void runManualUpdateCheck();
     });
+    void showInstalledUpdateToast();
     return () => {
       if (typeof offAvail === "function") offAvail();
       if (typeof offProg === "function") offProg();
