@@ -123,6 +123,20 @@ describe("updateDialogCopy", () => {
     assert.match(copy.description, /network down/);
   });
 
+  it("hides raw GitHub asset URLs from download failures", () => {
+    const copy = updateDialogCopy({
+      version: "1.7.0",
+      state: "error",
+      error:
+        'Get "https://release-assets.githubusercontent.com/github-production-release-asset/1/abc?sig=x": unexpected EOF',
+      available: true,
+    });
+    assert.equal(copy.title, "Could not download the update");
+    assert.equal(copy.description, "The download was interrupted. Check your network, then try again.");
+    assert.doesNotMatch(copy.description, /https?:\/\//i);
+    assert.doesNotMatch(copy.description, /unexpected EOF/i);
+  });
+
   it("exposes Close and Remind me later labels for the dialog actions", () => {
     assert.equal(closeUpdateLabel, "Close");
     assert.equal(remindLaterLabel, "Remind me later");

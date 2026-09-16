@@ -26,6 +26,24 @@ export function downloadPercent(bytes: number, total: number): number | null {
   return Math.min(100, Math.max(0, Math.round((bytes / total) * 100)));
 }
 
+/** Short copy for download failures. Never show GitHub asset URLs. */
+export function friendlyUpdateError(error: string): string {
+  const text = error.trim();
+  if (!text) return "Check your network, then try again.";
+  const lower = text.toLowerCase();
+  if (
+    /https?:\/\//i.test(text) ||
+    text.length > 160 ||
+    lower.includes("unexpected eof") ||
+    lower.includes("connection reset") ||
+    lower.includes("broken pipe") ||
+    lower.includes("i/o timeout")
+  ) {
+    return "The download was interrupted. Check your network, then try again.";
+  }
+  return text;
+}
+
 export type UpdateDialogCopy = {
   title: string;
   description: string;
@@ -50,7 +68,7 @@ export function updateDialogCopy(opts: {
   if (failed) {
     return {
       title: "Could not download the update",
-      description: opts.error.trim() || "Check your network, then try again.",
+      description: friendlyUpdateError(opts.error),
       showProgress: false,
       progressLabel: "",
       primaryLabel: tryAgainLabel,
