@@ -73,6 +73,7 @@ export function useGitBranches(path: string | undefined, enabled: boolean) {
     enabled: !!path && enabled,
     staleTime: 5_000,
     persist: false,
+    refetchOnSubscribe: "always",
   });
 }
 
