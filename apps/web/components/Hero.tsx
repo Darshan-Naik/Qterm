@@ -17,7 +17,7 @@ export async function Hero() {
         </h1>
         <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted-foreground sm:text-[18px]">
           Fast, clean, and light. Qterm is an agent terminal for Mac: projects, splits, and Claude Code,
-          Codex, or Gemini CLI in one quiet window.
+          Codex, Gemini CLI, or Grok Build in one quiet window.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <GithubLink />

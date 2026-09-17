@@ -180,7 +180,9 @@ func normalizeEvent(event string) string {
 		return "user_prompt"
 	case "stopfailure":
 		return "stop_failure"
-	case "permissionrequest":
+	case "stopcancelled", "stop_cancelled":
+		return "stop"
+	case "permissionrequest", "permissiondenied", "permission_denied":
 		return "permission"
 	case "requestuserinput", "request_user_input", "userinputrequest", "user_input_request":
 		return "request_user_input"

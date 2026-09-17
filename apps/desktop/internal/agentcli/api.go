@@ -12,6 +12,7 @@ import (
 	"qterm/internal/agentcli/cli/codex"
 	"qterm/internal/agentcli/cli/cursor"
 	"qterm/internal/agentcli/cli/gemini"
+	"qterm/internal/agentcli/cli/grok"
 	"qterm/internal/agentcli/core"
 )
 
@@ -56,6 +57,7 @@ func All() []core.Adapter {
 		claude.New(),
 		codex.New(),
 		gemini.New(),
+		grok.New(),
 		agy.New(),
 		cursor.New(),
 	}

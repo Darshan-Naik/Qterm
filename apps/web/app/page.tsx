@@ -20,7 +20,7 @@ export default async function HomePage() {
         <FaqSection
           items={HOME_FAQ}
           title="Agent terminal, answered"
-          body="Short answers on what an agent terminal is, and how Qterm runs Claude Code, Codex, and Gemini CLI on Mac."
+          body="Short answers on what an agent terminal is, and how Qterm runs Claude Code, Codex, Gemini CLI, and Grok Build on Mac."
         />
         <DownloadSection />
       </main>

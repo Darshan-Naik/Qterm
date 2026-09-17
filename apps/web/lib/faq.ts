@@ -7,7 +7,7 @@ export const HOME_FAQ: FaqItem[] = [
   {
     question: "What is an agent terminal?",
     answer:
-      "An agent terminal is a terminal built so coding agents can run next to your shells. You keep Claude Code, Codex, Gemini CLI, or Cursor Agent in the same window as normal terminals, with projects and splits instead of a separate chat app.",
+      "An agent terminal is a terminal built so coding agents can run next to your shells. You keep Claude Code, Codex, Gemini CLI, Grok Build, or Cursor Agent in the same window as normal terminals, with projects and splits instead of a separate chat app.",
   },
   {
     question: "What is an agentic terminal?",
@@ -27,7 +27,7 @@ export const HOME_FAQ: FaqItem[] = [
   {
     question: "Can I run Claude Code, Codex, and Gemini CLI in Qterm?",
     answer:
-      "Yes. Open a project, split panes, and run Claude Code, Codex, Gemini CLI, Cursor Agent, or Antigravity beside your shells. Each one stays in the terminal.",
+      "Yes. Open a project, split panes, and run Claude Code, Codex, Gemini CLI, Grok Build, Cursor Agent, or Antigravity beside your shells. Each one stays in the terminal.",
   },
   {
     question: "Does Qterm work on Mac?",
@@ -40,7 +40,7 @@ export const AGENT_TERMINAL_FAQ: FaqItem[] = [
   {
     question: "What does agent terminal mean?",
     answer:
-      "An agent terminal hosts coding agents in a real shell. Qterm is an agent terminal for Mac where Claude Code, Codex, Gemini CLI, and Cursor Agent stay in the terminal.",
+      "An agent terminal hosts coding agents in a real shell. Qterm is an agent terminal for Mac where Claude Code, Codex, Gemini CLI, Grok Build, and Cursor Agent stay in the terminal.",
   },
   {
     question: "What is the best agentic terminal?",

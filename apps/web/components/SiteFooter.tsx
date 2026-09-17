@@ -9,7 +9,7 @@ export function SiteFooter() {
           <p className="text-foreground/80">
             {SITE.name}: {SITE.tagline}
           </p>
-          <p className="mt-1 max-w-sm">Fast, light Mac agent terminal for Claude Code, Codex, and Gemini CLI.</p>
+          <p className="mt-1 max-w-sm">Fast, light Mac agent terminal for Claude Code, Codex, Gemini CLI, and Grok Build.</p>
         </div>
         <nav className="flex flex-wrap gap-x-5 gap-y-2">
           {FOOTER_LINKS.map((item) => (

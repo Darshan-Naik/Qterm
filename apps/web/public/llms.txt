@@ -1,6 +1,6 @@
 # Qterm
 
-> Qterm is a fast, light agent terminal for Mac. Run Claude Code, Codex, Gemini CLI, Cursor Agent, and Antigravity in one quiet window with projects and splits. Agents stay in the terminal.
+> Qterm is a fast, light agent terminal for Mac. Run Claude Code, Codex, Gemini CLI, Grok Build, Cursor Agent, and Antigravity in one quiet window with projects and splits. Agents stay in the terminal.
 
 ## Product
 - Home: https://qterm.darshannaik.com
@@ -12,6 +12,7 @@
 - Claude Code: https://qterm.darshannaik.com/agents/claude-code
 - Codex: https://qterm.darshannaik.com/agents/codex
 - Gemini CLI: https://qterm.darshannaik.com/agents/gemini-cli
+- Grok Build: https://qterm.darshannaik.com/agents/grok-build
 - Cursor Agent: https://qterm.darshannaik.com/agents/cursor-agent
 - Antigravity: https://qterm.darshannaik.com/agents/antigravity
 

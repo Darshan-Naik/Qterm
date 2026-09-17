@@ -17,6 +17,7 @@ export const AGENT_KEYWORDS = [
   "terminal for Claude Code",
   "Codex CLI terminal",
   "Gemini CLI terminal",
+  "Grok Build terminal",
   "Cursor Agent terminal",
   "Antigravity terminal",
 ] as const;
@@ -37,6 +38,7 @@ export const SITE_KEYWORDS = [
   "Claude Code",
   "Codex",
   "Gemini CLI",
+  "Grok Build",
   "Cursor Agent",
   "Antigravity",
   "splits",

@@ -75,6 +75,7 @@ export function softwareApplicationLd(): JsonLd {
       "Claude Code",
       "Codex CLI",
       "Gemini CLI",
+      "Grok Build",
       "Cursor Agent",
       "Antigravity",
       "Projects",
@@ -147,6 +148,7 @@ export const SITEMAP_PATHS = [
   "/agents/claude-code",
   "/agents/codex",
   "/agents/gemini-cli",
+  "/agents/grok-build",
   "/agents/cursor-agent",
   "/agents/antigravity",
 ] as const;

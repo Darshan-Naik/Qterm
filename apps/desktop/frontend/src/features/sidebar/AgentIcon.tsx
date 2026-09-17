@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import claudeIcon from "@/assets/agents/claude.png";
 import codexIcon from "@/assets/agents/codex.png";
 import geminiIcon from "@/assets/agents/gemini.png";
+import grokIcon from "@/assets/agents/grok.png";
 import agyIcon from "@/assets/agents/agy.png";
 import cursorIcon from "@/assets/agents/cursor.png";
 
@@ -10,6 +11,7 @@ const AGENT_ICONS: Record<string, string> = {
   claude: claudeIcon,
   codex: codexIcon,
   gemini: geminiIcon,
+  grok: grokIcon,
   agy: agyIcon,
   antigravity: agyIcon,
   cursor: cursorIcon,
@@ -23,6 +25,8 @@ export function agentLabel(id: string) {
       return "Codex";
     case "gemini":
       return "Gemini CLI";
+    case "grok":
+      return "Grok Build";
     case "agy":
       return "Antigravity";
     case "cursor":
@@ -42,6 +46,7 @@ export function normalizeAgentId(id: string) {
   if (key.startsWith("claude")) return "claude";
   if (key.startsWith("codex")) return "codex";
   if (key.startsWith("gemini")) return "gemini";
+  if (key.startsWith("grok")) return "grok";
   if (key.startsWith("cursor")) return "cursor";
   return key;
 }

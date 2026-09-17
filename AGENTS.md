@@ -37,7 +37,7 @@ apps/desktop/frontend/src/
 
 apps/desktop/internal/agentcli/
   core/          # Adapter interface, schema, shared install/hook helpers
-  cli/<name>/    # one folder per CLI (claude, codex, gemini, cursor, agy)
+  cli/<name>/    # one folder per CLI (claude, codex, gemini, grok, cursor, agy)
   api.go         # app/bridge facade — ListCLIs, Install, ListSessions, Resume
   bridge/        # HTTP hook server + stdio MCP
 

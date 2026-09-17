@@ -63,6 +63,23 @@ export const AGENT_PAGES: AgentPage[] = [
     closing: "Search for Gemini CLI terminal and you want a host, not another product. Qterm is that host.",
   },
   {
+    slug: "grok-build",
+    name: "Grok Build",
+    title: "Grok Build Terminal for Mac",
+    description:
+      "Run xAI Grok Build in Qterm, a fast Mac agent terminal with projects and splits. Grok stays in the terminal next to your shells.",
+    heading: "Grok Build, in an agent terminal",
+    intro:
+      "Grok Build is xAI's terminal coding agent. Qterm gives it a light Mac home: named panes, project folders, and splits so grok does not live in a random tab.",
+    points: [
+      "Launch grok in a project directory you already mapped in the sidebar.",
+      "Keep a shell beside it for git, tests, or logs.",
+      "Resume the session later. Qterm remembers where you left off.",
+      "Use Grok Build next to Claude Code or Gemini CLI without a shared chat UI.",
+    ],
+    closing: "Qterm is a Grok Build terminal the same way it is a Claude Code terminal: your CLI, our window.",
+  },
+  {
     slug: "cursor-agent",
     name: "Cursor Agent",
     title: "Cursor Agent Terminal for Mac",

@@ -9,7 +9,7 @@ import { articleLd, breadcrumbLd, faqPageLd, pageMeta } from "@/lib/seo";
 
 const title = "Agent Terminal for Mac";
 const description =
-  "Qterm is a fast, light agent terminal for Mac. Run Claude Code, Codex, Gemini CLI, and Cursor Agent in one quiet window with projects and splits.";
+  "Qterm is a fast, light agent terminal for Mac. Run Claude Code, Codex, Gemini CLI, Grok Build, and Cursor Agent in one quiet window with projects and splits.";
 const path = "/agent-terminal";
 const crumbs = [
   { href: "/", label: "Qterm" },
@@ -34,7 +34,7 @@ export default function AgentTerminalPage() {
         <p>
           An <strong className="font-medium text-foreground">agent terminal</strong> is a window that hosts
           coding agents next to your shells. Qterm is that window: a fast, light Mac agent terminal where
-          Claude Code, Codex, Gemini CLI, and Cursor Agent stay in the shell.
+          Claude Code, Codex, Gemini CLI, Grok Build, and Cursor Agent stay in the shell.
         </p>
         <p>
           An <strong className="font-medium text-foreground">agentic terminal</strong> is the same idea with
@@ -50,7 +50,7 @@ export default function AgentTerminalPage() {
         </p>
         <h2 className="pt-4 text-[22px] font-semibold tracking-tight text-foreground">What Qterm runs</h2>
         <p>
-          Claude Code, Codex, Gemini CLI, Cursor Agent, and Antigravity. Each one is a normal terminal
+          Claude Code, Codex, Gemini CLI, Grok Build, Cursor Agent, and Antigravity. Each one is a normal terminal
           session under a project. Split right or down when you want two agents, or an agent beside git.
         </p>
       </article>
@@ -72,6 +72,11 @@ export default function AgentTerminalPage() {
             href: "/agents/gemini-cli",
             label: "Gemini CLI terminal",
             body: "Host Gemini CLI in the same quiet window.",
+          },
+          {
+            href: "/agents/grok-build",
+            label: "Grok Build terminal",
+            body: "Keep grok in a project pane beside your shells.",
           },
         ]}
       />

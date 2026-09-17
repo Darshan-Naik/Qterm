@@ -5,7 +5,7 @@ export const SITE = {
     "Fast, clean, and light. Projects, splits, and your agents in one quiet window.",
   seoTitle: "Qterm: Fast Agent Terminal for Mac",
   seoDescription:
-    "Fast, light Mac terminal for AI coding agents. Run Claude Code, Codex, Gemini CLI, and Cursor Agent in one quiet window with projects and splits.",
+    "Fast, light Mac terminal for AI coding agents. Run Claude Code, Codex, Gemini CLI, Grok Build, and Cursor Agent in one quiet window with projects and splits.",
   github: "https://github.com/Darshan-Naik/Qterm",
   sponsors: "https://github.com/sponsors/Darshan-Naik",
   repo: "Darshan-Naik/Qterm",
@@ -49,7 +49,7 @@ export const FEATURES = [
   {
     title: "Ready for agents",
     visual: "agents" as const,
-    body: "Qterm is an agent terminal: keep Claude Code, Codex, Gemini CLI, and Cursor Agent in the same window as your shells, without turning it into a chat app.",
+    body: "Qterm is an agent terminal: keep Claude Code, Codex, Gemini CLI, Grok Build, and Cursor Agent in the same window as your shells, without turning it into a chat app.",
   },
 ] as const;
 
@@ -57,6 +57,7 @@ export const AGENTS = [
   { id: "claude", slug: "claude-code", name: "Claude Code", src: "/agents/claude.png" },
   { id: "codex", slug: "codex", name: "Codex", src: "/agents/codex.png" },
   { id: "gemini", slug: "gemini-cli", name: "Gemini CLI", src: "/agents/gemini.png" },
+  { id: "grok", slug: "grok-build", name: "Grok Build", src: "/agents/grok.png" },
   { id: "cursor", slug: "cursor-agent", name: "Cursor Agent", src: "/agents/cursor.png" },
   { id: "agy", slug: "antigravity", name: "Antigravity", src: "/agents/agy.png" },
 ] as const;
@@ -73,4 +74,5 @@ export const FOOTER_LINKS = [
   { href: "/agents/claude-code", label: "Claude Code" },
   { href: "/agents/codex", label: "Codex" },
   { href: "/agents/gemini-cli", label: "Gemini CLI" },
+  { href: "/agents/grok-build", label: "Grok Build" },
 ] as const;

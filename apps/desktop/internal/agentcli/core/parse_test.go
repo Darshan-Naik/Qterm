@@ -128,6 +128,20 @@ func TestParseHookStopFailureIsCompleteNotNeedsInput(t *testing.T) {
 	}
 }
 
+func TestParseHookGrokStopCancelledIsComplete(t *testing.T) {
+	out := ParseHook(ParseInput{Source: "grok", Event: "StopCancelled", SessionID: "s1"})
+	if len(out) != 1 || payloadState(out[0]) != "task_complete" {
+		t.Fatalf("got %#v", out)
+	}
+}
+
+func TestParseHookGrokPermissionDenied(t *testing.T) {
+	out := ParseHook(ParseInput{Source: "grok", Event: "PermissionDenied", SessionID: "s1"})
+	if len(out) != 1 || payloadState(out[0]) != "action_required" {
+		t.Fatalf("got %#v", out)
+	}
+}
+
 func TestParseHookUnknownNotificationSilent(t *testing.T) {
 	out := ParseHook(ParseInput{
 		Source:    "claude",

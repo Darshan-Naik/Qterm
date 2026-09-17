@@ -17,7 +17,7 @@ export const SHORTCUT_META: ShortcutMeta[] = [
   {
     id: "agentSessions",
     label: "Agent sessions",
-    description: "Resume a Claude / Codex / Gemini / Cursor session from disk",
+    description: "Resume a Claude / Codex / Gemini / Grok / Cursor session from disk",
     group: "General",
     whenSettings: "block",
   },
