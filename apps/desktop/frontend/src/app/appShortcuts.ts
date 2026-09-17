@@ -120,6 +120,11 @@ const HANDLERS: Record<ShortcutId, () => void | Promise<void>> = {
     const id = uiStore.get().focusedSessionId;
     if (id) void import("@/features/terminal/sessionTerminals").then((m) => m.jumpSessionCommand(id, 1));
   },
+  jumpUnread: () => {
+    void import("@/lib/jumpUnread").then((m) => {
+      if (!m.jumpToUnread()) toast.message("No unread agent terminals");
+    });
+  },
 };
 
 /**

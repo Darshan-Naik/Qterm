@@ -45,6 +45,7 @@ export function SessionRow({
   const projects = useUI((s) => s.projects);
   const anim = useUI((s) => s.paneAnimations[session.id] || "none");
   const agent = useUI((s) => s.sessionAgents[session.id] || "");
+  const notice = useUI((s) => s.sessionNotices[session.id] || "");
   const focused = focusedSessionId === session.id;
   const pinned = !!session.pinned;
   const project = projects.find((p) => p.id === session.projectId);
@@ -170,7 +171,7 @@ export function SessionRow({
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             className={cn(
-              "flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 text-left",
+              "flex min-w-0 flex-1 items-start gap-2.5 px-2.5 py-1.5 text-left",
               !showWorktree && "group-hover:pr-8",
               !showWorktree && rowActive && "pr-8",
               canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
@@ -185,7 +186,7 @@ export function SessionRow({
               }
             }}
           >
-            <span className="relative flex size-4 shrink-0 items-center justify-center">
+            <span className="relative mt-0.5 flex size-4 shrink-0 items-center justify-center">
               {agent ? (
                 <WithTooltip label={agentLabel(agent)} side="right">
                   <span className="inline-flex">
@@ -197,45 +198,52 @@ export function SessionRow({
               )}
               {needsInput || complete ? <SessionStatusDot /> : null}
             </span>
-            <span className="flex h-5 min-w-0 flex-1 items-center gap-1.5">
-              {pinned ? (
-                <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
-              ) : null}
-              {editing ? (
-                <input
-                  autoFocus
-                  value={draft}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onBlur={() => void commit()}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === "Enter") {
+            <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+              <span className="flex h-5 min-w-0 items-center gap-1.5">
+                {pinned ? (
+                  <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
+                ) : null}
+                {editing ? (
+                  <input
+                    autoFocus
+                    value={draft}
+                    onFocus={(e) => e.currentTarget.select()}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={() => void commit()}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commit();
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        setDraft(session.name);
+                        setEditing(false);
+                      }
+                    }}
+                    className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] leading-5 text-sidebar-foreground outline-none"
+                  />
+                ) : (
+                  <SessionFlowTitle
+                    name={session.name}
+                    thinking={thinking}
+                    onDoubleClick={(e) => {
                       e.preventDefault();
-                      void commit();
-                    }
-                    if (e.key === "Escape") {
-                      e.preventDefault();
+                      e.stopPropagation();
                       setDraft(session.name);
-                      setEditing(false);
-                    }
-                  }}
-                  className="box-border h-5 min-w-0 flex-1 bg-transparent px-0 text-[13px] leading-5 text-sidebar-foreground outline-none"
-                />
-              ) : (
-                <SessionFlowTitle
-                  name={session.name}
-                  thinking={thinking}
-                  onDoubleClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDraft(session.name);
-                    setEditing(true);
-                  }}
-                />
-              )}
-              {git?.dirty ? <GitDirtyDot /> : null}
+                      setEditing(true);
+                    }}
+                  />
+                )}
+                {git?.dirty ? <GitDirtyDot /> : null}
+              </span>
+              {needsInput && notice ? (
+                <span className="truncate pl-0 text-[11px] font-normal leading-tight text-amber-600/90 dark:text-amber-400/80">
+                  {notice}
+                </span>
+              ) : null}
             </span>
           </div>
 

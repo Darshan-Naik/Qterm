@@ -171,13 +171,22 @@ func mcpTools() []map[string]any {
 				"submit":     map[string]any{"type": "boolean"},
 			},
 		}),
-		tool("notify_user", "Show a macOS notification and bring Qterm forward. Use when the human must look at this pane.", map[string]any{
+		tool("notify_user", "Ring attention on a pane, show a macOS notification, and optionally bring Qterm forward (focus defaults true).", map[string]any{
 			"type": "object",
 			"properties": map[string]any{
 				"title": map[string]any{"type": "string"},
 				"body":  map[string]any{"type": "string"},
 				"id":    map[string]any{"type": "string"},
+				"focus": map[string]any{"type": "boolean", "description": "Bring Qterm forward and focus the pane. Default true."},
 			},
+		}),
+		tool("jump_unread", "Focus the most recent terminal that needs attention (needs-input / notify).", map[string]any{
+			"type":       "object",
+			"properties": map[string]any{},
+		}),
+		tool("list_unread", "List terminals waiting for attention with their notice text.", map[string]any{
+			"type":       "object",
+			"properties": map[string]any{},
 		}),
 		tool("open_in_ide", "Open a folder in the user's default IDE. Omit path to open this terminal's cwd.", map[string]any{
 			"type": "object",
@@ -268,7 +277,14 @@ func callTool(base, token, terminalHint, name string, args map[string]any) (stri
 		}
 		method, path, body = http.MethodPost, "/v1/tools/terminals/"+id+"/write", args
 	case "notify_user":
+		if args["focus"] == nil {
+			args["focus"] = true
+		}
 		method, path, body = http.MethodPost, "/v1/tools/notify", args
+	case "jump_unread":
+		method, path, body = http.MethodPost, "/v1/tools/jump-unread", map[string]any{}
+	case "list_unread":
+		method, path = http.MethodGet, "/v1/tools/unread"
 	case "open_in_ide":
 		method, path, body = http.MethodPost, "/v1/tools/open-ide", args
 	case "list_projects":

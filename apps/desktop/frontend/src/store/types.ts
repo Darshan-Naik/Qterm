@@ -101,6 +101,10 @@ export type UIState = {
   paneAnimations: Record<string, AnimateState>;
   /** sessionId → agent CLI source (claude/codex/…) while hooks are active */
   sessionAgents: Record<string, string>;
+  /** sessionId → latest attention notice (notify / needs-input) */
+  sessionNotices: Record<string, string>;
+  /** sessionId → ms timestamp when notice was last set (for jump-unread order) */
+  sessionNoticeAt: Record<string, number>;
   pendingIntent: HookIntent | null;
   suggestText: string | null;
   collapsedProjects: Record<string, boolean>;

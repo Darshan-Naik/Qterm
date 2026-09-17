@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"qterm/internal/config"
 	"qterm/internal/notify"
 	"qterm/internal/osc133"
+	"qterm/internal/oscnotify"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -16,6 +18,8 @@ import (
 func (a *App) initNotify() {
 	a.poster = notify.New()
 	a.waiting = map[string]struct{}{}
+	a.waitingAt = map[string]time.Time{}
+	a.attentionText = map[string]string{}
 	a.lastNeeds = map[string]time.Time{}
 	a.poster.SetOnActivate(func(sessionID string) {
 		a.revealWindow()
@@ -33,6 +37,26 @@ func (a *App) initShellTracker() {
 	a.shells = osc133.NewTracker(func(sessionID string, res osc133.Result) {
 		a.maybeNotifyCommand(sessionID, res)
 	})
+	a.oscNotes = oscnotify.NewTracker(func(sessionID string, ev oscnotify.Event) {
+		a.onOSCNotify(sessionID, ev)
+	})
+}
+
+func (a *App) onOSCNotify(sessionID string, ev oscnotify.Event) {
+	title := strings.TrimSpace(ev.Title)
+	body := strings.TrimSpace(ev.Body)
+	if body == "" {
+		return
+	}
+	a.noteAttention(sessionID, title, body)
+	a.notifyKind(notify.KindNeedsInput, sessionID, titleOr(title, "needs input"), body)
+}
+
+func titleOr(title, fallback string) string {
+	if strings.TrimSpace(title) != "" {
+		return title
+	}
+	return fallback
 }
 
 func (a *App) emitHookIntent(intent agentcli.Intent) {
@@ -54,13 +78,19 @@ func (a *App) maybeNotifyAgent(intent agentcli.Intent) {
 	switch state {
 	case "action_required":
 		a.markWaiting(sid, true)
-		a.notifyKind(notify.KindNeedsInput, sid, "needs input", "An agent is waiting in this terminal.")
+		msg := "An agent is waiting in this terminal."
+		a.setAttentionText(sid, msg)
+		a.notifyKind(notify.KindNeedsInput, sid, "needs input", msg)
 	case "task_complete":
 		a.markWaiting(sid, false)
+		a.clearAttentionText(sid)
 		a.notifyKind(notify.KindTaskComplete, sid, "finished", "The agent finished a turn.")
 	default:
 		if state == "none" || state == "thinking" || state == "idle" {
 			a.markWaiting(sid, false)
+			if state == "none" {
+				a.clearAttentionText(sid)
+			}
 		}
 	}
 }
@@ -135,10 +165,15 @@ func (a *App) markWaiting(sessionID string, on bool) {
 	if a.waiting == nil {
 		a.waiting = map[string]struct{}{}
 	}
+	if a.waitingAt == nil {
+		a.waitingAt = map[string]time.Time{}
+	}
 	if on {
 		a.waiting[sessionID] = struct{}{}
+		a.waitingAt[sessionID] = time.Now()
 	} else {
 		delete(a.waiting, sessionID)
+		delete(a.waitingAt, sessionID)
 		delete(a.lastNeeds, sessionID)
 	}
 	n, focusedWaiting := a.waitingSnapshotLocked()
@@ -146,6 +181,97 @@ func (a *App) markWaiting(sessionID string, on bool) {
 	if a.poster != nil {
 		a.poster.SetBadge(notify.BadgeCount(n, focusedWaiting, a.appIsFront()))
 	}
+}
+
+// noteAttention marks a pane as needing attention and updates sidebar notice text.
+func (a *App) noteAttention(sessionID, title, body string) {
+	if sessionID == "" {
+		return
+	}
+	text := strings.TrimSpace(body)
+	if text == "" {
+		text = strings.TrimSpace(title)
+	}
+	if text == "" {
+		text = "needs attention"
+	}
+	a.markWaiting(sessionID, true)
+	a.setAttentionText(sessionID, text)
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "hook:intent", agentcli.Intent{
+			ID:        "notify-" + sessionID,
+			HookID:    "notify",
+			SessionID: sessionID,
+			Type:      agentcli.IntentAnimate,
+			Payload: map[string]any{
+				"state": "action_required",
+				"text":  text,
+			},
+		})
+	}
+}
+
+func (a *App) setAttentionText(sessionID, text string) {
+	a.waitingMu.Lock()
+	if a.attentionText == nil {
+		a.attentionText = map[string]string{}
+	}
+	a.attentionText[sessionID] = text
+	a.waitingMu.Unlock()
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "session:notice", map[string]any{
+			"sessionId": sessionID,
+			"text":      text,
+		})
+	}
+}
+
+func (a *App) clearAttentionText(sessionID string) {
+	a.waitingMu.Lock()
+	delete(a.attentionText, sessionID)
+	a.waitingMu.Unlock()
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "session:notice", map[string]any{
+			"sessionId": sessionID,
+			"text":      "",
+		})
+	}
+}
+
+func (a *App) listUnread() []map[string]any {
+	a.waitingMu.Lock()
+	defer a.waitingMu.Unlock()
+	out := make([]map[string]any, 0, len(a.waiting))
+	for id := range a.waiting {
+		item := map[string]any{"sessionId": id}
+		if t, ok := a.waitingAt[id]; ok {
+			item["at"] = t.UTC().Format(time.RFC3339Nano)
+		}
+		if text := a.attentionText[id]; text != "" {
+			item["text"] = text
+		}
+		if a.pty != nil {
+			if s, ok := a.pty.Get(id); ok {
+				item["name"] = s.Name
+			}
+		}
+		out = append(out, item)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ai, _ := out[i]["at"].(string)
+		aj, _ := out[j]["at"].(string)
+		return ai > aj
+	})
+	return out
+}
+
+func (a *App) jumpUnread() string {
+	list := a.listUnread()
+	if len(list) == 0 {
+		return ""
+	}
+	id, _ := list[0]["sessionId"].(string)
+	return id
 }
 
 func (a *App) refreshBadge() {

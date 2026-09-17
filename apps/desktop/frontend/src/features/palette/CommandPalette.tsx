@@ -57,6 +57,14 @@ export function CommandPalette() {
         },
       },
       {
+        id: "jump-unread",
+        label: "Jump to unread agent",
+        run: async () => {
+          const { jumpToUnread } = await import("@/lib/jumpUnread");
+          if (!jumpToUnread()) toast.message("No unread agent terminals");
+        },
+      },
+      {
         id: "insert-snippet",
         label: "Insert snippet",
         run: async () => {

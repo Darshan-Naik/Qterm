@@ -60,6 +60,8 @@ export const uiStore = createStore<UIState>({
   projects: [],
   paneAnimations: {},
   sessionAgents: {},
+  sessionNotices: {},
+  sessionNoticeAt: {},
   pendingIntent: null,
   suggestText: null,
   collapsedProjects: {},
