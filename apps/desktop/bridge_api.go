@@ -316,10 +316,7 @@ func (b *bridgeAPI) WriteTerminal(id, data string, submit bool) error {
 	return b.app.WriteSession(id, data)
 }
 
-func (b *bridgeAPI) NotifyUser(title, body, sessionID string) error {
-	if b.app.poster == nil {
-		return nil
-	}
+func (b *bridgeAPI) NotifyUser(title, body, sessionID string, focus bool) error {
 	sessionID = b.app.resolveSessionForAgent(sessionID, "", sessionID)
 	if strings.TrimSpace(title) == "" {
 		title = b.app.sessionNotifyName(sessionID)
@@ -327,17 +324,37 @@ func (b *bridgeAPI) NotifyUser(title, body, sessionID string) error {
 	if strings.TrimSpace(body) == "" {
 		body = "An agent needs you in Qterm."
 	}
-	b.app.poster.Post(notify.Note{
-		ID:        "mcp-" + sessionID,
-		Title:     title,
-		Body:      body,
-		SessionID: sessionID,
-	})
-	b.app.revealWindow()
-	if sessionID != "" && b.app.ctx != nil {
-		runtime.EventsEmit(b.app.ctx, "app:focus-session", sessionID)
+	b.app.noteAttention(sessionID, title, body)
+	if b.app.poster != nil {
+		b.app.poster.Post(notify.Note{
+			ID:        "mcp-" + sessionID,
+			Title:     title,
+			Body:      body,
+			SessionID: sessionID,
+		})
+	}
+	if focus {
+		b.app.revealWindow()
+		if sessionID != "" && b.app.ctx != nil {
+			runtime.EventsEmit(b.app.ctx, "app:focus-session", sessionID)
+		}
 	}
 	return nil
+}
+
+func (b *bridgeAPI) ListUnread() ([]map[string]any, error) {
+	return b.app.listUnread(), nil
+}
+
+func (b *bridgeAPI) JumpUnread() (map[string]any, error) {
+	id := b.app.jumpUnread()
+	if id == "" {
+		return map[string]any{"ok": true, "id": ""}, nil
+	}
+	if err := b.FocusSession(id); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "id": id}, nil
 }
 
 func (b *bridgeAPI) OpenPathInIDE(path, sessionID string) error {

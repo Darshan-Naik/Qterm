@@ -184,6 +184,13 @@ export const SHORTCUT_META: ShortcutMeta[] = [
     whenSettings: "block",
   },
   {
+    id: "jumpUnread",
+    label: "Jump to unread",
+    description: "Focus the most recent terminal that needs attention",
+    group: "Agents",
+    whenSettings: "block",
+  },
+  {
     id: "snippetPalette",
     label: "Insert snippet",
     description: "Search saved commands and type them into the focused terminal",
@@ -245,9 +252,10 @@ export const DEFAULT_BINDINGS: Record<ShortcutId, KeyChord[]> = {
   copyLastOutput: [modShift("c")],
   prevCommand: [modShift("ArrowUp", { codes: ["ArrowUp"] })],
   nextCommand: [modShift("ArrowDown", { codes: ["ArrowDown"] })],
+  jumpUnread: [modShift("u")],
 };
 
-export const SHORTCUT_GROUPS: Array<ShortcutMeta["group"]> = ["General", "View", "Terminal", "Project"];
+export const SHORTCUT_GROUPS: Array<ShortcutMeta["group"]> = ["General", "View", "Terminal", "Project", "Agents"];
 
 export function metaFor(id: ShortcutId): ShortcutMeta {
   const m = SHORTCUT_META.find((s) => s.id === id);

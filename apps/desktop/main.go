@@ -6,6 +6,7 @@ import (
 
 	"qterm/internal/agentcli/bridge"
 	"qterm/internal/appmode"
+	"qterm/internal/qtcli"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -20,9 +21,16 @@ var assets embed.FS
 var appIcon []byte
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		bridge.RunMCP()
-		return
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "mcp":
+			bridge.RunMCP()
+			return
+		case "help", "-h", "--help",
+			"notify", "list", "list-terminals", "focus", "split",
+			"jump-unread", "unread", "create", "write":
+			os.Exit(qtcli.Run(os.Args[1:]))
+		}
 	}
 
 	app := NewApp()

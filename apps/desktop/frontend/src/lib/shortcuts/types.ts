@@ -26,12 +26,13 @@ export type ShortcutId =
   | "copyLastOutput"
   | "prevCommand"
   | "nextCommand"
+  | "jumpUnread"
   | "toggleTheme"
   | "zoomIn"
   | "zoomOut"
   | "zoomReset";
 
-export type ShortcutGroup = "General" | "View" | "Terminal" | "Project";
+export type ShortcutGroup = "General" | "View" | "Terminal" | "Project" | "Agents";
 
 /** A single key chord (modifiers + key). */
 export type KeyChord = {

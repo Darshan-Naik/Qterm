@@ -81,9 +81,17 @@ export function HookIntentListener() {
         if (!next) return;
         const map = { ...uiStore.get().paneAnimations, [sessionId]: next };
         uiStore.set({ paneAnimations: map });
+        const text = String(intent.payload?.text || "").trim();
+        if (next === "action_required" && text) {
+          void import("@/lib/jumpUnread").then((m) => m.setSessionNotice(sessionId, text));
+        }
+        if (next === "none") {
+          void import("@/lib/jumpUnread").then((m) => m.clearSessionNotice(sessionId));
+        }
       }
 
       if (intent.type === "suggest") {
+        // Local hook host is dormant; keep for forward-compat without UI noise.
         uiStore.set({ suggestText: String(intent.payload?.text || "") });
       }
       if (intent.type === "request_approval") {

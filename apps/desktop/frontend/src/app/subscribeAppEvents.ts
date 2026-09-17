@@ -34,11 +34,25 @@ export function subscribeAppEvents(): () => void {
       const anims = Object.fromEntries(
         Object.entries(uiStore.get().paneAnimations).filter(([id]) => alive.has(id)),
       );
+      const notices = Object.fromEntries(
+        Object.entries(uiStore.get().sessionNotices).filter(([id]) => alive.has(id)),
+      );
+      const noticeAt = Object.fromEntries(
+        Object.entries(uiStore.get().sessionNoticeAt).filter(([id]) => alive.has(id)),
+      );
       uiStore.set({
         sessions: sortSessionsByStart(live),
         sessionAgents: agents,
         paneAnimations: anims,
+        sessionNotices: notices,
+        sessionNoticeAt: noticeAt,
       });
+    }),
+
+    on("session:notice", (payload?: { sessionId?: string; text?: string }) => {
+      const id = payload?.sessionId;
+      if (!id) return;
+      void import("@/lib/jumpUnread").then((m) => m.setSessionNotice(id, String(payload?.text || "")));
     }),
 
     on("app:open-settings", (page?: string) => {

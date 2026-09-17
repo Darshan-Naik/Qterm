@@ -29,8 +29,10 @@ type ControlAPI interface {
 	FocusSession(id string) error
 	SplitTerminal(id, direction, name string) (map[string]any, error)
 	WriteTerminal(id, data string, submit bool) error
-	NotifyUser(title, body, sessionID string) error
+	NotifyUser(title, body, sessionID string, focus bool) error
 	OpenPathInIDE(path, sessionID string) error
+	ListUnread() ([]map[string]any, error)
+	JumpUnread() (map[string]any, error)
 }
 
 // Server is the local HTTP hook + tools bridge.
@@ -279,6 +281,7 @@ func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
 			Title string `json:"title"`
 			Body  string `json:"body"`
 			ID    string `json:"id"`
+			Focus *bool  `json:"focus"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "invalid json", http.StatusBadRequest)
@@ -287,7 +290,17 @@ func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
 		if req.ID == "" {
 			req.ID = strings.TrimSpace(r.Header.Get("X-Qterm-Terminal-Id"))
 		}
-		writeHTTPJSON(w, map[string]any{"ok": true}, s.api.NotifyUser(req.Title, req.Body, req.ID))
+		focus := false
+		if req.Focus != nil {
+			focus = *req.Focus
+		}
+		writeHTTPJSON(w, map[string]any{"ok": true}, s.api.NotifyUser(req.Title, req.Body, req.ID, focus))
+	case path == "unread" && r.Method == http.MethodGet:
+		list, err := s.api.ListUnread()
+		writeHTTPJSON(w, list, err)
+	case path == "jump-unread" && r.Method == http.MethodPost:
+		out, err := s.api.JumpUnread()
+		writeHTTPJSON(w, out, err)
 	case path == "open-ide" && r.Method == http.MethodPost:
 		var req struct {
 			Path string `json:"path"`

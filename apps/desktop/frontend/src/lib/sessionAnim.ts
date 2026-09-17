@@ -1,4 +1,5 @@
 import { uiStore, type AnimateState } from "@/store/ui";
+import { clearSessionNotice } from "@/lib/jumpUnread";
 
 export function isAckableAnim(state: AnimateState | undefined) {
   return state === "action_required" || state === "task_complete";
@@ -12,6 +13,7 @@ export function dismissSessionFeedback(sessionId: string) {
   uiStore.set({
     paneAnimations: { ...uiStore.get().paneAnimations, [sessionId]: "none" },
   });
+  clearSessionNotice(sessionId);
 }
 
 /** Done highlight only — needs-input stays until the user actually types. */

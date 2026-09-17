@@ -20,6 +20,7 @@ import (
 	"qterm/internal/hooks"
 	"qterm/internal/notify"
 	"qterm/internal/osc133"
+	"qterm/internal/oscnotify"
 	"qterm/internal/project"
 	ptymgr "qterm/internal/pty"
 	"qterm/internal/ptyemit"
@@ -55,8 +56,11 @@ type App struct {
 	poster           notify.Poster
 	waitingMu        sync.Mutex
 	waiting          map[string]struct{}
+	waitingAt        map[string]time.Time
+	attentionText    map[string]string
 	lastNeeds        map[string]time.Time
 	shells           *osc133.Tracker
+	oscNotes         *oscnotify.Tracker
 	windowMu         sync.Mutex
 	windowHidden     bool
 }
@@ -270,6 +274,9 @@ func (a *App) emitPtyData(sessionID string, data []byte) {
 	if a.shells != nil {
 		a.shells.Feed(sessionID, data)
 	}
+	if a.oscNotes != nil {
+		a.oscNotes.Feed(sessionID, data)
+	}
 	var seq uint64
 	if a.scrollback != nil {
 		seq = a.scrollback.Append(sessionID, data)
@@ -287,8 +294,12 @@ func (a *App) emitPtyData(sessionID string, data []byte) {
 func (a *App) onPtyExit(sessionID string, code int) {
 	a.cancelConnectNudgeChecks(sessionID)
 	a.markWaiting(sessionID, false)
+	a.clearAttentionText(sessionID)
 	if a.shells != nil {
 		a.shells.Remove(sessionID)
+	}
+	if a.oscNotes != nil {
+		a.oscNotes.Remove(sessionID)
 	}
 	runtime.EventsEmit(a.ctx, "pty:exit", map[string]any{
 		"sessionId": sessionID,

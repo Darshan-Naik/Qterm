@@ -125,13 +125,19 @@ func (s *stubAPI) WriteTerminal(id, data string, submit bool) error {
 	s.submit = submit
 	return nil
 }
-func (s *stubAPI) NotifyUser(title, body, sessionID string) error {
+func (s *stubAPI) NotifyUser(title, body, sessionID string, focus bool) error {
 	s.notified = title + "|" + body + "|" + sessionID
 	return nil
 }
 func (s *stubAPI) OpenPathInIDE(path, sessionID string) error {
 	s.opened = path + "|" + sessionID
 	return nil
+}
+func (s *stubAPI) ListUnread() ([]map[string]any, error) {
+	return nil, nil
+}
+func (s *stubAPI) JumpUnread() (map[string]any, error) {
+	return map[string]any{"ok": true, "id": ""}, nil
 }
 
 func TestToolsSplitWriteNotify(t *testing.T) {

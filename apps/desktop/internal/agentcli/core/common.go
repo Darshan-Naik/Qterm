@@ -12,7 +12,7 @@ const PluginName = "qterm"
 
 // Version is bumped when plugin artifacts change (hooks, MCP, skills, relay).
 // Connected CLIs with an older recorded version are marked outdated and reinstalled.
-const Version = "1.3.0"
+const Version = "1.4.0"
 
 // PluginVersion is the qterm plugin package version shipped with this app build.
 func PluginVersion() string { return Version }
@@ -95,7 +95,7 @@ func WriteQtermSkill(dir string) error {
 	skill := strings.Join([]string{
 		"---",
 		"name: qterm-terminal",
-		"description: Control Qterm terminals via MCP. Use get_terminal_id, rename_terminal, create_terminal, split_terminal, write_terminal, notify_user, open_in_ide.",
+		"description: Control Qterm terminals via MCP or the q-term CLI. Use get_terminal_id, rename_terminal, create_terminal, split_terminal, write_terminal, notify_user, jump_unread, open_in_ide.",
 		"allowed-tools: mcp__plugin_qterm_qterm mcp__plugin_qterm_qterm__* mcp__qterm mcp__qterm__*",
 		"---",
 		"",
@@ -132,9 +132,11 @@ func WriteQtermSkill(dir string) error {
 		"split_terminal: {\"direction\":\"right\"|\"down\"} splits THIS pane (or pass id). A new shell opens beside it.",
 		"write_terminal: {\"data\":\"...\",\"submit\":true} types into a pane. Prefer this over OSC title hacks.",
 		"notify_user: {\"title\":\"...\",\"body\":\"...\"} when the human must look at Qterm (permission, question, done).",
+		"jump_unread: focus the most recent needs-attention pane.",
+		"Shell hooks can also run: q-term notify \"message\" and q-term jump-unread.",
 		"open_in_ide: omit path to open this terminal's folder.",
 		"",
-		"Other tools: list_terminals, list_projects, focus_terminal, set_theme.",
+		"Other tools: list_terminals, list_unread, list_projects, focus_terminal, set_theme.",
 		"",
 	}, "\n")
 	return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(skill), 0o644)

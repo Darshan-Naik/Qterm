@@ -17,7 +17,7 @@ func TestWriteQtermSkillMentionsNewTools(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(b)
-	for _, needle := range []string{"split_terminal", "write_terminal", "notify_user", "open_in_ide"} {
+	for _, needle := range []string{"split_terminal", "write_terminal", "notify_user", "jump_unread", "open_in_ide", "q-term notify"} {
 		if !strings.Contains(text, needle) {
 			t.Fatalf("missing %s in skill", needle)
 		}
@@ -25,7 +25,7 @@ func TestWriteQtermSkillMentionsNewTools(t *testing.T) {
 }
 
 func TestPluginVersionBumped(t *testing.T) {
-	if PluginVersion() != "1.3.0" {
+	if PluginVersion() != "1.4.0" {
 		t.Fatalf("version %s", PluginVersion())
 	}
 }
