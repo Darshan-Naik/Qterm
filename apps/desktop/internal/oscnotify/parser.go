@@ -1,5 +1,5 @@
 // Package oscnotify parses terminal notification OSC sequences (9 / 99 / 777).
-// Same family cmux uses for attention rings without agent-specific hooks.
+// Agents and shell hooks can ring attention without Qterm-specific hook wiring.
 package oscnotify
 
 import (
