@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+func TestHookCommandUsesAbsoluteRelay(t *testing.T) {
+	got := hookCommand("/tmp/qterm/hooks/relay.sh")
+	if !strings.Contains(got, `/bin/bash "/tmp/qterm/hooks/relay.sh" grok`) {
+		t.Fatalf("command: %q", got)
+	}
+	if !strings.Contains(got, `${GROK_HOOK_EVENT}`) {
+		t.Fatalf("missing event: %q", got)
+	}
+}
+
 func TestSetPluginEnabled(t *testing.T) {
 	got := setPluginEnabled("", "qterm", true)
 	if !strings.Contains(got, `enabled = ["qterm"]`) {

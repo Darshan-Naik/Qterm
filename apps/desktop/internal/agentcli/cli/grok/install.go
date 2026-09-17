@@ -1,18 +1,20 @@
 package grok
 
 import (
+	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"qterm/internal/agentcli/core"
 )
 
-// Grok Build plugin at ~/.grok/plugins/qterm/
-// User plugins there are auto-trusted. Plugins stay off until enabled
-// ([plugins].enabled or `grok plugin enable`).
-// https://docs.x.ai/build/features/skills-plugins-marketplaces
-// https://docs.x.ai/build/features/hooks
+// Grok Build plugin at ~/.grok/plugins/qterm/ plus always-on user hooks at
+// ~/.grok/hooks/qterm.json. Dropping files under plugins/ is not enough: Grok
+// only treats a plugin as installed after `grok plugin install --trust`, and
+// CLI status still depends on global ~/.grok/hooks (always trusted).
+// https://docs.x.ai/docs/grok-cli/plugins
+// https://docs.x.ai/docs/grok-cli/hooks
 
 type adapter struct{}
 
@@ -67,15 +69,54 @@ func configToml() string {
 	return filepath.Join(grokHome(), "config.toml")
 }
 
+func userHooksJSON() string {
+	return filepath.Join(grokHome(), "hooks", "qterm.json")
+}
+
+func hookCommand(relay string) string {
+	return fmt.Sprintf(`/bin/bash %q grok "${GROK_HOOK_EVENT}"`, relay)
+}
+
+func hookOpts() map[string]any {
+	return map[string]any{
+		"timeout": 5,
+		"env": map[string]any{
+			"QTERM_SESSION_ID": "${QTERM_SESSION_ID}",
+			"QTERM_PROJECT_ID": "${QTERM_PROJECT_ID}",
+		},
+	}
+}
+
+func hookEvents() []string {
+	return []string{
+		"SessionStart", "SessionEnd", "UserPromptSubmit",
+		"Stop", "StopFailure", "StopCancelled",
+		"Notification", "PermissionDenied",
+		"PreToolUse", "PostToolUse", "PostToolUseFailure",
+	}
+}
+
+func writeGrokHooks(path, relay string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	hooks := core.NestedCommandHooks(hookEvents(), hookCommand(relay), nil, hookOpts())
+	return core.WriteConfigJSON(path, map[string]any{
+		"description": "Qterm agent bridge (" + core.HookMarker + ")",
+		"hooks":       hooks,
+	})
+}
+
 func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	root := pluginRoot()
+	relay := filepath.Join(root, "hooks", "relay.sh")
 	if err := os.MkdirAll(filepath.Join(root, ".grok-plugin"), 0o755); err != nil {
 		return core.InstallResult{CLI: "grok"}, err
 	}
 	if err := os.MkdirAll(filepath.Join(root, "hooks"), 0o755); err != nil {
 		return core.InstallResult{CLI: "grok"}, err
 	}
-	if err := core.WritePluginRelay(filepath.Join(root, "hooks", "relay.sh"), ctx.DataDir, ctx.Token, "grok"); err != nil {
+	if err := core.WritePluginRelay(relay, ctx.DataDir, ctx.Token, "grok"); err != nil {
 		return core.InstallResult{CLI: "grok"}, err
 	}
 
@@ -95,20 +136,7 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	if err := core.WriteConfigJSON(filepath.Join(root, "plugin.json"), manifest); err != nil {
 		return core.InstallResult{CLI: "grok"}, err
 	}
-
-	events := []string{
-		"SessionStart", "SessionEnd", "UserPromptSubmit",
-		"Stop", "StopFailure", "StopCancelled",
-		"Notification", "PermissionDenied",
-		"PreToolUse", "PostToolUse", "PostToolUseFailure",
-	}
-	hooks := core.NestedCommandHooks(events, `bash "${GROK_PLUGIN_ROOT}/hooks/relay.sh" grok`, nil, map[string]any{
-		"timeout": 5,
-	})
-	if err := core.WriteConfigJSON(filepath.Join(root, "hooks", "hooks.json"), map[string]any{
-		"description": "Qterm agent bridge (" + core.HookMarker + ")",
-		"hooks":       hooks,
-	}); err != nil {
+	if err := writeGrokHooks(filepath.Join(root, "hooks", "hooks.json"), relay); err != nil {
 		return core.InstallResult{CLI: "grok"}, err
 	}
 	if err := core.WriteConfigJSON(filepath.Join(root, ".mcp.json"), map[string]any{
@@ -120,34 +148,41 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 		return core.InstallResult{CLI: "grok"}, err
 	}
 
+	// Global hooks always load. Plugin hooks only run after `plugin install --trust`.
+	if err := writeGrokHooks(userHooksJSON(), relay); err != nil {
+		return core.InstallResult{CLI: "grok"}, err
+	}
+
 	if err := setPluginEnabledInToml(configToml(), core.PluginName, true); err != nil {
 		return core.InstallResult{CLI: "grok"}, err
 	}
-	_ = exec.Command("grok", "plugin", "enable", core.PluginName).Run()
+	if bin, err := core.FirstBinary("grok"); err == nil {
+		_, _ = core.RunCLI(core.DefaultToolsTimeout, bin, "plugin", "install", root, "--trust")
+		_, _ = core.RunCLI(core.DefaultToolsTimeout, bin, "plugin", "enable", core.PluginName)
+	}
 
 	return core.InstallResult{
 		CLI:       "grok",
 		Installed: true,
-		Message:   "Installed ~/.grok/plugins/qterm (hooks + MCP). Restart Grok Build.",
+		Message:   "Installed Grok Build hooks + ~/.grok/plugins/qterm. Restart Grok Build.",
 	}, nil
 }
 
 func uninstall() error {
-	_ = exec.Command("grok", "plugin", "uninstall", core.PluginName, "--confirm").Run()
-	_ = exec.Command("grok", "plugin", "disable", core.PluginName).Run()
+	if bin, err := core.FirstBinary("grok"); err == nil {
+		_, _ = core.RunCLI(core.DefaultToolsTimeout, bin, "plugin", "uninstall", core.PluginName, "--confirm")
+		_, _ = core.RunCLI(core.DefaultToolsTimeout, bin, "plugin", "disable", core.PluginName)
+	}
 	_ = setPluginEnabledInToml(configToml(), core.PluginName, false)
+	_ = os.Remove(userHooksJSON())
 	_ = os.RemoveAll(pluginRoot())
 	return nil
 }
 
 func pluginInstalled() bool {
-	for _, p := range []string{
-		filepath.Join(pluginRoot(), ".grok-plugin", "plugin.json"),
-		filepath.Join(pluginRoot(), "plugin.json"),
-	} {
-		if _, err := os.Stat(p); err == nil {
-			return true
-		}
+	b, err := os.ReadFile(userHooksJSON())
+	if err != nil {
+		return false
 	}
-	return false
+	return strings.Contains(string(b), core.HookMarker)
 }
