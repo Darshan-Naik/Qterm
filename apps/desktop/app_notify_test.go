@@ -41,3 +41,20 @@ func TestMarkWaitingHiddenWindowBadges(t *testing.T) {
 		t.Fatalf("hidden badge = %d, want 1", p.badge)
 	}
 }
+
+func TestAckSessionAttentionClearsWaiting(t *testing.T) {
+	p := &badgePoster{active: false}
+	a := &App{poster: p}
+	a.markWaiting("s1", true)
+	a.setAttentionText("s1", "needs you")
+	if p.badge != 1 {
+		t.Fatalf("badge = %d, want 1", p.badge)
+	}
+	a.AckSessionAttention("s1")
+	if p.badge != 0 {
+		t.Fatalf("badge after ack = %d, want 0", p.badge)
+	}
+	if len(a.listUnread()) != 0 {
+		t.Fatalf("unread after ack: %#v", a.listUnread())
+	}
+}

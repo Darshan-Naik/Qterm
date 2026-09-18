@@ -89,6 +89,9 @@ func (a *App) startup(ctx context.Context) {
 
 	a.ptyOut = ptyemit.New(a.emitPtyData)
 	a.pty = ptymgr.NewManager(cfg.Shell, a.onPtyData, a.onPtyExit)
+	if exe, err := os.Executable(); err == nil {
+		a.pty.SetPathPrefix(filepath.Dir(exe))
+	}
 	intDir := filepath.Join(store.DataDir(), "shellint")
 	if err := shellint.Install(intDir); err == nil {
 		a.pty.SetIntegrationDir(intDir)
@@ -271,11 +274,14 @@ func (a *App) onPtyData(sessionID string, data []byte) {
 }
 
 func (a *App) emitPtyData(sessionID string, data []byte) {
+	if a.oscNotes != nil {
+		data = a.oscNotes.Feed(sessionID, data)
+	}
+	if len(data) == 0 {
+		return
+	}
 	if a.shells != nil {
 		a.shells.Feed(sessionID, data)
-	}
-	if a.oscNotes != nil {
-		a.oscNotes.Feed(sessionID, data)
 	}
 	var seq uint64
 	if a.scrollback != nil {
@@ -872,6 +878,17 @@ func (a *App) KillSession(id string) error {
 func (a *App) SetFocusedSession(id string) {
 	a.focusedSessionID = id
 	a.refreshBadge()
+}
+
+// AckSessionAttention clears needs-input waiting state after the user answers
+// in that pane (keeps dock badge + q-term jump-unread in sync with the UI).
+func (a *App) AckSessionAttention(id string) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return
+	}
+	a.markWaiting(id, false)
+	a.clearAttentionText(id)
 }
 
 func (a *App) PromoteSession(id, projectID string) error {

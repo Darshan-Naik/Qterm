@@ -19,9 +19,11 @@ func NewTracker(on DoneFunc) *Tracker {
 	return &Tracker{sess: make(map[string]*Parser), on: on}
 }
 
-func (t *Tracker) Feed(sessionID string, chunk []byte) {
+// Feed parses notify OSC sequences, invokes on for each, and returns the
+// chunk with those sequences removed for the UI forward path.
+func (t *Tracker) Feed(sessionID string, chunk []byte) []byte {
 	if t == nil || sessionID == "" || len(chunk) == 0 {
-		return
+		return chunk
 	}
 	t.mu.Lock()
 	p := t.sess[sessionID]
@@ -29,14 +31,14 @@ func (t *Tracker) Feed(sessionID string, chunk []byte) {
 		p = &Parser{}
 		t.sess[sessionID] = p
 	}
-	events := p.Feed(chunk)
+	forward, events := p.Feed(chunk)
 	t.mu.Unlock()
-	if t.on == nil {
-		return
+	if t.on != nil {
+		for _, ev := range events {
+			t.on(sessionID, ev)
+		}
 	}
-	for _, ev := range events {
-		t.on(sessionID, ev)
-	}
+	return forward
 }
 
 func (t *Tracker) Remove(sessionID string) {
