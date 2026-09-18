@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,12 +33,13 @@ type DataHandler func(sessionID string, data []byte)
 type ExitHandler func(sessionID string, code int)
 
 type Manager struct {
-	mu       sync.RWMutex
-	sessions map[string]*Session
-	shell    string
-	integDir string
-	onData   DataHandler
-	onExit   ExitHandler
+	mu         sync.RWMutex
+	sessions   map[string]*Session
+	shell      string
+	integDir   string
+	pathPrefix string // prepended to PATH so `q-term` resolves inside panes
+	onData     DataHandler
+	onExit     ExitHandler
 }
 
 func NewManager(shell string, onData DataHandler, onExit ExitHandler) *Manager {
@@ -76,6 +78,13 @@ func (m *Manager) SetIntegrationDir(dir string) {
 	m.integDir = dir
 }
 
+// SetPathPrefix prepends dir to each session PATH (app binary dir for `q-term`).
+func (m *Manager) SetPathPrefix(dir string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pathPrefix = strings.TrimSpace(dir)
+}
+
 type CreateOpts struct {
 	ID        string
 	Name      string
@@ -109,6 +118,7 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 	m.mu.RLock()
 	shell := m.shell
 	integDir := m.integDir
+	pathPrefix := m.pathPrefix
 	m.mu.RUnlock()
 
 	cmd := exec.Command(shell)
@@ -117,7 +127,7 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 		cmd = exec.Command(shell, args...)
 	}
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(),
+	env := append(os.Environ(),
 		"TERM=xterm-256color",
 		"COLORTERM=truecolor",
 		// Identity injection — same pattern as Ghostty GHOSTTY_SESSION_ID / cmux CMUX_SURFACE_ID.
@@ -128,6 +138,14 @@ func (m *Manager) Create(opts CreateOpts) (*Session, error) {
 		"QTERM_SESSION_ID="+id,
 		"QTERM_PROJECT_ID="+opts.ProjectID,
 	)
+	if pathPrefix != "" {
+		path := pathPrefix
+		if cur := os.Getenv("PATH"); cur != "" {
+			path = pathPrefix + string(os.PathListSeparator) + cur
+		}
+		env = append(env, "PATH="+path)
+	}
+	cmd.Env = env
 	if len(extra) > 0 {
 		cmd.Env = append(cmd.Env, extra...)
 	}

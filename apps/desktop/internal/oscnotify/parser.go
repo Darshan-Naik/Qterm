@@ -22,10 +22,11 @@ type Parser struct {
 
 const maxHold = 256
 
-// Feed consumes a PTY chunk and returns complete notify events in order.
-func (p *Parser) Feed(chunk []byte) (events []Event) {
+// Feed consumes a PTY chunk, returns notify events, and strips those sequences
+// from the bytes forwarded to the terminal UI.
+func (p *Parser) Feed(chunk []byte) (forward []byte, events []Event) {
 	if len(chunk) == 0 && len(p.buf) == 0 {
-		return nil
+		return nil, nil
 	}
 	data := chunk
 	if len(p.buf) > 0 {
@@ -33,6 +34,7 @@ func (p *Parser) Feed(chunk []byte) (events []Event) {
 		p.buf = p.buf[:0]
 	}
 	i := 0
+	outStart := 0
 	for i < len(data) {
 		esc := bytes.IndexByte(data[i:], 0x1b)
 		if esc < 0 {
@@ -41,7 +43,8 @@ func (p *Parser) Feed(chunk []byte) (events []Event) {
 		esc += i
 		if esc+1 >= len(data) {
 			p.hold(data[esc:])
-			break
+			forward = append(forward, data[outStart:esc]...)
+			return forward, events
 		}
 		if data[esc+1] != ']' {
 			i = esc + 1
@@ -51,17 +54,23 @@ func (p *Parser) Feed(chunk []byte) (events []Event) {
 		term := findTerm(rest)
 		if term < 0 {
 			p.hold(data[esc:])
-			break
+			forward = append(forward, data[outStart:esc]...)
+			return forward, events
 		}
 		end := esc + 2 + term
 		if ev, ok := parsePayload(rest[:term]); ok {
+			forward = append(forward, data[outStart:esc]...)
 			ev.Start = esc
 			ev.End = end
 			events = append(events, ev)
+			outStart = end
 		}
 		i = end
 	}
-	return events
+	if outStart < len(data) {
+		forward = append(forward, data[outStart:]...)
+	}
+	return forward, events
 }
 
 func (p *Parser) hold(tail []byte) {

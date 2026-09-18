@@ -11,6 +11,7 @@ import {
   trackSessionDragPoint,
   type DropEdge,
 } from "@/lib/sessionDrag";
+import { useUI } from "@/store/ui";
 import { TerminalView } from "@/features/terminal";
 import { PaneChrome } from "./PaneChrome";
 
@@ -28,6 +29,7 @@ export function PaneLeaf({
   const rootRef = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState<Exclude<DropEdge, "center"> | null>(null);
   const [dragArmed, setDragArmed] = useState(false);
+  const needsInput = useUI((s) => (s.paneAnimations[sessionId] || "none") === "action_required");
 
   const clear = useCallback(() => setEdge(null), []);
 
@@ -70,7 +72,10 @@ export function PaneLeaf({
     <div
       ref={rootRef}
       data-pane-id={paneId}
-      className="group/pane relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background"
+      className={cn(
+        "group/pane relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background",
+        needsInput && "pane-needs-input"
+      )}
       onDragOverCapture={onDragOver}
       onDropCapture={onDrop}
     >

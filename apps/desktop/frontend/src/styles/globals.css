@@ -350,6 +350,19 @@ input[type="number"]::-webkit-outer-spin-button {
   background-color: color-mix(in oklab, rgb(251 191 36) 10%, transparent);
   animation: session-complete-flash 0.85s ease-in-out 2;
 }
+.pane-needs-input {
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, rgb(59 130 246) 78%, transparent);
+  animation: pane-attention-ring 1.4s ease-in-out infinite;
+}
+@keyframes pane-attention-ring {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 2px color-mix(in oklab, rgb(59 130 246) 55%, transparent);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px color-mix(in oklab, rgb(59 130 246) 92%, transparent);
+  }
+}
 .titlebar-drag {
   --wails-draggable: drag;
   -webkit-app-region: drag;
