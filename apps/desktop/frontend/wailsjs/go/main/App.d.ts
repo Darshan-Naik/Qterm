@@ -9,6 +9,8 @@ import {update} from '../models';
 
 export function AboutInfo():Promise<appmode.AboutInfo>;
 
+export function AckSessionAttention(arg1:string):Promise<void>;
+
 export function ActiveAgentBinds():Promise<Record<string, string>>;
 
 export function AddProject(arg1:string,arg2:string):Promise<config.ProjectMeta>;

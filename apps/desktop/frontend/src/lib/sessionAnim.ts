@@ -14,6 +14,11 @@ export function dismissSessionFeedback(sessionId: string) {
     paneAnimations: { ...uiStore.get().paneAnimations, [sessionId]: "none" },
   });
   clearSessionNotice(sessionId);
+  if (cur === "action_required") {
+    void import("../../wailsjs/go/main/App").then(({ AckSessionAttention }) => {
+      void AckSessionAttention(sessionId);
+    });
+  }
 }
 
 /** Done highlight only — needs-input stays until the user actually types. */

@@ -12,7 +12,7 @@ const PluginName = "qterm"
 
 // Version is bumped when plugin artifacts change (hooks, MCP, skills, relay).
 // Connected CLIs with an older recorded version are marked outdated and reinstalled.
-const Version = "1.4.0"
+const Version = "1.4.1"
 
 // PluginVersion is the qterm plugin package version shipped with this app build.
 func PluginVersion() string { return Version }
@@ -117,7 +117,7 @@ func WriteQtermSkill(dir string) error {
 		"",
 		"When you name or rename this session from the first user prompt or task context,",
 		"also call rename_terminal with that same short name so the Qterm tab matches.",
-		"Qterm already auto-names once from the first user prompt — only rename if the user asks or /rename.",
+		"Qterm already auto-names once from the first user prompt. Only rename if the user asks or /rename.",
 		"rename_terminal always works for agents (even if the user renamed earlier).",
 		"Call rename_terminal with {\"name\":\"<new name>\", \"id\":\"<id from get_terminal_id>\"}.",
 		"Do not use printf/OSC title hacks.",

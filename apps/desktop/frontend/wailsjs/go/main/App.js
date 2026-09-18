@@ -6,6 +6,10 @@ export function AboutInfo() {
   return window['go']['main']['App']['AboutInfo']();
 }
 
+export function AckSessionAttention(arg1) {
+  return window['go']['main']['App']['AckSessionAttention'](arg1);
+}
+
 export function ActiveAgentBinds() {
   return window['go']['main']['App']['ActiveAgentBinds']();
 }

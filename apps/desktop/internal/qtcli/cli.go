@@ -55,7 +55,7 @@ func Run(argv []string) int {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprintf(w, `q-term — control a running Qterm window
+	fmt.Fprintf(w, `q-term: control a running Qterm window
 
 Usage:
   q-term <command> [flags]
