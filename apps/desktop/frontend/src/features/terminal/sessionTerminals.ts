@@ -164,6 +164,9 @@ function ensurePtyWriters(entry: Entry, sessionId: string) {
   bindPtyWriters(entry, sessionId);
 }
 
+/** ESC+CR: CLIs like Claude Code read this as "newline, don't submit". */
+const SHIFT_ENTER_NEWLINE = "\x1b\r";
+
 const entries = new Map<string, Entry>();
 let listening = false;
 
@@ -257,6 +260,13 @@ export function getOrCreateTerminal(sessionId: string, opts: { fontSize: number 
   term.attachCustomKeyEventHandler((ev) => {
     if (ev.type !== "keydown") return true;
     if (isAppShortcut(ev)) return false;
+    // ⇧Enter inserts a newline (ESC+CR, same as ⌥Enter) instead of submitting.
+    // preventDefault stops the follow-up keypress from sending a plain CR.
+    if (ev.key === "Enter" && ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && !ev.isComposing) {
+      ev.preventDefault();
+      if (!entries.get(sessionId)?.seeding) void WriteSession(sessionId, SHIFT_ENTER_NEWLINE);
+      return false;
+    }
     if (ev.key === "Enter" && !ev.metaKey && !ev.ctrlKey && !ev.altKey && tryExpandSnippetKeyword(term, sessionId)) {
       return false;
     }
