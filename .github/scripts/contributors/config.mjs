@@ -7,10 +7,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const repoRoot = path.resolve(here, "../../..");
 export const configPath = path.join(repoRoot, ".github", "qterm-contributors.yml");
-export const contributorDataPath = path.join(repoRoot, "apps", "web", "data", "contributors.json");
-
-export const DATA_COMMIT_MESSAGE = "chore: update contributor recognition data";
-export const CONTRIBUTOR_DATA_FILE = "apps/web/data/contributors.json";
 
 const DEFAULT_COUNT_BADGES = [
   { id: "first-contribution", emoji: "🌱", label: "First Contribution", merged_prs: 1 },
