@@ -50,6 +50,10 @@ npm run test:go        # Go tests
 npm run dev:web
 ```
 
+## Finding something to work on
+
+Browse [open issues](https://github.com/Darshan-Naik/Qterm/issues). Bug reports and small, focused improvements are a good first pull request. If you are unsure about a larger change, open an issue first.
+
 ## Making changes
 
 1. Create a branch from `main`.
@@ -70,6 +74,26 @@ npm run dev:web
 - Include screenshots or a short recording for UI changes.
 - Run relevant tests before requesting review (`npm run test:desktop`, `npm run test:go`, or both).
 - Do not bump `apps/desktop/wails.json` `productVersion` unless you intend to ship a release. Version bumps belong in their own commit: `chore: bump version to X.Y.Z`.
+
+## What happens after you submit
+
+A maintainer reviews your pull request. You may get questions, or a request to adjust the change. When it is approved and merged, it becomes part of Qterm.
+
+If this is your first pull request, Qterm bot leaves a short welcome. That message is posted once, not on every update.
+
+## What happens after you contribute
+
+Every contribution matters.
+
+When your first contribution is merged, you officially become part of the Qterm contributor community. Qterm bot comments on the pull request, and your name is added to the [contributors page](https://qterm.darshannaik.com/contributors).
+
+We recognize people through contributor badges, release credits, and that page. Badges mark personal milestones, such as a first contribution or several merged pull requests. Nobody is ranked.
+
+If you want to share your first merged pull request, the bot includes a contribution card and text you can copy. Posting it is up to you.
+
+A maintainer can add a label so the page can describe the kind of work, for example `contribution:bug`, `contribution:feature`, `contribution:documentation`, `contribution:performance`, `contribution:ui`, or `contribution:testing`.
+
+Maintainer details live in [docs/contributor-recognition.md](docs/contributor-recognition.md).
 
 ## Questions
 

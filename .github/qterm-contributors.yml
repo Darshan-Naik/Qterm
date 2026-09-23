@@ -1,0 +1,152 @@
+# Qterm contributor recognition.
+# Toggles, badges, categories, and labels live here.
+# Message copy lives in .github/scripts/contributors/messages.mjs.
+# See docs/contributor-recognition.md.
+
+repo: "Darshan-Naik/Qterm"
+site_url: "https://qterm.darshannaik.com"
+maintainer: "Darshan-Naik"
+
+# Never comment on these logins. [bot] accounts are skipped even if missing here.
+bots:
+  - "dependabot[bot]"
+  - "dependabot"
+  - "renovate[bot]"
+  - "github-actions[bot]"
+
+# Tracked on the contributors page, but the bot stays quiet.
+# The maintainer is included so Qterm does not welcome its own author.
+quiet_logins:
+  - "Darshan-Naik"
+
+recognition:
+  first_pr: true
+  returning_pr: false
+  approval: false
+  merge: true
+  first_merge: true
+  issue_welcome: true
+
+# Skip tiny or placeholder first issues such as "test".
+issue_min_title_length: 8
+
+# Optional threshold overrides for the built-in count badges.
+milestones:
+  builder: 3
+  regular: 5
+  community: 10
+
+badges:
+  category: true
+
+social:
+  generate_card: true
+
+# Personal milestones. These are not ranks.
+# Add another entry to recognize a new milestone. Set enabled: false to hide one.
+count_badges:
+  - id: first-contribution
+    emoji: "🌱"
+    label: "First Contribution"
+    merged_prs: 1
+  - id: builder
+    emoji: "🔨"
+    label: "Builder"
+    merged_prs: 3
+  - id: regular-contributor
+    emoji: "🚀"
+    label: "Regular Contributor"
+    merged_prs: 5
+  - id: core-community
+    emoji: "⭐"
+    label: "Core Community Contributor"
+    merged_prs: 10
+
+# First matching category wins. Unlabeled pull requests stay "contribution".
+categories:
+  - id: feature
+    stat: "Features"
+    badge: "Feature Contributor"
+    emoji: "🚀"
+    labels: [contribution:feature, feature, enhancement]
+  - id: bug
+    stat: "Bug Fixes"
+    badge: "Bug Hunter"
+    emoji: "🐛"
+    labels: [contribution:bug, bug]
+  - id: documentation
+    stat: "Documentation"
+    badge: "Documentation Contributor"
+    emoji: "📚"
+    labels: [contribution:documentation, documentation, docs]
+  - id: testing
+    stat: "Tests"
+    badge: "Testing Contributor"
+    emoji: "🧪"
+    labels: [contribution:testing, testing, tests]
+  - id: performance
+    stat: "Performance"
+    badge: "Performance Contributor"
+    emoji: "⚡"
+    labels: [contribution:performance, performance]
+  - id: ui
+    stat: "UI"
+    badge: "UI Contributor"
+    emoji: "🎨"
+    labels: [contribution:ui, ui, design]
+  - id: accessibility
+    stat: "Accessibility"
+    badge: "Accessibility Contributor"
+    emoji: "♿"
+    labels: [contribution:accessibility, accessibility, a11y]
+  - id: tooling
+    stat: "Tooling"
+    badge: "Tooling Contributor"
+    emoji: "🛠️"
+    labels: [contribution:tooling, tooling]
+  - id: security
+    stat: "Security"
+    badge: "Security Contributor"
+    emoji: "🔐"
+    labels: [contribution:security, security]
+  - id: community
+    stat: "Community"
+    badge: "Community Contributor"
+    emoji: "🤝"
+    labels: [contribution:community, community]
+
+# Created when missing. Existing labels are left alone, including maintainer edits.
+labels:
+  - name: first-contribution
+    color: "2DA44E"
+    description: "First contribution to Qterm"
+  - name: contribution:feature
+    color: "1D76DB"
+    description: "Feature contribution"
+  - name: contribution:bug
+    color: "D73A4A"
+    description: "Bug fix contribution"
+  - name: contribution:documentation
+    color: "0075CA"
+    description: "Documentation contribution"
+  - name: contribution:performance
+    color: "FBCA04"
+    description: "Performance contribution"
+  - name: contribution:ui
+    color: "C5DEF5"
+    description: "UI contribution"
+  - name: contribution:testing
+    color: "BFD4F2"
+    description: "Testing contribution"
+  - name: contribution:accessibility
+    color: "5319E7"
+    description: "Accessibility contribution"
+  - name: contribution:tooling
+    color: "C2E0C6"
+    description: "Tooling contribution"
+  - name: contribution:security
+    color: "E11D48"
+    description: "Security contribution"
+  - name: contribution:community
+    color: "F9D0C4"
+    description: "Community contribution"

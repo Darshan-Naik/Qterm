@@ -27,6 +27,7 @@ export function siteUrl() {
 export const NAV = [
   { href: "/#features", label: "Features" },
   { href: "/#agents", label: "Agents" },
+  { href: "/contributors", label: "Contributors" },
   { href: "/#download", label: "Download" },
 ] as const;
 
@@ -70,6 +71,7 @@ export const QUIET_POINTS = [
 ] as const;
 
 export const FOOTER_LINKS = [
+  { href: "/contributors", label: "Contributors" },
   { href: "/agent-terminal", label: "Agent terminal" },
   { href: "/agents/claude-code", label: "Claude Code" },
   { href: "/agents/codex", label: "Codex" },

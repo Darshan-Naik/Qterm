@@ -53,6 +53,14 @@ Download Qterm from [qterm](https://qterm.darshannaik.com), open the app, and cr
 
 ---
 
+## Contributors
+
+Qterm is built together with the community. ❤️
+
+Thanks to everyone who has contributed code, ideas, fixes, documentation, testing, and feedback.
+
+[View all contributors →](https://qterm.darshannaik.com/contributors)
+
 ## License
 
 Qterm is licensed under the [MIT License](LICENSE).
