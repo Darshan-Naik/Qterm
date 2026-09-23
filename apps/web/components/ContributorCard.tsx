@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { contributorPath, type Contributor } from "@/lib/contributors";
+import type { Contributor } from "@/lib/contributors";
 import { shortMonth } from "@/lib/contributor-present.mjs";
 
 export function ContributorCard({ person }: { person: Contributor }) {
@@ -18,28 +17,19 @@ export function ContributorCard({ person }: { person: Contributor }) {
         <span>
           <span className="block text-[16px] font-medium tracking-tight group-hover:underline">@{person.username}</span>
           <span className="mt-1 block text-[13px] text-muted-foreground">
-            Qterm family{since ? ` since ${since}` : ""}
+            {since ? `With us since ${since}` : "With us"}
           </span>
         </span>
       </a>
       {person.badges.length > 0 ? (
-        <ul className="mt-5 flex flex-wrap gap-2">
+        <p className="mt-5 flex flex-wrap gap-x-3 gap-y-1 text-[14px] leading-relaxed text-foreground/90">
           {person.badges.map((badge) => (
-            <li
-              key={badge.id}
-              className="rounded-full border border-white/10 bg-white/4 px-2.5 py-1 text-[12px] text-foreground/90"
-            >
+            <span key={badge.id}>
               {badge.emoji} {badge.label}
-            </li>
+            </span>
           ))}
-        </ul>
+        </p>
       ) : null}
-      <Link
-        href={contributorPath(person.username)}
-        className="mt-5 text-[13px] text-muted-foreground transition hover:text-foreground"
-      >
-        Contribution card
-      </Link>
     </article>
   );
 }

@@ -37,6 +37,7 @@ export default async function ContributorSharePage({ params }: { params: Promise
   const data = contributorData();
   const share = firstContributionShareText({ maintainer: data.maintainer, repoUrl: repoUrl(data) });
   const first = person.mergedPRs <= 1;
+  const cardSrc = `${contributorCardPath(person.username)}?v=${encodeURIComponent(data.generatedAt || person.lastContribution)}`;
   const crumbs = [
     { href: "/", label: "Qterm" },
     { href: "/contributors", label: "Contributors" },
@@ -59,15 +60,15 @@ export default async function ContributorSharePage({ params }: { params: Promise
           {person.firstContribution ? ` · ${monthYear(person.firstContribution)}` : ""}
         </p>
         <img
-          src={contributorCardPath(person.username)}
+          src={cardSrc}
           alt={`Qterm contributor card for @${person.username}`}
           width={1200}
           height={630}
           className="mt-8 w-full rounded-2xl border border-white/10"
         />
         <div className="mt-4 flex flex-wrap gap-4 text-[13px]">
-          <a className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={contributorCardPath(person.username)} download>
-            Download SVG
+          <a className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={cardSrc} download>
+            Save this
           </a>
           <a
             className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
@@ -78,14 +79,13 @@ export default async function ContributorSharePage({ params }: { params: Promise
             Post on X
           </a>
           <Link className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href="/contributors">
-            All contributors
+            See everyone
           </Link>
         </div>
         {first ? (
           <section className="mt-10">
-            <h2 className="text-[18px] font-medium tracking-tight">Share text</h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-              Copy this if you want to tell people. Qterm will not post it for you.
+            <p className="text-[14px] leading-relaxed text-muted-foreground">
+              If you feel like telling people, copy this and post it wherever you like.
             </p>
             <div className="mt-4">
               <CopyShareText text={share} />

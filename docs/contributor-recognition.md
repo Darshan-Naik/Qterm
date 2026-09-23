@@ -100,7 +100,7 @@ The next sync and the next merge comment pick it up. Ship the config change befo
 
 Category badges come from `categories`. The first matching label wins. A pull request with no matching label is stored as `contribution` and does not earn a category badge. Set `badges.category` to `false` to keep the categories for stats but hide the badges.
 
-The page sorts by most recent merged pull request. It says that this is not a ranking. Do not sort this data into a leaderboard.
+The page lists whoever has been around most recently. Do not turn that into a leaderboard.
 
 ## Messages
 
@@ -122,7 +122,7 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 
 ## Contributors page
 
-- `/contributors` lists people, newest activity first. Each card is family membership and the badges they have earned. It does not show pull request counts.
+- `/contributors` lists people, newest activity first. A card is a name, when they joined, and the badges they have earned.
 - `/contributors/<username>` is the share page for someone in that file. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 
