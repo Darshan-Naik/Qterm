@@ -6,7 +6,7 @@ export function ContributorCard({ person }: { person: Contributor }) {
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-card">
       <div className="flex flex-1 flex-col px-6 py-8">
-        <a href={person.profileUrl} className="group flex items-center gap-4">
+        <a href={person.profileUrl} target="_blank" rel="noreferrer" className="group flex items-center gap-4">
           <img
             src={person.avatarUrl}
             alt=""

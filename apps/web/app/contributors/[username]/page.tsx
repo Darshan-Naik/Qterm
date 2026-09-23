@@ -59,7 +59,7 @@ export default async function ContributorSharePage({ params }: { params: Promise
           {first ? "Welcome to the family" : "Thanks for building Qterm"}
         </h1>
         <p className="mt-4 text-[16px] text-muted-foreground">
-          <a className="text-foreground underline-offset-4 hover:underline" href={person.profileUrl}>
+          <a className="text-foreground underline-offset-4 hover:underline" href={person.profileUrl} target="_blank" rel="noreferrer">
             @{person.username}
           </a>
           {first ? " made a first contribution" : " is part of the Qterm family"}

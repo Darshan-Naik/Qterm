@@ -16,6 +16,8 @@ export function ContributorGlance({ people }: { people: GlancePerson[] }) {
             <a
               key={person.username.toLowerCase()}
               href={person.profileUrl}
+              target="_blank"
+              rel="noreferrer"
               aria-label={name}
               className="group relative"
             >
