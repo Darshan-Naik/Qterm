@@ -6,7 +6,6 @@ export function MaintainerCard({ person }: { person: Maintainer }) {
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-card">
-      <div className="h-1 bg-primary" />
       <div className="flex flex-1 flex-col gap-6 px-6 py-8 sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
         <a href={person.profileUrl} className="shrink-0">
           <img
