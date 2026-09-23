@@ -41,7 +41,9 @@ func (adapter) MapHook(raw map[string]any) []core.Intent {
 }
 
 func (a adapter) Install(ctx core.InstallCtx) (core.InstallResult, error) {
-	if err := core.RequireCLI(a); err != nil {
+	// An already-connected plugin can be refreshed from disk when `claude` is
+	// missing from the GUI PATH. A first connect still needs the CLI.
+	if err := core.RequireCLI(a); err != nil && !pluginInstalled() {
 		return core.InstallResult{CLI: a.ID()}, err
 	}
 	return install(ctx)
@@ -137,29 +139,21 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	_ = core.RemoveMCP(userMCPJSON())
 	_ = disablePluginKey("qterm@skills-dir")
 	_ = os.RemoveAll(legacySkillsPluginRoot())
+	// Claude loads the copy under plugins/cache, not the marketplace source.
+	// `plugin install` is a no-op while that copy is registered, which is why a
+	// version bump alone never reached Claude until the user reconnected.
+	if err := forceClaudePluginReinstall(root); err != nil {
+		return core.InstallResult{CLI: "claude"}, err
+	}
 	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
 		return core.InstallResult{CLI: "claude"}, err
 	}
-	refreshClaudePlugin()
 
 	return core.InstallResult{
 		CLI:       "claude",
 		Installed: true,
 		Message:   "Installed ~/.claude/plugins/qterm (hooks + MCP, auto-allowed). Restart Claude Code, then /reload-plugins if needed.",
 	}, nil
-}
-
-func refreshClaudePlugin() {
-	// File sync is the source of truth. Ask Claude to recopy in the background so
-	// launch does not wait on the CLI.
-	go func() {
-		bin, err := core.FirstBinary("claude")
-		if err != nil {
-			return
-		}
-		core.RefreshCLI(bin, "plugin", "marketplace", "update", localMarketplaceName)
-		core.RefreshCLI(bin, "plugin", "update", core.PluginName+"@"+localMarketplaceName)
-	}()
 }
 
 func uninstall() error {
