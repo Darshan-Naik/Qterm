@@ -71,7 +71,3 @@ export function repoUrl(source: ContributorData) {
 export function contributorPath(username: string) {
   return `/contributors/${username}`;
 }
-
-export function contributorCardPath(username: string) {
-  return `/contributors/card/${username}`;
-}

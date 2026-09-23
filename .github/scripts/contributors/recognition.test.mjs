@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   contributionCountLabel,
   escapeXml,
+  contributorDisplayName,
   firstContributionShareText,
   monthYear,
   renderContributorCard,
@@ -482,7 +483,7 @@ test("release credits are grouped and are not a ranking", () => {
   assert.deepEqual(included.map((item) => item.number), [4]);
 });
 
-test("share card escapes text and uses the family wording", () => {
+test("share card escapes text and uses the family wording", async () => {
   const svg = renderContributorCard({
     username: "alex<script>",
     mergedPRs: 1,
@@ -490,6 +491,7 @@ test("share card escapes text and uses the family wording", () => {
     repoPath: "Darshan-Naik/Qterm",
   });
   assert.match(svg, /Welcome to the family/);
+  assert.match(svg, /M12 5a3 3 0 1 0-5\.997\.125/);
   assert.match(svg, /@alex&lt;script&gt;/);
   assert.match(svg, /September 2026/);
   assert.match(svg, /I helped build Qterm/);
@@ -512,6 +514,28 @@ test("share card escapes text and uses the family wording", () => {
   assert.match(later, /Thanks for building Qterm/);
   assert.match(later, /Qterm family · since January 2026/);
   assert.doesNotMatch(later, /PRs merged/);
+  const named = renderContributorCard({
+    username: "ada",
+    name: "Ada <Lovelace>",
+    mergedPRs: 1,
+    firstContribution: "2026-09-23",
+    repoPath: "Darshan-Naik/Qterm",
+  });
+  assert.match(named, /Ada &lt;Lovelace&gt;/);
+  assert.doesNotMatch(named, /@ada/);
+  assert.equal(contributorDisplayName({ name: "  Ada Lovelace  ", username: "ada" }), "Ada Lovelace");
+  assert.equal(contributorDisplayName({ username: "ada" }), "@ada");
+  assert.equal(contributorDisplayName({ name: "   ", username: "ada" }), "@ada");
+  const sharePage = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/[username]/page.tsx"), "utf8");
+  const shareCard = fs.readFileSync(path.join(repoRoot, "apps/web/components/ContributorShareCard.tsx"), "utf8");
+  const download = fs.readFileSync(path.join(repoRoot, "apps/web/lib/download-element-png.ts"), "utf8");
+  assert.match(sharePage, /contributorDisplayName/);
+  assert.match(sharePage, /ContributorShareCard/);
+  assert.doesNotMatch(sharePage, /@\$\{person\.username\}/);
+  assert.match(sharePage, /qterm-\$\{person\.username\}\.png/);
+  assert.match(shareCard, /Save this/);
+  assert.match(download, /toBlob\(resolve, "image\/png"\)/);
+  assert.equal(fs.existsSync(path.join(repoRoot, "apps/web/app/contributors/card/[username]/route.ts")), false);
 });
 
 test("more merged pull requests sort a person higher", () => {
@@ -536,7 +560,6 @@ test("the contributors page loads people from GitHub and caches for half a day",
   for (const file of [
     "apps/web/app/contributors/page.tsx",
     "apps/web/app/contributors/[username]/page.tsx",
-    "apps/web/app/contributors/card/[username]/route.ts",
     "apps/web/app/contributors/[username]/opengraph-image.tsx",
   ]) {
     const route = fs.readFileSync(path.join(repoRoot, file), "utf8");
@@ -578,7 +601,9 @@ test("user-facing recognition copy has no em dash", () => {
     "apps/web/components/ContributorGlanceSection.tsx",
     "apps/web/components/ProfileLinks.tsx",
     "apps/web/components/MaintainerCard.tsx",
+    "apps/web/components/ContributorShareCard.tsx",
     "apps/web/components/CopyShareText.tsx",
+    "apps/web/components/QtermLogo.tsx",
     "apps/web/lib/contributor-present.mjs",
     ".github/scripts/contributors/messages.mjs",
     ".github/qterm-contributors.yml",

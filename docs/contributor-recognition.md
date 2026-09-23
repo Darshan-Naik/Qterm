@@ -117,14 +117,14 @@ Avoid the em dash character in this copy. Use a period, comma, or colon.
 
 - `/contributors` lists people with the most merged pull requests first. A card is a name, the GitHub login, a site or X link when GitHub has one, and the badges they have earned. The maintainer card uses that same layout, with a Maintainer label. Location, company, and the GitHub bio stay off the card.
 - The home page shows those portraits just before the FAQ. A name shows when you hover.
-- `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. Unknown names 404. The page will not mint a card for a person who has not merged anything.
-- `/contributors/card/<username>` returns the SVG.
+- `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. The page and card use that person's GitHub name. The login is the fallback when GitHub has no name. Unknown names 404. The page will not mint a card for a person who has not merged anything.
+- The share card on that page is HTML. Save this uses the browser to download a PNG of the card.
 
 The page does not render category counts. Release notes group people from GitHub when a release is published.
 
 ## Share card
 
-The SVG is generated in `apps/web/lib/contributor-present.mjs`. It uses Qterm colors and the word Qterm. It does not embed another product's logo. The card is self-contained, so it does not depend on an external avatar request.
+The share card is HTML in `apps/web/components/ContributorShareCard.tsx`. It uses the page fonts, Qterm colors, the Qterm logo, and the word Qterm. Save this draws that HTML onto a canvas and downloads a PNG. It does not embed another product's logo.
 
 The first-merge comment links to the share page and includes text in a code block. There is also a link to post on X. Nothing is posted to a contributor's social accounts.
 
