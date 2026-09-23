@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
@@ -20,11 +19,9 @@ import { MARKERS, hasMarker, planRecognition } from "./messages.mjs";
 import {
   aggregateContributors,
   categoryForLabels,
-  comparablePayload,
   formatReleaseSection,
   freshCountBadges,
   isBot,
-  isContributorDataOnlyCommit,
   isMeaningfulIssueTitle,
   isQuiet,
   normalizeMaintainer,
@@ -33,7 +30,6 @@ import {
 } from "./model.mjs";
 import { ensureLabels } from "./labels.mjs";
 import { recognize } from "./comment.mjs";
-import { syncContributors } from "./sync.mjs";
 import { parseSimpleYaml } from "./yaml.mjs";
 
 const config = loadConfig();
@@ -383,43 +379,6 @@ test("events from forks are marked and unmerged closes are ignored", () => {
   }), null);
 });
 
-test("sync writes once and refuses partial history", async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qterm-contributors-"));
-  const outputPath = path.join(dir, "contributors.json");
-  const pulls = [pull({ number: 9, login: "alex", mergedAt: "2026-09-23T12:00:00Z", labels: ["performance"] })];
-  const first = await syncContributors({
-    repo: "Darshan-Naik/Qterm",
-    config,
-    outputPath,
-    now: new Date("2026-09-23T12:00:00Z"),
-    listPulls: async () => ({ pulls, complete: true }),
-    fetchMaintainers: async () => [],
-  });
-  assert.equal(first.changed, true);
-  const written = fs.readFileSync(outputPath, "utf8");
-  const second = await syncContributors({
-    repo: "Darshan-Naik/Qterm",
-    config,
-    outputPath,
-    now: new Date("2026-09-24T12:00:00Z"),
-    listPulls: async () => ({ pulls, complete: true }),
-    fetchMaintainers: async () => [],
-  });
-  assert.equal(second.changed, false);
-  assert.equal(fs.readFileSync(outputPath, "utf8"), written);
-  assert.equal(comparablePayload(first.data), comparablePayload(second.data));
-  await assert.rejects(
-    syncContributors({
-      repo: "Darshan-Naik/Qterm",
-      config,
-      outputPath,
-      listPulls: async () => ({ pulls: [], complete: false }),
-      fetchMaintainers: async () => [],
-    }),
-    /partial pull request history/,
-  );
-});
-
 test("maintainer profiles are copied from GitHub and hidden from the people list", async () => {
   const user = {
     login: "Ada",
@@ -462,43 +421,20 @@ test("maintainer profiles are copied from GitHub and hidden from the people list
   assert.deepEqual(profiles.map((person) => person.username), ["Ada", "octo"]);
   assert.equal(profiles[1].name, undefined);
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qterm-maintainers-"));
-  const outputPath = path.join(dir, "contributors.json");
-  const written = await syncContributors({
-    repo: "Darshan-Naik/Qterm",
+  const data = aggregateContributors(
+    [
+      pull({ number: 1, login: "Ada", mergedAt: "2026-09-01T00:00:00Z" }),
+      pull({ number: 2, login: "alex", mergedAt: "2026-09-23T00:00:00Z" }),
+    ],
     config,
-    outputPath,
-    now: new Date("2026-09-23T12:00:00Z"),
-    listPulls: async () => ({
-      pulls: [
-        pull({ number: 1, login: "Ada", mergedAt: "2026-09-01T00:00:00Z" }),
-        pull({ number: 2, login: "alex", mergedAt: "2026-09-23T00:00:00Z" }),
-      ],
-      complete: true,
-    }),
-    fetchMaintainers: async () => profiles,
-  });
-  assert.equal(written.data.maintainers[0].bio, "Notes from the engine");
+    { generatedAt: "2026-09-23T12:00:00Z" },
+  );
+  data.maintainers = profiles;
+  assert.equal(data.maintainers[0].bio, "Notes from the engine");
   assert.deepEqual(
-    visibleContributors(written.data).map((person) => person.username),
+    visibleContributors(data).map((person) => person.username),
     ["alex"],
   );
-  const again = await syncContributors({
-    repo: "Darshan-Naik/Qterm",
-    config,
-    outputPath,
-    now: new Date("2026-09-24T12:00:00Z"),
-    listPulls: async () => ({
-      pulls: [
-        pull({ number: 1, login: "Ada", mergedAt: "2026-09-01T00:00:00Z" }),
-        pull({ number: 2, login: "alex", mergedAt: "2026-09-23T00:00:00Z" }),
-      ],
-      complete: true,
-    }),
-    fetchMaintainers: async () => [{ ...profiles[0], bio: "A newer note" }, profiles[1]],
-  });
-  assert.equal(again.changed, true);
-  assert.equal(again.data.maintainers[0].bio, "A newer note");
 });
 
 test("labels are created only when missing", async () => {
@@ -545,13 +481,6 @@ test("release credits are grouped and are not a ranking", () => {
     { since, until: Date.parse("2026-09-30T00:00:00Z") },
   );
   assert.deepEqual(included.map((item) => item.number), [4]);
-});
-
-test("contributor data commits are detected", () => {
-  assert.equal(isContributorDataOnlyCommit({ added: [], modified: ["apps/web/data/contributors.json"], removed: [] }), true);
-  assert.equal(isContributorDataOnlyCommit({ added: ["README.md"], modified: ["apps/web/data/contributors.json"], removed: [] }), false);
-  assert.equal(isContributorDataOnlyCommit(null), false);
-  assert.equal(isContributorDataOnlyCommit({ added: [], modified: [], removed: [] }), false);
 });
 
 test("share card escapes text and uses the family wording", async () => {
@@ -612,15 +541,6 @@ test("share card escapes text and uses the family wording", async () => {
   assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
 });
 
-test("seeded contributor data does not invent people", () => {
-  const seeded = JSON.parse(fs.readFileSync(path.join(repoRoot, "apps/web/data/contributors.json"), "utf8"));
-  assert.equal(seeded.stats.contributors, 0);
-  assert.equal(seeded.stats.contributions, 0);
-  assert.deepEqual(seeded.contributors, []);
-  assert.deepEqual(seeded.stats.categories, []);
-  assert.deepEqual(seeded.maintainers ?? [], []);
-});
-
 test("more merged pull requests sort a person higher", () => {
   const ranked = rankedContributors([
     { username: "ada", mergedPRs: 1 },
@@ -653,6 +573,7 @@ test("the contributors page loads people from GitHub and caches for half a day",
   assert.match(page, /getContributorData/);
   assert.doesNotMatch(page, /contributors\.json/);
   assert.doesNotMatch(card, /contributors\.json/);
+  assert.equal(fs.existsSync(path.join(repoRoot, "apps/web/data/contributors.json")), false);
   assert.equal(page.includes("Darshan Naik"), false);
   assert.equal(card.includes("Darshan Naik"), false);
 });
@@ -665,11 +586,11 @@ test("recognition workflow cannot run pull request code", () => {
   assert.match(workflow, /contents:\s*read/);
   assert.doesNotMatch(workflow, /contents:\s*write/);
   assert.doesNotMatch(workflow, /head\.sha|refs\/pull|npm ci|npm test|pull_request:/);
-  const sync = fs.readFileSync(path.join(repoRoot, ".github/workflows/contributor-sync.yml"), "utf8");
-  assert.match(sync, /contents:\s*write/);
-  assert.match(sync, /secrets\.CONTRIBUTOR_SYNC_TOKEN/);
-  assert.doesNotMatch(sync, /pull_request_target|npm ci|head\.sha/);
-  assert.match(sync, /chore: update contributor recognition data/);
+  assert.match(workflow, /labels\.mjs/);
+  assert.doesNotMatch(workflow, /CONTRIBUTOR_SYNC_TOKEN|contributors\.json/);
+  assert.equal(fs.existsSync(path.join(repoRoot, ".github/workflows/contributor-sync.yml")), false);
+  const release = fs.readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
+  assert.doesNotMatch(release, /data-only-commit|contributors\.json/);
 });
 
 test("user-facing recognition copy has no em dash", () => {

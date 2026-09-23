@@ -180,11 +180,6 @@ export function aggregateContributors(pulls, config, { generatedAt = null } = {}
   };
 }
 
-export function comparablePayload(data) {
-  const { generatedAt: _generatedAt, ...rest } = data || {};
-  return JSON.stringify(rest);
-}
-
 export function plainTitle(title) {
   const cleaned = String(title || "")
     .replace(/[\u0000-\u001f]+/g, " ")
@@ -255,13 +250,6 @@ function appendGroup(lines, group) {
     lines.push(`- ${plainTitle(pull.title)}. @${pull.login}`);
   }
   lines.push("");
-}
-
-export function isContributorDataOnlyCommit(commit) {
-  if (!commit) return false;
-  const files = [...(commit.added || []), ...(commit.modified || []), ...(commit.removed || [])];
-  if (files.length === 0) return false;
-  return files.every((file) => file === "apps/web/data/contributors.json");
 }
 
 export function pullsInRelease(pulls, { since, until }) {

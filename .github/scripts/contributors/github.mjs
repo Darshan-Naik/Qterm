@@ -42,7 +42,7 @@ export async function ghJson(args, options) {
 export async function githubApiGet(pathname) {
   const headers = {
     accept: "application/vnd.github+json",
-    "user-agent": "qterm-contributor-sync",
+    "user-agent": "qterm-contributors",
     "x-github-api-version": "2022-11-28",
   };
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;

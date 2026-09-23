@@ -3,16 +3,10 @@
  *
  *   node .github/scripts/contributors/release.mjs
  *     Appends a contributor section for pull requests merged since the previous release.
- *
- *   node .github/scripts/contributors/release.mjs --data-only-commit
- *     Prints yes when the push only changes generated contributor data.
  */
-import fs from "node:fs";
 import { loadConfig } from "./config.mjs";
 import { ghJson, listMergedPulls } from "./github.mjs";
-import { formatReleaseSection, isContributorDataOnlyCommit, pullsInRelease } from "./model.mjs";
-
-export { isContributorDataOnlyCommit };
+import { formatReleaseSection, pullsInRelease } from "./model.mjs";
 
 export async function contributorReleaseNotes({
   repo,
@@ -46,23 +40,7 @@ async function previousReleaseTime(repo, currentTag) {
   return Number.isNaN(time) ? null : time;
 }
 
-function dataOnlyFromEnv() {
-  const eventPath = process.env.GITHUB_EVENT_PATH || "";
-  const eventName = process.env.GITHUB_EVENT_NAME || "";
-  const refType = process.env.GITHUB_REF_TYPE || "";
-  if (eventName !== "push" || refType !== "branch" || !eventPath || !fs.existsSync(eventPath)) {
-    process.stdout.write("no");
-    return;
-  }
-  const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
-  process.stdout.write(isContributorDataOnlyCommit(event.head_commit) ? "yes" : "no");
-}
-
 async function main() {
-  if (process.argv.includes("--data-only-commit")) {
-    dataOnlyFromEnv();
-    return;
-  }
   const repo = process.env.GITHUB_REPOSITORY || loadConfig().repo;
   const notes = await contributorReleaseNotes({ repo });
   if (notes) process.stdout.write(`\n${notes}`);

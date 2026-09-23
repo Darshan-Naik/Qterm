@@ -63,13 +63,6 @@ jobs:
               SKIP=true
             fi
           fi
-          if [[ "$SKIP" == "false" ]]; then
-            DATA_ONLY="$(node .github/scripts/contributors/release.mjs --data-only-commit || true)"
-            if [[ "$DATA_ONLY" == "yes" ]]; then
-              echo "Contributor data commit only; skip release."
-              SKIP=true
-            fi
-          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
