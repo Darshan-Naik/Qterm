@@ -527,18 +527,15 @@ test("share card escapes text and uses the family wording", async () => {
   assert.equal(contributorDisplayName({ username: "ada" }), "@ada");
   assert.equal(contributorDisplayName({ name: "   ", username: "ada" }), "@ada");
   const sharePage = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/[username]/page.tsx"), "utf8");
-  const cardRoute = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/card/[username]/route.ts"), "utf8");
+  const shareCard = fs.readFileSync(path.join(repoRoot, "apps/web/components/ContributorShareCard.tsx"), "utf8");
+  const download = fs.readFileSync(path.join(repoRoot, "apps/web/lib/download-element-png.ts"), "utf8");
   assert.match(sharePage, /contributorDisplayName/);
+  assert.match(sharePage, /ContributorShareCard/);
   assert.doesNotMatch(sharePage, /@\$\{person\.username\}/);
-  assert.match(sharePage, /download=1/);
   assert.match(sharePage, /qterm-\$\{person\.username\}\.png/);
-  assert.match(cardRoute, /name: person\.name/);
-  assert.match(cardRoute, /image\/png/);
-  assert.match(cardRoute, /qterm-\$\{person\.username\}\.png/);
-  assert.match(cardRoute, /attachment/);
-  const sharp = (await import("sharp")).default;
-  const png = await sharp(Buffer.from(named)).png().toBuffer();
-  assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.match(shareCard, /Save this/);
+  assert.match(download, /toBlob\(resolve, "image\/png"\)/);
+  assert.equal(fs.existsSync(path.join(repoRoot, "apps/web/app/contributors/card/[username]/route.ts")), false);
 });
 
 test("more merged pull requests sort a person higher", () => {
@@ -563,7 +560,6 @@ test("the contributors page loads people from GitHub and caches for half a day",
   for (const file of [
     "apps/web/app/contributors/page.tsx",
     "apps/web/app/contributors/[username]/page.tsx",
-    "apps/web/app/contributors/card/[username]/route.ts",
     "apps/web/app/contributors/[username]/opengraph-image.tsx",
   ]) {
     const route = fs.readFileSync(path.join(repoRoot, file), "utf8");
@@ -605,7 +601,9 @@ test("user-facing recognition copy has no em dash", () => {
     "apps/web/components/ContributorGlanceSection.tsx",
     "apps/web/components/ProfileLinks.tsx",
     "apps/web/components/MaintainerCard.tsx",
+    "apps/web/components/ContributorShareCard.tsx",
     "apps/web/components/CopyShareText.tsx",
+    "apps/web/components/QtermLogo.tsx",
     "apps/web/lib/contributor-present.mjs",
     ".github/scripts/contributors/messages.mjs",
     ".github/qterm-contributors.yml",
