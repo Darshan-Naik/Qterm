@@ -640,6 +640,7 @@ test("recognition workflow cannot run pull request code", () => {
   assert.doesNotMatch(workflow, /head\.sha|refs\/pull|npm ci|npm test|pull_request:/);
   const sync = fs.readFileSync(path.join(repoRoot, ".github/workflows/contributor-sync.yml"), "utf8");
   assert.match(sync, /contents:\s*write/);
+  assert.match(sync, /secrets\.CONTRIBUTOR_SYNC_TOKEN/);
   assert.doesNotMatch(sync, /pull_request_target|npm ci|head\.sha/);
   assert.match(sync, /chore: update contributor recognition data/);
 });

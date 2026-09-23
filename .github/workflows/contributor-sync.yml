@@ -25,10 +25,24 @@ jobs:
     if: "${{ github.event_name != 'push' || !contains(github.event.head_commit.message, 'chore: update contributor recognition data') }}"
     runs-on: ubuntu-latest
     steps:
+      - name: Require contributor sync token
+        env:
+          CONTRIBUTOR_SYNC_TOKEN: ${{ secrets.CONTRIBUTOR_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CONTRIBUTOR_SYNC_TOKEN}" ]; then
+            echo "CONTRIBUTOR_SYNC_TOKEN is not set."
+            echo "Create a fine-grained personal access token for a repository admin, with Contents set to Read and write on this repository."
+            echo "Save it as the Actions secret CONTRIBUTOR_SYNC_TOKEN."
+            echo "The default GITHUB_TOKEN cannot push to main."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
           ref: main
+          token: ${{ secrets.CONTRIBUTOR_SYNC_TOKEN }}
 
       - name: Set up Node
         uses: actions/setup-node@v7

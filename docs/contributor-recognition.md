@@ -116,6 +116,8 @@ Avoid the em dash character in this copy. Use a period, comma, or colon.
 
 The file is committed only when the people, pull requests, or badges change. The commit message is `chore: update contributor recognition data`. That commit does not publish a desktop release: the release workflow ignores a push that only touches this file.
 
+The push uses the `CONTRIBUTOR_SYNC_TOKEN` Actions secret, a fine-grained personal access token for a repository admin. The default Actions token cannot push to `main` while that branch requires a pull request. Create the token under GitHub Settings, Developer settings, Personal access tokens, Fine-grained tokens. Limit it to this repository and set Contents to Read and write. Then save it as that secret. Do not commit the token.
+
 The website does not read that file. `/contributors` is server-rendered and asks GitHub for merged pull requests and for the maintainer profile (the configured login and the repository owner). Next caches those responses for 12 hours (`CONTRIBUTOR_CACHE_SECONDS` in `apps/web/lib/contributor-data.ts`). Names and avatars come from that response. The page does not keep them in source, and it does not show the GitHub bio.
 
 If the API history is cut off, sync fails instead of replacing the page with a partial list.
