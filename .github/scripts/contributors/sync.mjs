@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contributorDataPath, loadConfig } from "./config.mjs";
-import { listMergedPulls } from "./github.mjs";
+import { fetchMaintainerProfiles, listMergedPulls } from "./github.mjs";
 import { aggregateContributors, comparablePayload } from "./model.mjs";
 
 export async function syncContributors({
@@ -13,6 +13,7 @@ export async function syncContributors({
   config = loadConfig(),
   dryRun = false,
   listPulls = listMergedPulls,
+  fetchMaintainers = fetchMaintainerProfiles,
   now = new Date(),
   outputPath = contributorDataPath,
 } = {}) {
@@ -20,7 +21,9 @@ export async function syncContributors({
   if (!history.complete) {
     throw new Error("GitHub returned a partial pull request history. Refusing to publish incomplete contributor data.");
   }
+  const maintainers = await fetchMaintainers(repo, config);
   const next = aggregateContributors(history.pulls, config, { generatedAt: now.toISOString() });
+  next.maintainers = maintainers;
   const previous = readExisting(outputPath);
   if (previous && comparablePayload(previous) === comparablePayload(next)) {
     return { changed: false, data: previous };

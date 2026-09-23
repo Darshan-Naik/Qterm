@@ -51,6 +51,43 @@ export function presentBadge(badge) {
   return { id: badge.id, emoji: badge.emoji, label: badge.label };
 }
 
+function filled(value) {
+  const text = String(value ?? "").trim();
+  return text || "";
+}
+
+function website(value) {
+  const text = filled(value);
+  if (!text) return "";
+  if (/^https?:\/\//i.test(text)) return text;
+  return `https://${text}`;
+}
+
+export function normalizeMaintainer(user) {
+  const login = filled(user?.login);
+  if (!login || user?.type === "Bot" || login.toLowerCase().endsWith("[bot]")) return null;
+  const profile = {
+    username: login,
+    avatarUrl: filled(user.avatar_url) || `https://github.com/${login}.png`,
+    profileUrl: filled(user.html_url) || `https://github.com/${login}`,
+  };
+  const name = filled(user.name);
+  const bio = filled(user.bio);
+  const blog = website(user.blog);
+  const company = filled(user.company);
+  const location = filled(user.location);
+  const twitter = filled(user.twitter_username);
+  const createdAt = filled(user.created_at);
+  if (name) profile.name = name;
+  if (bio) profile.bio = bio;
+  if (blog) profile.blog = blog;
+  if (company) profile.company = company;
+  if (location) profile.location = location;
+  if (twitter) profile.twitter = twitter;
+  if (createdAt) profile.createdAt = createdAt;
+  return profile;
+}
+
 export function freshCountBadges(previousCount, nextCount, config) {
   const before = new Set(countBadgesFor(previousCount, config).map((badge) => badge.id));
   return countBadgesFor(nextCount, config)
@@ -62,6 +99,10 @@ export function isoDate(timestamp) {
   return String(timestamp).slice(0, 10);
 }
 
+/**
+ * @param {object} [options]
+ * @param {string | null} [options.generatedAt]
+ */
 export function aggregateContributors(pulls, config, { generatedAt = null } = {}) {
   const byLogin = new Map();
   const categoryCounts = new Map();
@@ -129,6 +170,7 @@ export function aggregateContributors(pulls, config, { generatedAt = null } = {}
     repo: config.repo,
     siteUrl: config.siteUrl,
     maintainer: config.maintainer,
+    maintainers: [],
     stats: {
       contributors: contributors.length,
       contributions: contributors.reduce((sum, person) => sum + person.mergedPRs, 0),

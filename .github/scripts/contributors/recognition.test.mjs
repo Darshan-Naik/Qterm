@@ -10,9 +10,10 @@ import {
   monthYear,
   renderContributorCard,
   shortMonth,
+  visibleContributors,
 } from "../../../apps/web/lib/contributor-present.mjs";
 import { loadConfig, loadConfigText, repoRoot } from "./config.mjs";
-import { normalizeEvent } from "./github.mjs";
+import { fetchMaintainerProfiles, normalizeEvent } from "./github.mjs";
 import { MARKERS, hasMarker, planRecognition } from "./messages.mjs";
 import {
   aggregateContributors,
@@ -24,6 +25,7 @@ import {
   isContributorDataOnlyCommit,
   isMeaningfulIssueTitle,
   isQuiet,
+  normalizeMaintainer,
   plainTitle,
   pullsInRelease,
 } from "./model.mjs";
@@ -142,6 +144,7 @@ test("aggregate orders by recent contribution and skips bots", () => {
     config,
   );
   assert.deepEqual(data.contributors.map((person) => person.username), ["alex", "ada"]);
+  assert.deepEqual(data.maintainers, []);
   assert.equal(data.stats.contributors, 2);
   assert.equal(data.stats.contributions, 6);
   assert.equal(data.stats.categories.find((category) => category.id === "bug").count, 3);
@@ -388,6 +391,7 @@ test("sync writes once and refuses partial history", async () => {
     outputPath,
     now: new Date("2026-09-23T12:00:00Z"),
     listPulls: async () => ({ pulls, complete: true }),
+    fetchMaintainers: async () => [],
   });
   assert.equal(first.changed, true);
   const written = fs.readFileSync(outputPath, "utf8");
@@ -397,6 +401,7 @@ test("sync writes once and refuses partial history", async () => {
     outputPath,
     now: new Date("2026-09-24T12:00:00Z"),
     listPulls: async () => ({ pulls, complete: true }),
+    fetchMaintainers: async () => [],
   });
   assert.equal(second.changed, false);
   assert.equal(fs.readFileSync(outputPath, "utf8"), written);
@@ -407,9 +412,91 @@ test("sync writes once and refuses partial history", async () => {
       config,
       outputPath,
       listPulls: async () => ({ pulls: [], complete: false }),
+      fetchMaintainers: async () => [],
     }),
     /partial pull request history/,
   );
+});
+
+test("maintainer profiles are copied from GitHub and hidden from the people list", async () => {
+  const user = {
+    login: "Ada",
+    type: "User",
+    name: "Ada Lovelace",
+    avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
+    html_url: "https://github.com/Ada",
+    bio: "  Notes from the engine  ",
+    blog: "ada.example",
+    company: " @Engines ",
+    location: " London ",
+    twitter_username: "ada",
+    created_at: "2021-01-06T04:24:39Z",
+  };
+  const profile = normalizeMaintainer(user);
+  assert.equal(profile.name, "Ada Lovelace");
+  assert.equal(profile.bio, "Notes from the engine");
+  assert.equal(profile.blog, "https://ada.example");
+  assert.equal(profile.company, "@Engines");
+  assert.equal(profile.location, "London");
+  assert.equal(profile.twitter, "ada");
+  assert.equal(normalizeMaintainer({ login: "dependabot[bot]", type: "Bot" }), null);
+  assert.equal(normalizeMaintainer({ login: "  ", type: "User" }), null);
+
+  const calls = [];
+  const profiles = await fetchMaintainerProfiles("Darshan-Naik/Qterm", { maintainer: "Ada" }, {
+    get: async (pathname) => {
+      calls.push(pathname);
+      if (pathname.startsWith("repos/")) return { owner: { login: "octo", type: "User" } };
+      if (pathname === "users/Ada") return user;
+      return {
+        login: "octo",
+        type: "User",
+        avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
+        html_url: "https://github.com/octo",
+      };
+    },
+  });
+  assert.deepEqual(calls, ["repos/Darshan-Naik/Qterm", "users/Ada", "users/octo"]);
+  assert.deepEqual(profiles.map((person) => person.username), ["Ada", "octo"]);
+  assert.equal(profiles[1].name, undefined);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qterm-maintainers-"));
+  const outputPath = path.join(dir, "contributors.json");
+  const written = await syncContributors({
+    repo: "Darshan-Naik/Qterm",
+    config,
+    outputPath,
+    now: new Date("2026-09-23T12:00:00Z"),
+    listPulls: async () => ({
+      pulls: [
+        pull({ number: 1, login: "Ada", mergedAt: "2026-09-01T00:00:00Z" }),
+        pull({ number: 2, login: "alex", mergedAt: "2026-09-23T00:00:00Z" }),
+      ],
+      complete: true,
+    }),
+    fetchMaintainers: async () => profiles,
+  });
+  assert.equal(written.data.maintainers[0].bio, "Notes from the engine");
+  assert.deepEqual(
+    visibleContributors(written.data).map((person) => person.username),
+    ["alex"],
+  );
+  const again = await syncContributors({
+    repo: "Darshan-Naik/Qterm",
+    config,
+    outputPath,
+    now: new Date("2026-09-24T12:00:00Z"),
+    listPulls: async () => ({
+      pulls: [
+        pull({ number: 1, login: "Ada", mergedAt: "2026-09-01T00:00:00Z" }),
+        pull({ number: 2, login: "alex", mergedAt: "2026-09-23T00:00:00Z" }),
+      ],
+      complete: true,
+    }),
+    fetchMaintainers: async () => [{ ...profiles[0], bio: "A newer note" }, profiles[1]],
+  });
+  assert.equal(again.changed, true);
+  assert.equal(again.data.maintainers[0].bio, "A newer note");
 });
 
 test("labels are created only when missing", async () => {
@@ -503,6 +590,22 @@ test("seeded contributor data does not invent people", () => {
   assert.equal(seeded.stats.contributions, 0);
   assert.deepEqual(seeded.contributors, []);
   assert.deepEqual(seeded.stats.categories, []);
+  assert.deepEqual(seeded.maintainers ?? [], []);
+});
+
+test("the contributors page loads people from GitHub and caches for half a day", () => {
+  const source = fs.readFileSync(path.join(repoRoot, "apps/web/lib/contributor-data.ts"), "utf8");
+  const page = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/page.tsx"), "utf8");
+  const card = fs.readFileSync(path.join(repoRoot, "apps/web/components/MaintainerCard.tsx"), "utf8");
+  assert.match(source, /https:\/\/api\.github\.com/);
+  assert.match(source, /CONTRIBUTOR_CACHE_SECONDS = 60 \* 60 \* 12/);
+  assert.match(source, /revalidate: CONTRIBUTOR_CACHE_SECONDS/);
+  assert.doesNotMatch(source, /contributors\.json/);
+  assert.match(page, /getContributorData/);
+  assert.doesNotMatch(page, /contributors\.json/);
+  assert.doesNotMatch(card, /contributors\.json/);
+  assert.equal(page.includes("Darshan Naik"), false);
+  assert.equal(card.includes("Darshan Naik"), false);
 });
 
 test("recognition workflow cannot run pull request code", () => {
@@ -527,6 +630,7 @@ test("user-facing recognition copy has no em dash", () => {
     "apps/web/app/contributors/page.tsx",
     "apps/web/app/contributors/[username]/page.tsx",
     "apps/web/components/ContributorCard.tsx",
+    "apps/web/components/MaintainerCard.tsx",
     "apps/web/components/CopyShareText.tsx",
     "apps/web/lib/contributor-present.mjs",
     ".github/scripts/contributors/messages.mjs",

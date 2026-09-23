@@ -116,14 +116,14 @@ Avoid the em dash character in this copy. Use a period, comma, or colon.
 
 The file is committed only when the people, pull requests, or badges change. The commit message is `chore: update contributor recognition data`. That commit does not publish a desktop release: the release workflow ignores a push that only touches this file.
 
-The website imports the JSON at build time. Avatars use `https://github.com/<login>.png`. Empty data is honest: the page says nothing has been recorded yet.
+The website does not read that file. `/contributors` is server-rendered and asks GitHub for merged pull requests and for the maintainer profile (the configured login and the repository owner). Next caches those responses for 12 hours (`CONTRIBUTOR_CACHE_SECONDS` in `apps/web/lib/contributor-data.ts`). Names, avatars, bios, and websites come from that response. The page does not keep them in source.
 
 If the API history is cut off, sync fails instead of replacing the page with a partial list.
 
 ## Contributors page
 
-- `/contributors` lists people, newest activity first. A card is a name, when they joined, and the badges they have earned.
-- `/contributors/<username>` is the share page for someone in that file. Unknown names 404. The page will not mint a card for a person who has not merged anything.
+- `/contributors` lists people, newest activity first. A card is a name, when they joined, and the badges they have earned. The maintainer profile sits in its own wider card, separate from those people.
+- `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 
 Category counts stay in the JSON for release notes. The page does not render them.

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { ContributorCard } from "@/components/ContributorCard";
-import { contributorData } from "@/lib/contributors";
+import { MaintainerCard } from "@/components/MaintainerCard";
+import { visibleContributors } from "@/lib/contributor-present.mjs";
+import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
+import type { Contributor, ContributorData } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
@@ -15,10 +18,18 @@ const crumbs = [
 ];
 
 export const metadata: Metadata = pageMeta({ title, description, path });
+export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
 
-export default function ContributorsPage() {
-  const data = contributorData();
-  const people = data.contributors;
+export default async function ContributorsPage() {
+  let data: ContributorData | null = null;
+  try {
+    data = await getContributorData();
+  } catch {
+    data = null;
+  }
+  const maintainers = data?.maintainers ?? [];
+  const people = (data ? visibleContributors(data) : []) as Contributor[];
+  const unavailable = data == null;
 
   return (
     <main>
@@ -28,7 +39,21 @@ export default function ContributorsPage() {
         <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-[18px]">{description}</p>
       </header>
       <section className="mx-auto max-w-6xl px-5 pb-20">
-        {people.length === 0 ? (
+        {maintainers.length > 0 ? (
+          <div className="mb-8 flex flex-col gap-4">
+            {maintainers.map((person) => (
+              <MaintainerCard key={person.username.toLowerCase()} person={person} />
+            ))}
+          </div>
+        ) : null}
+        {unavailable ? (
+          <div className="rounded-2xl border border-white/8 bg-card/80 px-6 py-10">
+            <p className="text-[16px] text-foreground">The list is taking a break.</p>
+            <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-muted-foreground">
+              GitHub did not answer just now. The people will show up here when it does.
+            </p>
+          </div>
+        ) : people.length === 0 ? (
           <div className="rounded-2xl border border-white/8 bg-card/80 px-6 py-10">
             <p className="text-[16px] text-foreground">No one has landed here yet.</p>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-muted-foreground">

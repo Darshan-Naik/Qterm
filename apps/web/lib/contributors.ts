@@ -1,5 +1,3 @@
-import data from "@/data/contributors.json";
-
 export type ContributorBadge = {
   id: string;
   emoji: string;
@@ -31,11 +29,25 @@ export type ContributorCategoryStat = {
   count: number;
 };
 
+export type Maintainer = {
+  username: string;
+  name?: string;
+  avatarUrl: string;
+  profileUrl: string;
+  bio?: string;
+  blog?: string;
+  company?: string;
+  location?: string;
+  twitter?: string;
+  createdAt?: string;
+};
+
 export type ContributorData = {
   generatedAt?: string | null;
   repo: string;
   siteUrl: string;
   maintainer: string;
+  maintainers?: Maintainer[];
   stats: {
     contributors: number;
     contributions: number;
@@ -44,16 +56,12 @@ export type ContributorData = {
   contributors: Contributor[];
 };
 
-export function contributorData(): ContributorData {
-  return data as ContributorData;
-}
-
-export function findContributor(username: string) {
+export function findContributor(data: ContributorData, username: string) {
   const key = username.toLowerCase();
-  return contributorData().contributors.find((person) => person.username.toLowerCase() === key) ?? null;
+  return data.contributors.find((person) => person.username.toLowerCase() === key) ?? null;
 }
 
-export function repoUrl(source: ContributorData = contributorData()) {
+export function repoUrl(source: ContributorData) {
   return `https://github.com/${source.repo}`;
 }
 

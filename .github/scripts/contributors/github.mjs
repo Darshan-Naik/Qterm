@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { normalizeMaintainer } from "./model.mjs";
 
 export class GhError extends Error {
   constructor(message) {
@@ -36,6 +37,46 @@ export function runGh(args, { input, env = process.env } = {}) {
 export async function ghJson(args, options) {
   const stdout = await runGh(args, options);
   return JSON.parse(stdout);
+}
+
+export async function githubApiGet(pathname) {
+  const headers = {
+    accept: "application/vnd.github+json",
+    "user-agent": "qterm-contributor-sync",
+    "x-github-api-version": "2022-11-28",
+  };
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (token) headers.authorization = `Bearer ${token}`;
+  const response = await fetch(`https://api.github.com/${pathname}`, { headers });
+  if (!response.ok) {
+    throw new GhError(`GitHub ${pathname} returned ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function fetchMaintainerProfiles(repo, config, { get = githubApiGet } = {}) {
+  const logins = [];
+  const add = (login) => {
+    const name = String(login || "").trim();
+    if (!name) return;
+    if (logins.some((item) => item.toLowerCase() === name.toLowerCase())) return;
+    logins.push(name);
+  };
+  add(config?.maintainer);
+  const repository = await get(`repos/${repo}`);
+  const owner = repository?.owner;
+  if (owner?.login && owner.type !== "Bot") add(owner.login);
+
+  const profiles = [];
+  for (const login of logins) {
+    const user = await get(`users/${encodeURIComponent(login)}`);
+    const profile = normalizeMaintainer(user);
+    if (profile) profiles.push(profile);
+  }
+  if (config?.maintainer && profiles.length === 0) {
+    throw new GhError(`GitHub did not return a profile for ${config.maintainer}.`);
+  }
+  return profiles;
 }
 
 export async function listMergedPulls(repo, { maxPages = 20, gh = ghJson } = {}) {

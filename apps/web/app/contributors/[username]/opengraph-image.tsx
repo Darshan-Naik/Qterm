@@ -1,13 +1,17 @@
 import { ImageResponse } from "next/og";
 import { monthYear } from "@/lib/contributor-present.mjs";
+import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
 import { findContributor } from "@/lib/contributors";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
+export const runtime = "nodejs";
 
 export default async function ContributorOgImage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  const person = findContributor(username);
+  const data = await getContributorData().catch(() => null);
+  const person = data ? findContributor(data, username) : null;
   const name = person?.username || username;
   const first = !person || person.mergedPRs <= 1;
   const headline = first ? "Welcome to the family" : "Thanks for building Qterm";

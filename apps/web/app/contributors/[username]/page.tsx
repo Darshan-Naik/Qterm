@@ -4,20 +4,27 @@ import { notFound } from "next/navigation";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { CopyShareText } from "@/components/CopyShareText";
 import { firstContributionShareText, monthYear, tweetIntentUrl } from "@/lib/contributor-present.mjs";
-import { contributorCardPath, contributorData, findContributor, repoUrl } from "@/lib/contributors";
+import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
+import { contributorCardPath, findContributor, repoUrl } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
 
 type Params = { username: string };
 
-export const dynamicParams = false;
+export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
 
-export function generateStaticParams() {
-  return contributorData().contributors.map((person) => ({ username: person.username }));
+export async function generateStaticParams() {
+  try {
+    const data = await getContributorData();
+    return data.contributors.map((person) => ({ username: person.username }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { username } = await params;
-  const person = findContributor(username);
+  const data = await getContributorData().catch(() => null);
+  const person = data ? findContributor(data, username) : null;
   if (!person) return {};
   const first = person.mergedPRs <= 1;
   return pageMeta({
@@ -31,10 +38,9 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 export default async function ContributorSharePage({ params }: { params: Promise<Params> }) {
   const { username } = await params;
-  const person = findContributor(username);
-  if (!person) notFound();
-
-  const data = contributorData();
+  const data = await getContributorData().catch(() => null);
+  const person = data ? findContributor(data, username) : null;
+  if (!data || !person) notFound();
   const share = firstContributionShareText({ maintainer: data.maintainer, repoUrl: repoUrl(data) });
   const first = person.mergedPRs <= 1;
   const cardSrc = `${contributorCardPath(person.username)}?v=${encodeURIComponent(data.generatedAt || person.lastContribution)}`;

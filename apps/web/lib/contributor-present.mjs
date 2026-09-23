@@ -31,6 +31,15 @@ export function monthYear(isoDate) {
   return `${MONTHS[index]} ${year}`;
 }
 
+export function visibleContributors(data) {
+  const hidden = new Set(
+    [data?.maintainer, ...(data?.maintainers || []).map((person) => person.username)]
+      .filter(Boolean)
+      .map((name) => String(name).toLowerCase()),
+  );
+  return (data?.contributors || []).filter((person) => !hidden.has(String(person.username || "").toLowerCase()));
+}
+
 export function shortMonth(isoDate) {
   const [year, month] = String(isoDate || "").split("-");
   const index = Number(month) - 1;
