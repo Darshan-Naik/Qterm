@@ -12,12 +12,12 @@ export function ProfileLinks({ blog, twitter }: { blog?: string; twitter?: strin
   return (
     <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
       {blog ? (
-        <a className="underline-offset-4 hover:underline" href={blog}>
+        <a className="underline-offset-4 hover:underline" href={blog} target="_blank" rel="noreferrer">
           {siteLabel(blog)}
         </a>
       ) : null}
       {handle ? (
-        <a className="underline-offset-4 hover:underline" href={`https://x.com/${handle}`}>
+        <a className="underline-offset-4 hover:underline" href={`https://x.com/${handle}`} target="_blank" rel="noreferrer">
           @{handle}
         </a>
       ) : null}
