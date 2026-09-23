@@ -14,6 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ userna
   if (!data || !person) return new Response("Not found", { status: 404 });
   const svg = renderContributorCard({
     username: person.username,
+    name: person.name,
     mergedPRs: person.mergedPRs,
     firstContribution: person.firstContribution,
     repoPath: data.repo,

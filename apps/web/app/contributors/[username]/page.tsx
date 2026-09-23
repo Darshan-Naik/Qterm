@@ -3,7 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { CopyShareText } from "@/components/CopyShareText";
-import { firstContributionShareText, monthYear, tweetIntentUrl } from "@/lib/contributor-present.mjs";
+import {
+  contributorDisplayName,
+  firstContributionShareText,
+  monthYear,
+  tweetIntentUrl,
+} from "@/lib/contributor-present.mjs";
 import { getContributorData } from "@/lib/contributor-data";
 import { contributorCardPath, findContributor, repoUrl } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
@@ -27,11 +32,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const person = data ? findContributor(data, username) : null;
   if (!person) return {};
   const first = person.mergedPRs <= 1;
+  const label = contributorDisplayName(person);
   return pageMeta({
-    title: `@${person.username}`,
+    title: label,
     description: first
-      ? `@${person.username} made a first contribution to Qterm in ${monthYear(person.firstContribution)}.`
-      : `@${person.username} is a Qterm contributor since ${monthYear(person.firstContribution)}.`,
+      ? `${label} made a first contribution to Qterm in ${monthYear(person.firstContribution)}.`
+      : `${label} is a Qterm contributor since ${monthYear(person.firstContribution)}.`,
     path: `/contributors/${person.username}`,
   });
 }
@@ -43,11 +49,12 @@ export default async function ContributorSharePage({ params }: { params: Promise
   if (!data || !person) notFound();
   const share = firstContributionShareText({ maintainer: data.maintainer, repoUrl: repoUrl(data) });
   const first = person.mergedPRs <= 1;
+  const label = contributorDisplayName(person);
   const cardSrc = `${contributorCardPath(person.username)}?v=${encodeURIComponent(data.generatedAt || person.lastContribution)}`;
   const crumbs = [
     { href: "/", label: "Qterm" },
     { href: "/contributors", label: "Contributors" },
-    { href: `/contributors/${person.username}`, label: `@${person.username}` },
+    { href: `/contributors/${person.username}`, label },
   ];
 
   return (
@@ -60,14 +67,14 @@ export default async function ContributorSharePage({ params }: { params: Promise
         </h1>
         <p className="mt-4 text-[16px] text-muted-foreground">
           <a className="text-foreground underline-offset-4 hover:underline" href={person.profileUrl} target="_blank" rel="noreferrer">
-            @{person.username}
+            {label}
           </a>
           {first ? " made a first contribution" : " is part of the Qterm family"}
           {person.firstContribution ? ` · ${monthYear(person.firstContribution)}` : ""}
         </p>
         <img
           src={cardSrc}
-          alt={`Qterm contributor card for @${person.username}`}
+          alt={`Qterm contributor card for ${label}`}
           width={1200}
           height={630}
           className="mt-8 w-full rounded-2xl border border-white/10"

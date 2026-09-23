@@ -126,7 +126,7 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 
 - `/contributors` lists people with the most merged pull requests first. A card is a name, the GitHub login, a site or X link when GitHub has one, and the badges they have earned. The maintainer card uses that same layout, with a Maintainer label. Location, company, and the GitHub bio stay off the card.
 - The home page shows those portraits just before the FAQ. A name shows when you hover.
-- `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. Unknown names 404. The page will not mint a card for a person who has not merged anything.
+- `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. The page and card use that person's GitHub name. The login is the fallback when GitHub has no name. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 
 Category counts stay in the JSON for release notes. The page does not render them.

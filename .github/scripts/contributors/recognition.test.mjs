@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   contributionCountLabel,
   escapeXml,
+  contributorDisplayName,
   firstContributionShareText,
   monthYear,
   renderContributorCard,
@@ -583,6 +584,23 @@ test("share card escapes text and uses the family wording", () => {
   assert.match(later, /Thanks for building Qterm/);
   assert.match(later, /Qterm family · since January 2026/);
   assert.doesNotMatch(later, /PRs merged/);
+  const named = renderContributorCard({
+    username: "ada",
+    name: "Ada <Lovelace>",
+    mergedPRs: 1,
+    firstContribution: "2026-09-23",
+    repoPath: "Darshan-Naik/Qterm",
+  });
+  assert.match(named, /Ada &lt;Lovelace&gt;/);
+  assert.doesNotMatch(named, /@ada/);
+  assert.equal(contributorDisplayName({ name: "  Ada Lovelace  ", username: "ada" }), "Ada Lovelace");
+  assert.equal(contributorDisplayName({ username: "ada" }), "@ada");
+  assert.equal(contributorDisplayName({ name: "   ", username: "ada" }), "@ada");
+  const sharePage = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/[username]/page.tsx"), "utf8");
+  const cardRoute = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/card/[username]/route.ts"), "utf8");
+  assert.match(sharePage, /contributorDisplayName/);
+  assert.doesNotMatch(sharePage, /@\$\{person\.username\}/);
+  assert.match(cardRoute, /name: person\.name/);
 });
 
 test("seeded contributor data does not invent people", () => {

@@ -76,13 +76,24 @@ export function tweetIntentUrl(text) {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
-export function renderContributorCard({ username, mergedPRs, firstContribution, repoPath }) {
-  const safeUser = escapeXml(username);
+export function contributorDisplayName({ name, username } = {}) {
+  const display = String(name || "").trim();
+  if (display) return display;
+  const login = String(username || "").trim();
+  return login ? `@${login}` : "";
+}
+
+export function renderContributorCard({ username, name, mergedPRs, firstContribution, repoPath }) {
+  const displayName = contributorDisplayName({ name, username });
+  const safeName = escapeXml(displayName);
   const when = escapeXml(monthYear(firstContribution));
   const first = Number(mergedPRs) <= 1;
   const headline = first ? "Welcome to the family" : "Thanks for building Qterm";
   const detail = first ? `First contribution · ${when}` : `Qterm family · since ${when}`;
-  const label = escapeXml(`${headline}. @${username}. ${first ? "First contribution" : "Qterm family"}. ${when}.`);
+  const label = escapeXml(`${headline}. ${displayName}. ${first ? "First contribution" : "Qterm family"}. ${when}.`);
+  const named = Boolean(String(name || "").trim());
+  const nameFont = named ? "ui-sans-serif, system-ui, sans-serif" : "ui-monospace, ui-sans-serif, monospace";
+  const nameSize = displayName.length > 32 ? 28 : displayName.length > 22 ? 32 : 36;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${label}">
@@ -95,7 +106,7 @@ export function renderContributorCard({ username, mergedPRs, firstContribution, 
   <rect x="96" y="108" width="18" height="28" rx="2" fill="#8eb4ff"/>
   <text x="128" y="132" fill="#8eb4ff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" letter-spacing="6">QTERM</text>
   <text x="96" y="250" fill="#f3f0e8" font-family="ui-sans-serif, system-ui, sans-serif" font-size="64" font-weight="600">${escapeXml(headline)}</text>
-  <text x="96" y="330" fill="#f3f0e8" font-family="ui-monospace, ui-sans-serif, monospace" font-size="36">@${safeUser}</text>
+  <text x="96" y="330" fill="#f3f0e8" font-family="${nameFont}" font-size="${nameSize}">${safeName}</text>
   <text x="96" y="392" fill="#b9b5ab" font-family="ui-sans-serif, system-ui, sans-serif" font-size="26">${detail}</text>
   <text x="96" y="470" fill="#f3f0e8" font-family="ui-monospace, ui-sans-serif, monospace" font-size="28">"I helped build Qterm."</text>
   <text x="96" y="536" fill="#8d8a80" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20">github.com/${escapeXml(repoPath)}</text>

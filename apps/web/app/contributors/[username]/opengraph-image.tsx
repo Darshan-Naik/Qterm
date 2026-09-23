@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { monthYear } from "@/lib/contributor-present.mjs";
+import { contributorDisplayName, monthYear } from "@/lib/contributor-present.mjs";
 import { getContributorData } from "@/lib/contributor-data";
 import { findContributor } from "@/lib/contributors";
 
@@ -12,7 +12,7 @@ export default async function ContributorOgImage({ params }: { params: Promise<{
   const { username } = await params;
   const data = await getContributorData().catch(() => null);
   const person = data ? findContributor(data, username) : null;
-  const name = person?.username || username;
+  const name = contributorDisplayName({ name: person?.name, username: person?.username || username });
   const first = !person || person.mergedPRs <= 1;
   const headline = first ? "Welcome to the family" : "Thanks for building Qterm";
   const when = person ? monthYear(person.firstContribution) : "";
@@ -34,7 +34,7 @@ export default async function ContributorOgImage({ params }: { params: Promise<{
       >
         <div style={{ display: "flex", fontSize: 22, letterSpacing: 6, color: "#8eb4ff" }}>QTERM</div>
         <div style={{ display: "flex", marginTop: 72, fontSize: 68, fontWeight: 600 }}>{headline}</div>
-        <div style={{ display: "flex", marginTop: 28, fontSize: 40 }}>@{name}</div>
+        <div style={{ display: "flex", marginTop: 28, fontSize: 40 }}>{name}</div>
         <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: "#b9b5ab" }}>{detail}</div>
         <div style={{ display: "flex", marginTop: 48, fontSize: 30 }}>&quot;I helped build Qterm.&quot;</div>
       </div>
