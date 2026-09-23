@@ -554,7 +554,7 @@ test("contributor data commits are detected", () => {
   assert.equal(isContributorDataOnlyCommit({ added: [], modified: [], removed: [] }), false);
 });
 
-test("share card escapes text and uses the family wording", () => {
+test("share card escapes text and uses the family wording", async () => {
   const svg = renderContributorCard({
     username: "alex<script>",
     mergedPRs: 1,
@@ -562,6 +562,7 @@ test("share card escapes text and uses the family wording", () => {
     repoPath: "Darshan-Naik/Qterm",
   });
   assert.match(svg, /Welcome to the family/);
+  assert.match(svg, /M12 5a3 3 0 1 0-5\.997\.125/);
   assert.match(svg, /@alex&lt;script&gt;/);
   assert.match(svg, /September 2026/);
   assert.match(svg, /I helped build Qterm/);
@@ -600,7 +601,15 @@ test("share card escapes text and uses the family wording", () => {
   const cardRoute = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/card/[username]/route.ts"), "utf8");
   assert.match(sharePage, /contributorDisplayName/);
   assert.doesNotMatch(sharePage, /@\$\{person\.username\}/);
+  assert.match(sharePage, /download=1/);
+  assert.match(sharePage, /qterm-\$\{person\.username\}\.png/);
   assert.match(cardRoute, /name: person\.name/);
+  assert.match(cardRoute, /image\/png/);
+  assert.match(cardRoute, /qterm-\$\{person\.username\}\.png/);
+  assert.match(cardRoute, /attachment/);
+  const sharp = (await import("sharp")).default;
+  const png = await sharp(Buffer.from(named)).png().toBuffer();
+  assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
 });
 
 test("seeded contributor data does not invent people", () => {

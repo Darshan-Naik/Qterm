@@ -12,7 +12,8 @@
     "mixpanel-browser": "^2.82.1",
     "next": "^15.5.2",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

@@ -127,13 +127,13 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 - `/contributors` lists people with the most merged pull requests first. A card is a name, the GitHub login, a site or X link when GitHub has one, and the badges they have earned. The maintainer card uses that same layout, with a Maintainer label. Location, company, and the GitHub bio stay off the card.
 - The home page shows those portraits just before the FAQ. A name shows when you hover.
 - `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. The page and card use that person's GitHub name. The login is the fallback when GitHub has no name. Unknown names 404. The page will not mint a card for a person who has not merged anything.
-- `/contributors/card/<username>` returns the SVG.
+- `/contributors/card/<username>` returns the card as a PNG. Save this downloads that file.
 
 Category counts stay in the JSON for release notes. The page does not render them.
 
 ## Share card
 
-The SVG is generated in `apps/web/lib/contributor-present.mjs`. It uses Qterm colors and the word Qterm. It does not embed another product's logo. The card is self-contained, so it does not depend on an external avatar request.
+The card is drawn in `apps/web/lib/contributor-present.mjs` and served as a PNG. It uses Qterm colors, the Qterm logo, and the word Qterm. It does not embed another product's logo. The card is self-contained, so it does not depend on an external avatar request.
 
 The first-merge comment links to the share page and includes text in a code block. There is also a link to post on X. Nothing is posted to a contributor's social accounts.
 

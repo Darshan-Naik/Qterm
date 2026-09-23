@@ -51,6 +51,7 @@ export default async function ContributorSharePage({ params }: { params: Promise
   const first = person.mergedPRs <= 1;
   const label = contributorDisplayName(person);
   const cardSrc = `${contributorCardPath(person.username)}?v=${encodeURIComponent(data.generatedAt || person.lastContribution)}`;
+  const downloadName = `qterm-${person.username}.png`;
   const crumbs = [
     { href: "/", label: "Qterm" },
     { href: "/contributors", label: "Contributors" },
@@ -80,7 +81,11 @@ export default async function ContributorSharePage({ params }: { params: Promise
           className="mt-8 w-full rounded-2xl border border-white/10"
         />
         <div className="mt-4 flex flex-wrap gap-4 text-[13px]">
-          <a className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={cardSrc} download>
+          <a
+            className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            href={`${cardSrc}&download=1`}
+            download={downloadName}
+          >
             Save this
           </a>
           <a

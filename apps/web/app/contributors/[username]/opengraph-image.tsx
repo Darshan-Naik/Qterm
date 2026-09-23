@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { contributorDisplayName, monthYear } from "@/lib/contributor-present.mjs";
 import { getContributorData } from "@/lib/contributor-data";
@@ -17,6 +19,8 @@ export default async function ContributorOgImage({ params }: { params: Promise<{
   const headline = first ? "Welcome to the family" : "Thanks for building Qterm";
   const when = person ? monthYear(person.firstContribution) : "";
   const detail = first ? `First contribution · ${when}` : `Qterm family · since ${when}`;
+  const icon = await readFile(join(process.cwd(), "public/favicon.png"));
+  const logo = `data:image/png;base64,${icon.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -32,7 +36,10 @@ export default async function ContributorOgImage({ params }: { params: Promise<{
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", fontSize: 22, letterSpacing: 6, color: "#8eb4ff" }}>QTERM</div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <img src={logo} width={56} height={56} alt="" style={{ borderRadius: 14 }} />
+          <div style={{ display: "flex", marginLeft: 16, fontSize: 22, letterSpacing: 6, color: "#8eb4ff" }}>QTERM</div>
+        </div>
         <div style={{ display: "flex", marginTop: 72, fontSize: 68, fontWeight: 600 }}>{headline}</div>
         <div style={{ display: "flex", marginTop: 28, fontSize: 40 }}>{name}</div>
         <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: "#b9b5ab" }}>{detail}</div>
