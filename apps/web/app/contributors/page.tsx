@@ -26,7 +26,6 @@ function maintainerCardPerson(person: Maintainer): Maintainer {
     name: person.name,
     avatarUrl: person.avatarUrl,
     profileUrl: person.profileUrl,
-    bio: person.bio,
     blog: person.blog,
     twitter: person.twitter,
   };

@@ -116,7 +116,7 @@ Avoid the em dash character in this copy. Use a period, comma, or colon.
 
 The file is committed only when the people, pull requests, or badges change. The commit message is `chore: update contributor recognition data`. That commit does not publish a desktop release: the release workflow ignores a push that only touches this file.
 
-The website does not read that file. `/contributors` is server-rendered and asks GitHub for merged pull requests and for the maintainer profile (the configured login and the repository owner). Next caches those responses for 12 hours (`CONTRIBUTOR_CACHE_SECONDS` in `apps/web/lib/contributor-data.ts`). Names, avatars, bios, and websites come from that response. The page does not keep them in source.
+The website does not read that file. `/contributors` is server-rendered and asks GitHub for merged pull requests and for the maintainer profile (the configured login and the repository owner). Next caches those responses for 12 hours (`CONTRIBUTOR_CACHE_SECONDS` in `apps/web/lib/contributor-data.ts`). Names and avatars come from that response. The page does not keep them in source, and it does not show the GitHub bio.
 
 If the API history is cut off, sync fails instead of replacing the page with a partial list.
 

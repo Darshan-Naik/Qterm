@@ -130,7 +130,24 @@ async function loadContributorData(): Promise<ContributorData> {
   const latest = pulls.reduce((newest, pull) => (pull.mergedAt > newest ? pull.mergedAt : newest), "");
   const data = aggregateContributors(pulls, config, { generatedAt: latest || null } as never) as ContributorData;
   data.maintainers = maintainers;
+  await attachContributorNames(data.contributors);
   return data;
+}
+
+async function attachContributorNames(contributors: ContributorData["contributors"]) {
+  await Promise.all(
+    contributors.map(async (person) => {
+      try {
+        const user = await githubGet<GithubUser>(`users/${encodeURIComponent(person.username)}`);
+        const name = String(user.name || "").trim();
+        if (name) person.name = name;
+        const avatar = String(user.avatar_url || "").trim();
+        if (avatar) person.avatarUrl = avatar;
+      } catch {
+        // The card still has the login from the pull request.
+      }
+    }),
+  );
 }
 
 export const getContributorData = cache(loadContributorData);

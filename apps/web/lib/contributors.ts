@@ -14,6 +14,7 @@ export type Contribution = {
 
 export type Contributor = {
   username: string;
+  name?: string;
   avatarUrl: string;
   profileUrl: string;
   firstContribution: string;

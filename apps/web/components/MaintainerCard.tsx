@@ -31,7 +31,6 @@ export function MaintainerCard({ person }: { person: Maintainer }) {
             {name}
           </a>
           <p className="mt-1 text-[14px] text-muted-foreground">@{person.username}</p>
-          {person.bio ? <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-foreground/90">{person.bio}</p> : null}
           {person.blog || twitter ? (
             <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
               {person.blog ? (
