@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { CopyShareText } from "@/components/CopyShareText";
 import { firstContributionShareText, monthYear, tweetIntentUrl } from "@/lib/contributor-present.mjs";
-import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
+import { getContributorData } from "@/lib/contributor-data";
 import { contributorCardPath, findContributor, repoUrl } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
 
 type Params = { username: string };
 
-export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
+export const revalidate = 43200;
 
 export async function generateStaticParams() {
   try {

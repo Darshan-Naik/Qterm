@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 import { monthYear } from "@/lib/contributor-present.mjs";
-import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
+import { getContributorData } from "@/lib/contributor-data";
 import { findContributor } from "@/lib/contributors";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
+export const revalidate = 43200;
 export const runtime = "nodejs";
 
 export default async function ContributorOgImage({ params }: { params: Promise<{ username: string }> }) {

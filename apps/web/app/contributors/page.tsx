@@ -3,7 +3,7 @@ import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { ContributorCard } from "@/components/ContributorCard";
 import { MaintainerCard } from "@/components/MaintainerCard";
 import { visibleContributors } from "@/lib/contributor-present.mjs";
-import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
+import { getContributorData } from "@/lib/contributor-data";
 import type { Contributor, ContributorData, Maintainer } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
 import { SITE } from "@/lib/site";
@@ -18,7 +18,7 @@ const crumbs = [
 ];
 
 export const metadata: Metadata = pageMeta({ title, description, path });
-export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
+export const revalidate = 43200;
 
 function maintainerCardPerson(person: Maintainer): Maintainer {
   return {

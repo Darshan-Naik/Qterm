@@ -2,7 +2,7 @@ import { renderContributorCard } from "@/lib/contributor-present.mjs";
 import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
 import { findContributor } from "@/lib/contributors";
 
-export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
+export const revalidate = 43200;
 
 export async function GET(_request: Request, context: { params: Promise<{ username: string }> }) {
   const { username } = await context.params;

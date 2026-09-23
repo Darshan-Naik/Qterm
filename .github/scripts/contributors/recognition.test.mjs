@@ -600,6 +600,15 @@ test("the contributors page loads people from GitHub and caches for half a day",
   assert.match(source, /https:\/\/api\.github\.com/);
   assert.match(source, /CONTRIBUTOR_CACHE_SECONDS = 60 \* 60 \* 12/);
   assert.match(source, /revalidate: CONTRIBUTOR_CACHE_SECONDS/);
+  for (const file of [
+    "apps/web/app/contributors/page.tsx",
+    "apps/web/app/contributors/[username]/page.tsx",
+    "apps/web/app/contributors/card/[username]/route.ts",
+    "apps/web/app/contributors/[username]/opengraph-image.tsx",
+  ]) {
+    const route = fs.readFileSync(path.join(repoRoot, file), "utf8");
+    assert.match(route, /export const revalidate = 43200;/, file);
+  }
   assert.doesNotMatch(source, /contributors\.json/);
   assert.match(page, /getContributorData/);
   assert.doesNotMatch(page, /contributors\.json/);
