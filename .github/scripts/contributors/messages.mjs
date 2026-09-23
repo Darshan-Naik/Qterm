@@ -207,7 +207,7 @@ function freshCategoryBadge(event, previousPulls, config) {
 }
 
 function signature(marker) {
-  return `\n\n<sub>Sent by Qterm bot</sub>\n<!-- ${marker} -->\n`;
+  return `\n\n<!-- ${marker} -->\n`;
 }
 
 function hasLabel(event, name) {

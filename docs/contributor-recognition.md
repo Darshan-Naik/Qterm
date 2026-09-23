@@ -15,7 +15,7 @@ The contributors page reads generated data. It does not hand-maintain a list of 
 | Later merged pull request | A short thank-you, plus a new badge line only when they just crossed a milestone |
 | First issue | One thank-you, skipped for bots, placeholders, and anyone who already opened an issue |
 
-Qterm bot posts as `github-actions[bot]`. Each comment ends with `Sent by Qterm bot` so it is obviously automated.
+Qterm bot posts as `github-actions[bot]`. The comment itself is the welcome. A hidden marker sits at the end so a re-run can tell it already spoke.
 
 ## How first-time contributors are detected
 
@@ -122,11 +122,11 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 
 ## Contributors page
 
-- `/contributors` lists everyone, newest activity first, with totals that come from the JSON.
+- `/contributors` lists people, newest activity first. It does not show project-wide count tiles.
 - `/contributors/<username>` is the share page for someone in that file. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 
-Category totals are shown only when at least one labeled pull request exists. Unlabeled work still counts in Contributions.
+Category counts stay in the JSON for release notes. The page does not render them.
 
 ## Share card
 

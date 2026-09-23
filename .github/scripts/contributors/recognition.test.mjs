@@ -172,6 +172,7 @@ test("first pull request welcome is once, and returning comments stay off", () =
   assert.equal(first.reason, "first-pr");
   assert.equal(first.labels[0], "first-contribution");
   assert.match(first.comments[0].body, /Welcome to Qterm, @alex/);
+  assert.doesNotMatch(first.comments[0].body, /Sent by Qterm bot/);
   assert.equal(hasMarker([first.comments[0].body], MARKERS.firstPr), true);
 
   const again = planRecognition({
@@ -226,6 +227,7 @@ test("first merge is the long note and later merges stay short", () => {
   assert.match(first.comments[0].body, /https:\/\/qterm\.darshannaik\.com\/contributors\/alex/);
   assert.match(first.comments[0].body, /My first contribution to Qterm just got merged!/);
   assert.equal(hasMarker([first.comments[0].body], MARKERS.firstMerge), true);
+  assert.doesNotMatch(first.comments[0].body, /Sent by Qterm bot/);
   assert.doesNotMatch(first.comments[0].body, new RegExp(emDash));
 
   const repeat = planRecognition({
@@ -524,7 +526,6 @@ test("user-facing recognition copy has no em dash", () => {
     "apps/web/app/contributors/page.tsx",
     "apps/web/app/contributors/[username]/page.tsx",
     "apps/web/components/ContributorCard.tsx",
-    "apps/web/components/ContributorStats.tsx",
     "apps/web/components/CopyShareText.tsx",
     "apps/web/lib/contributor-present.mjs",
     ".github/scripts/contributors/messages.mjs",

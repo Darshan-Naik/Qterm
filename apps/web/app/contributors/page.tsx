@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { ContributorCard } from "@/components/ContributorCard";
-import { ContributorStats } from "@/components/ContributorStats";
 import { contributorData } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
 import { SITE } from "@/lib/site";
@@ -44,9 +43,8 @@ export default function ContributorsPage() {
           </div>
         ) : (
           <>
-            <ContributorStats stats={data.stats} />
-            <p className="mt-4 text-[13px] text-muted-foreground">Most recent contribution first. This is not a ranking.</p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <p className="text-[13px] text-muted-foreground">Most recent contribution first. This is not a ranking.</p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {people.map((person) => (
                 <ContributorCard key={person.username.toLowerCase()} person={person} />
               ))}
