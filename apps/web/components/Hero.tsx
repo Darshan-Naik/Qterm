@@ -1,30 +1,9 @@
-import { getContributorData } from "@/lib/contributor-data";
-import { rankedContributors, visibleContributors } from "@/lib/contributor-present.mjs";
-import type { Contributor } from "@/lib/contributors";
 import { SITE } from "@/lib/site";
-import { ContributorGlance } from "./ContributorGlance";
 import { GithubLink } from "./GithubLink";
 import { MacDownloadActions } from "./MacDownloadActions";
 import { ProductWindow } from "./ProductWindow";
 
-async function glancePeople() {
-  try {
-    const data = await getContributorData();
-    const maintainers = data.maintainers ?? [];
-    const people = rankedContributors(visibleContributors(data)) as Contributor[];
-    return [...maintainers, ...people].map((person) => ({
-      username: person.username,
-      name: person.name,
-      avatarUrl: person.avatarUrl,
-      profileUrl: person.profileUrl,
-    }));
-  } catch {
-    return [];
-  }
-}
-
 export async function Hero() {
-  const people = await glancePeople();
   return (
     <section id="top" className="relative overflow-hidden">
       <div className="brand-glow pointer-events-none absolute inset-0" />
@@ -49,7 +28,6 @@ export async function Hero() {
           <p className="mx-auto mt-5 max-w-xl text-center text-[13px] leading-relaxed text-muted-foreground">
             Fast, clean, and light. Agents stay in the terminal. Nothing extra on screen.
           </p>
-          <ContributorGlance people={people} />
         </div>
       </div>
     </section>

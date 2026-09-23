@@ -653,6 +653,7 @@ test("user-facing recognition copy has no em dash", () => {
     "apps/web/app/contributors/[username]/page.tsx",
     "apps/web/components/ContributorCard.tsx",
     "apps/web/components/ContributorGlance.tsx",
+    "apps/web/components/ContributorGlanceSection.tsx",
     "apps/web/components/ProfileLinks.tsx",
     "apps/web/components/MaintainerCard.tsx",
     "apps/web/components/CopyShareText.tsx",

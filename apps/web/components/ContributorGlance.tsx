@@ -8,7 +8,7 @@ type GlancePerson = {
 export function ContributorGlance({ people }: { people: GlancePerson[] }) {
   if (people.length === 0) return null;
   return (
-    <div className="mt-10 flex flex-col items-center">
+    <div className="flex flex-col items-center">
       <div className="flex flex-wrap items-center justify-center gap-3">
         {people.map((person) => {
           const name = person.name || person.username;
