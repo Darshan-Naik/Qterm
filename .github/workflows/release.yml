@@ -63,6 +63,13 @@ jobs:
               SKIP=true
             fi
           fi
+          if [[ "$SKIP" == "false" ]]; then
+            DATA_ONLY="$(node .github/scripts/contributors/release.mjs --data-only-commit || true)"
+            if [[ "$DATA_ONLY" == "yes" ]]; then
+              echo "Contributor data commit only; skip release."
+              SKIP=true
+            fi
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
@@ -146,6 +153,9 @@ jobs:
           set -euo pipefail
           chmod +x .github/scripts/release-notes.sh
           .github/scripts/release-notes.sh "$TAG" "$VERSION" "$TARGET" > release-notes.md
+          if ! node .github/scripts/contributors/release.mjs >> release-notes.md; then
+            echo "Contributor release notes failed; publishing the changelog without them." >&2
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.dmg dist/SHA256SUMS --clobber
             gh release edit "$TAG" --notes-file release-notes.md

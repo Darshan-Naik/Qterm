@@ -1,0 +1,63 @@
+# Rebuild contributor data from merged pull requests and commit it when it changes.
+# Runs on the default branch after merge. It does not run pull request code.
+
+name: Contributor sync
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "apps/web/data/contributors.json"
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: contributor-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: "${{ github.event_name != 'push' || !contains(github.event.head_commit.message, 'chore: update contributor recognition data') }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Ensure contributor labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node .github/scripts/contributors/labels.mjs
+
+      - name: Update contributor data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node .github/scripts/contributors/sync.mjs
+
+      - name: Commit contributor data
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/data/contributors.json
+          if git diff --cached --quiet; then
+            echo "Contributor data is already up to date."
+            exit 0
+          fi
+          git commit -m "chore: update contributor recognition data"
+          git push origin HEAD:main

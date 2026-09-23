@@ -13,7 +13,8 @@
     "dev:desktop": "npm run dev -w @qterm/desktop",
     "build:desktop": "npm run build -w @qterm/desktop",
     "test:desktop": "npm run test -w @qterm/desktop",
-    "test:go": "cd apps/desktop && go test ./..."
+    "test:go": "cd apps/desktop && go test ./...",
+    "test:contributors": "node --test .github/scripts/contributors/recognition.test.mjs"
   },
   "engines": {
     "node": ">=20"

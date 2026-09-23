@@ -144,6 +144,7 @@ export function articleLd({
 
 export const SITEMAP_PATHS = [
   "/",
+  "/contributors",
   "/agent-terminal",
   "/agents/claude-code",
   "/agents/codex",
