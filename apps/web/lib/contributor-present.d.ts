@@ -1,5 +1,6 @@
 export function escapeXml(value: string): string;
 export function monthYear(isoDate: string): string;
+export function rankedContributors<T extends { username?: string; mergedPRs?: number }>(people: T[]): T[];
 export function visibleContributors(data: {
   maintainer?: string;
   maintainers?: { username: string }[];

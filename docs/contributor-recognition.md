@@ -100,7 +100,7 @@ The next sync and the next merge comment pick it up. Ship the config change befo
 
 Category badges come from `categories`. The first matching label wins. A pull request with no matching label is stored as `contribution` and does not earn a category badge. Set `badges.category` to `false` to keep the categories for stats but hide the badges.
 
-The page lists whoever has been around most recently. Do not turn that into a leaderboard.
+The contributors page orders people by merged pull requests, most first. It does not print the count on the card.
 
 ## Messages
 
@@ -122,7 +122,8 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 
 ## Contributors page
 
-- `/contributors` lists people, newest activity first. A card is a name, when they joined, and the badges they have earned. The maintainer profile sits in its own wider card, labeled Maintainer, separate from those people. That card leaves off location and company.
+- `/contributors` lists people with the most merged pull requests first. A card is a name, the GitHub login, a site or X link when GitHub has one, and the badges they have earned. The maintainer card uses that same layout, with a Maintainer label. Location, company, and the GitHub bio stay off the card.
+- The home hero ends with those portraits. A name shows when you hover.
 - `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 

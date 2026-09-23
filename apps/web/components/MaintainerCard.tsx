@@ -1,21 +1,13 @@
 import type { Maintainer } from "@/lib/contributors";
-
-function siteLabel(blog: string) {
-  try {
-    return new URL(blog).host.replace(/^www\./, "");
-  } catch {
-    return blog;
-  }
-}
+import { ProfileLinks } from "./ProfileLinks";
 
 export function MaintainerCard({ person }: { person: Maintainer }) {
   const name = person.name || person.username;
-  const twitter = person.twitter?.replace(/^@/, "") || "";
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-white/10 bg-card">
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-card">
       <div className="h-1 bg-primary" />
-      <div className="flex flex-col gap-6 px-6 py-8 sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
+      <div className="flex flex-1 flex-col gap-6 px-6 py-8 sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
         <a href={person.profileUrl} className="shrink-0">
           <img
             src={person.avatarUrl}
@@ -31,20 +23,7 @@ export function MaintainerCard({ person }: { person: Maintainer }) {
             {name}
           </a>
           <p className="mt-1 text-[14px] text-muted-foreground">@{person.username}</p>
-          {person.blog || twitter ? (
-            <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-              {person.blog ? (
-                <a className="underline-offset-4 hover:underline" href={person.blog}>
-                  {siteLabel(person.blog)}
-                </a>
-              ) : null}
-              {twitter ? (
-                <a className="underline-offset-4 hover:underline" href={`https://x.com/${twitter}`}>
-                  @{twitter}
-                </a>
-              ) : null}
-            </p>
-          ) : null}
+          <ProfileLinks blog={person.blog} twitter={person.twitter} />
         </div>
       </div>
     </article>

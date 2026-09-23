@@ -31,6 +31,14 @@ export function monthYear(isoDate) {
   return `${MONTHS[index]} ${year}`;
 }
 
+export function rankedContributors(people) {
+  return [...(people || [])].sort((a, b) => {
+    const byCount = (Number(b.mergedPRs) || 0) - (Number(a.mergedPRs) || 0);
+    if (byCount !== 0) return byCount;
+    return String(a.username || "").localeCompare(String(b.username || ""));
+  });
+}
+
 export function visibleContributors(data) {
   const hidden = new Set(
     [data?.maintainer, ...(data?.maintainers || []).map((person) => person.username)]

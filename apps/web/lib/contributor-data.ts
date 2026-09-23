@@ -139,10 +139,12 @@ async function attachContributorNames(contributors: ContributorData["contributor
     contributors.map(async (person) => {
       try {
         const user = await githubGet<GithubUser>(`users/${encodeURIComponent(person.username)}`);
-        const name = String(user.name || "").trim();
-        if (name) person.name = name;
-        const avatar = String(user.avatar_url || "").trim();
-        if (avatar) person.avatarUrl = avatar;
+        const profile = normalizeMaintainer(user) as Maintainer | null;
+        if (!profile) return;
+        if (profile.name) person.name = profile.name;
+        if (profile.avatarUrl) person.avatarUrl = profile.avatarUrl;
+        if (profile.blog) person.blog = profile.blog;
+        if (profile.twitter) person.twitter = profile.twitter;
       } catch {
         // The card still has the login from the pull request.
       }

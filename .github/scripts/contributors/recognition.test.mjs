@@ -10,6 +10,7 @@ import {
   monthYear,
   renderContributorCard,
   shortMonth,
+  rankedContributors,
   visibleContributors,
 } from "../../../apps/web/lib/contributor-present.mjs";
 import { loadConfig, loadConfigText, repoRoot } from "./config.mjs";
@@ -593,6 +594,18 @@ test("seeded contributor data does not invent people", () => {
   assert.deepEqual(seeded.maintainers ?? [], []);
 });
 
+test("more merged pull requests sort a person higher", () => {
+  const ranked = rankedContributors([
+    { username: "ada", mergedPRs: 1 },
+    { username: "alex", mergedPRs: 5 },
+    { username: "sam", mergedPRs: 5 },
+  ]);
+  assert.deepEqual(
+    ranked.map((person) => person.username),
+    ["alex", "sam", "ada"],
+  );
+});
+
 test("the contributors page loads people from GitHub and caches for half a day", () => {
   const source = fs.readFileSync(path.join(repoRoot, "apps/web/lib/contributor-data.ts"), "utf8");
   const page = fs.readFileSync(path.join(repoRoot, "apps/web/app/contributors/page.tsx"), "utf8");
@@ -639,6 +652,8 @@ test("user-facing recognition copy has no em dash", () => {
     "apps/web/app/contributors/page.tsx",
     "apps/web/app/contributors/[username]/page.tsx",
     "apps/web/components/ContributorCard.tsx",
+    "apps/web/components/ContributorGlance.tsx",
+    "apps/web/components/ProfileLinks.tsx",
     "apps/web/components/MaintainerCard.tsx",
     "apps/web/components/CopyShareText.tsx",
     "apps/web/lib/contributor-present.mjs",

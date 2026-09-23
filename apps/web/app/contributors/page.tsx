@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BreadcrumbNav } from "@/components/BreadcrumbNav";
 import { ContributorCard } from "@/components/ContributorCard";
 import { MaintainerCard } from "@/components/MaintainerCard";
-import { visibleContributors } from "@/lib/contributor-present.mjs";
+import { rankedContributors, visibleContributors } from "@/lib/contributor-present.mjs";
 import { getContributorData } from "@/lib/contributor-data";
 import type { Contributor, ContributorData, Maintainer } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
@@ -39,7 +39,7 @@ export default async function ContributorsPage() {
     data = null;
   }
   const maintainers = data?.maintainers ?? [];
-  const people = (data ? visibleContributors(data) : []) as Contributor[];
+  const people = (data ? rankedContributors(visibleContributors(data)) : []) as Contributor[];
   const unavailable = data == null;
 
   return (

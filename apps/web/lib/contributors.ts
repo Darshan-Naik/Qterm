@@ -17,6 +17,8 @@ export type Contributor = {
   name?: string;
   avatarUrl: string;
   profileUrl: string;
+  blog?: string;
+  twitter?: string;
   firstContribution: string;
   lastContribution: string;
   mergedPRs: number;
