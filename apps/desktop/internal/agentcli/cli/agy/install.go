@@ -31,7 +31,11 @@ func (adapter) Binaries() []string { return []string{"agy", "antigravity"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) Installed() bool    { return pluginInstalled() }
+func (adapter) PluginRoot() string { return pluginRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{filepath.Join(core.UserHomeDir(), ".gemini", "antigravity-cli")}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(pluginRoot(), "scripts", "relay.sh")
 }
@@ -97,6 +101,9 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	_ = exec.Command("agy", "plugin", "install", root).Run()
 	_ = exec.Command("agy", "plugin", "enable", core.PluginName).Run()
 	_ = core.RemoveQtermHooks(legacyHooksJSON())
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
+		return core.InstallResult{CLI: "agy"}, err
+	}
 
 	return core.InstallResult{
 		CLI:       "agy",

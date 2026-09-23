@@ -22,7 +22,11 @@ func (adapter) Binaries() []string { return []string{"gemini"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return extensionInstalled() }
+func (adapter) Installed() bool    { return extensionInstalled() }
+func (adapter) PluginRoot() string { return extensionRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{filepath.Join(core.UserHomeDir(), ".gemini", "extensions")}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(extensionRoot(), "hooks", "relay.sh")
 }
@@ -95,6 +99,9 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 
 	_ = exec.Command("gemini", "extensions", "enable", core.PluginName).Run()
 	_ = core.RemoveQtermHooks(settingsJSON())
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
+		return core.InstallResult{CLI: "gemini"}, err
+	}
 
 	return core.InstallResult{
 		CLI:       "gemini",

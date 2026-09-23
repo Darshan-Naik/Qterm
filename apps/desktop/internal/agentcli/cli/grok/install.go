@@ -27,7 +27,15 @@ func (adapter) Binaries() []string { return []string{"grok"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) Installed() bool    { return pluginInstalled() }
+func (adapter) PluginRoot() string { return pluginRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{
+		filepath.Join(grokHome(), "plugins"),
+		filepath.Join(grokHome(), "installed-plugins"),
+		filepath.Join(grokHome(), "cache"),
+	}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(pluginRoot(), "hooks", "relay.sh")
 }
@@ -159,6 +167,12 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	if bin, err := core.FirstBinary("grok"); err == nil {
 		_, _ = core.RunCLI(core.DefaultToolsTimeout, bin, "plugin", "install", root, "--trust")
 		_, _ = core.RunCLI(core.DefaultToolsTimeout, bin, "plugin", "enable", core.PluginName)
+	}
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
+		return core.InstallResult{CLI: "grok"}, err
+	}
+	if bin, err := core.FirstBinary("grok"); err == nil {
+		go core.RefreshCLI(bin, "plugin", "update", core.PluginName)
 	}
 
 	return core.InstallResult{

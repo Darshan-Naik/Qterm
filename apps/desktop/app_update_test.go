@@ -81,6 +81,22 @@ func TestNoteLaunchVersionFirstRunSilent(t *testing.T) {
 	}
 }
 
+func TestConsumePluginRefreshOnce(t *testing.T) {
+	a := &App{}
+	a.notePluginRefresh([]string{"Claude Code", "Codex"})
+	got := a.ConsumePluginRefresh()
+	if len(got) != 2 || got[0] != "Claude Code" || got[1] != "Codex" {
+		t.Fatalf("%v", got)
+	}
+	if second := a.ConsumePluginRefresh(); len(second) != 0 {
+		t.Fatalf("second consume = %v", second)
+	}
+	a.notePluginRefresh(nil)
+	if extra := a.ConsumePluginRefresh(); len(extra) != 0 {
+		t.Fatalf("nil note = %v", extra)
+	}
+}
+
 func TestDropStaleDownload(t *testing.T) {
 	a := &App{upd: &appUpdateDL{
 		prog: update.Progress{Version: "1.6.2", State: update.StateReady},

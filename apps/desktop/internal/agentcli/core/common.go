@@ -11,8 +11,10 @@ import (
 const PluginName = "qterm"
 
 // Version is bumped when plugin artifacts change (hooks, MCP, skills, relay).
-// Connected CLIs with an older recorded version are marked outdated and reinstalled.
-const Version = "1.4.1"
+// After an app update, connected CLIs still on an older version are reinstalled
+// so their Qterm skills, hooks, and MCP match this build. Bump this when those
+// artifacts change, and update TestPluginVersionBumped with the new value.
+const Version = "1.4.2"
 
 // PluginVersion is the qterm plugin package version shipped with this app build.
 func PluginVersion() string { return Version }
@@ -87,12 +89,9 @@ func WritePluginRelay(path, dataDir, token, sourceDefault string) error {
 	return os.WriteFile(path, []byte(RelayScriptBody(dataDir, token, sourceDefault)), 0o755)
 }
 
-// WriteQtermSkill writes the shared qterm-terminal SKILL.md under dir.
-func WriteQtermSkill(dir string) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	skill := strings.Join([]string{
+// QtermSkillMarkdown is the shared qterm-terminal skill shipped with this build.
+func QtermSkillMarkdown() string {
+	return strings.Join([]string{
 		"---",
 		"name: qterm-terminal",
 		"description: Control Qterm terminals via MCP or the q-term CLI. Use get_terminal_id, rename_terminal, create_terminal, split_terminal, write_terminal, notify_user, jump_unread, open_in_ide.",
@@ -139,7 +138,14 @@ func WriteQtermSkill(dir string) error {
 		"Other tools: list_terminals, list_unread, list_projects, focus_terminal, set_theme.",
 		"",
 	}, "\n")
-	return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(skill), 0o644)
+}
+
+// WriteQtermSkill writes the shared qterm-terminal SKILL.md under dir.
+func WriteQtermSkill(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(QtermSkillMarkdown()), 0o644)
 }
 
 // QtermMCPServer returns the shared MCP server entry for plugin manifests.

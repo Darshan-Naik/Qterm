@@ -143,6 +143,24 @@ func Uninstall(id, dataDir string) error {
 	return nil
 }
 
+// PluginSnapshotsStale reports whether a connected CLI is still loading an older
+// Qterm plugin, skill, or hook snapshot than this build.
+func PluginSnapshotsStale(id string) bool {
+	a, ok := Find(id)
+	if !ok {
+		return false
+	}
+	type layout interface {
+		PluginRoot() string
+		SnapshotRoots() []string
+	}
+	l, ok := a.(layout)
+	if !ok {
+		return false
+	}
+	return !core.SnapshotsCurrent(l.PluginRoot(), core.PublishRoots(l.SnapshotRoots()))
+}
+
 // RefreshInstalledRelays rewrites hook relays for every connected CLI.
 func RefreshInstalledRelays(dataDir string) {
 	token, err := core.LoadOrCreateToken(dataDir)

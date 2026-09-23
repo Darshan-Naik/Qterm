@@ -22,13 +22,17 @@ type adapter struct{}
 // New returns the Claude Code CLI adapter.
 func New() core.Adapter { return adapter{} }
 
-func (adapter) ID() string          { return "claude" }
-func (adapter) Name() string        { return "Claude Code" }
-func (adapter) Binaries() []string  { return []string{"claude"} }
+func (adapter) ID() string         { return "claude" }
+func (adapter) Name() string       { return "Claude Code" }
+func (adapter) Binaries() []string { return []string{"claude"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) Installed() bool    { return pluginInstalled() }
+func (adapter) PluginRoot() string { return pluginRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{pluginsDir()}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(pluginRoot(), "hooks", "relay.sh")
 }
@@ -133,12 +137,29 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	_ = core.RemoveMCP(userMCPJSON())
 	_ = disablePluginKey("qterm@skills-dir")
 	_ = os.RemoveAll(legacySkillsPluginRoot())
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
+		return core.InstallResult{CLI: "claude"}, err
+	}
+	refreshClaudePlugin()
 
 	return core.InstallResult{
 		CLI:       "claude",
 		Installed: true,
 		Message:   "Installed ~/.claude/plugins/qterm (hooks + MCP, auto-allowed). Restart Claude Code, then /reload-plugins if needed.",
 	}, nil
+}
+
+func refreshClaudePlugin() {
+	// File sync is the source of truth. Ask Claude to recopy in the background so
+	// launch does not wait on the CLI.
+	go func() {
+		bin, err := core.FirstBinary("claude")
+		if err != nil {
+			return
+		}
+		core.RefreshCLI(bin, "plugin", "marketplace", "update", localMarketplaceName)
+		core.RefreshCLI(bin, "plugin", "update", core.PluginName+"@"+localMarketplaceName)
+	}()
 }
 
 func uninstall() error {

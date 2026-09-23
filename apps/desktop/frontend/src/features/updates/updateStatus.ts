@@ -89,6 +89,23 @@ export function applyUpdateProgress(cur: Status | null, progress: UpdateProgress
   };
 }
 
+export function pluginRefreshToast(names: string[]): { title: string; description: string } | null {
+  const list = names.map((name) => name.trim()).filter(Boolean);
+  if (list.length === 0) return null;
+  const who = formatNameList(list);
+  const verb = list.length === 1 ? "has" : "have";
+  return {
+    title: "Agent plugins updated",
+    description: `${who} now ${verb} the latest Qterm skills and hooks.`,
+  };
+}
+
+function formatNameList(names: string[]): string {
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
 export function updatedToastCopy(from: string, to: string): { title: string; description: string } {
   const version = to.trim();
   const prev = from.trim();
