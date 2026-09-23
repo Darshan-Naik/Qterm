@@ -122,7 +122,7 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 
 ## Contributors page
 
-- `/contributors` lists people, newest activity first. A card is a name, when they joined, and the badges they have earned. The maintainer profile sits in its own wider card, separate from those people.
+- `/contributors` lists people, newest activity first. A card is a name, when they joined, and the badges they have earned. The maintainer profile sits in its own wider card, labeled Maintainer, separate from those people. That card leaves off location and company.
 - `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 

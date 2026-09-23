@@ -10,9 +10,6 @@ function siteLabel(blog: string) {
 
 export function MaintainerCard({ person }: { person: Maintainer }) {
   const name = person.name || person.username;
-  const company = person.company?.trim() || "";
-  const companyName = company.replace(/^@/, "");
-  const companyHref = company.startsWith("@") && companyName ? `https://github.com/${companyName}` : "";
   const twitter = person.twitter?.replace(/^@/, "") || "";
 
   return (
@@ -29,23 +26,14 @@ export function MaintainerCard({ person }: { person: Maintainer }) {
           />
         </a>
         <div className="min-w-0">
-          <a href={person.profileUrl} className="text-[28px] font-semibold tracking-tight hover:underline sm:text-[36px]">
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">Maintainer</p>
+          <a href={person.profileUrl} className="mt-2 block text-[28px] font-semibold tracking-tight hover:underline sm:text-[36px]">
             {name}
           </a>
           <p className="mt-1 text-[14px] text-muted-foreground">@{person.username}</p>
           {person.bio ? <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-foreground/90">{person.bio}</p> : null}
-          {company || person.location || person.blog || twitter ? (
+          {person.blog || twitter ? (
             <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-              {person.location ? <span>{person.location}</span> : null}
-              {company ? (
-                companyHref ? (
-                  <a className="underline-offset-4 hover:underline" href={companyHref}>
-                    {companyName}
-                  </a>
-                ) : (
-                  <span>{company}</span>
-                )
-              ) : null}
               {person.blog ? (
                 <a className="underline-offset-4 hover:underline" href={person.blog}>
                   {siteLabel(person.blog)}

@@ -4,7 +4,7 @@ import { ContributorCard } from "@/components/ContributorCard";
 import { MaintainerCard } from "@/components/MaintainerCard";
 import { visibleContributors } from "@/lib/contributor-present.mjs";
 import { CONTRIBUTOR_CACHE_SECONDS, getContributorData } from "@/lib/contributor-data";
-import type { Contributor, ContributorData } from "@/lib/contributors";
+import type { Contributor, ContributorData, Maintainer } from "@/lib/contributors";
 import { pageMeta } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
@@ -19,6 +19,18 @@ const crumbs = [
 
 export const metadata: Metadata = pageMeta({ title, description, path });
 export const revalidate = CONTRIBUTOR_CACHE_SECONDS;
+
+function maintainerCardPerson(person: Maintainer): Maintainer {
+  return {
+    username: person.username,
+    name: person.name,
+    avatarUrl: person.avatarUrl,
+    profileUrl: person.profileUrl,
+    bio: person.bio,
+    blog: person.blog,
+    twitter: person.twitter,
+  };
+}
 
 export default async function ContributorsPage() {
   let data: ContributorData | null = null;
@@ -42,7 +54,7 @@ export default async function ContributorsPage() {
         {maintainers.length > 0 ? (
           <div className="mb-8 flex flex-col gap-4">
             {maintainers.map((person) => (
-              <MaintainerCard key={person.username.toLowerCase()} person={person} />
+              <MaintainerCard key={person.username.toLowerCase()} person={maintainerCardPerson(person)} />
             ))}
           </div>
         ) : null}
