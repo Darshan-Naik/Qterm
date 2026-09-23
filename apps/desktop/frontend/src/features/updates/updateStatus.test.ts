@@ -4,6 +4,7 @@ import {
   applyUpdateProgress,
   applyUpdateStatus,
   compareVersions,
+  pluginRefreshToast,
   updatedToastCopy,
 } from "./updateStatus.ts";
 
@@ -91,6 +92,20 @@ describe("applyUpdateProgress", () => {
     assert.equal(got?.latestVersion, "1.7.0");
     assert.equal(got?.state, "downloading");
     assert.equal(got?.bytes, 2);
+  });
+});
+
+describe("pluginRefreshToast", () => {
+  it("names the connected CLIs that received the new Qterm plugin", () => {
+    const copy = pluginRefreshToast(["Claude Code", "Codex"]);
+    assert.equal(copy?.title, "Agent plugins updated");
+    assert.equal(copy?.description, "Claude Code and Codex now have the latest Qterm skills and hooks.");
+    assert.equal(pluginRefreshToast([]) , null);
+    assert.equal(pluginRefreshToast(["  "]), null);
+    assert.doesNotMatch(
+      `${copy?.title} ${copy?.description}`,
+      /\u2014/,
+    );
   });
 });
 

@@ -25,7 +25,7 @@ func TestWriteQtermSkillMentionsNewTools(t *testing.T) {
 }
 
 func TestPluginVersionBumped(t *testing.T) {
-	if PluginVersion() != "1.4.1" {
+	if PluginVersion() != "1.4.2" {
 		t.Fatalf("version %s", PluginVersion())
 	}
 }

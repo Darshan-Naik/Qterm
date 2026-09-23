@@ -34,6 +34,10 @@ export function ConsumeAppUpdated() {
   return window['go']['main']['App']['ConsumeAppUpdated']();
 }
 
+export function ConsumePluginRefresh() {
+  return window['go']['main']['App']['ConsumePluginRefresh']();
+}
+
 export function CopyLastCommandOutput(arg1) {
   return window['go']['main']['App']['CopyLastCommandOutput'](arg1);
 }

@@ -6,7 +6,8 @@ import {
   ConsumeAppUpdated,
   SkipAppUpdate,
 } from "../../../wailsjs/go/main/App";
-import { applyUpdateProgress, applyUpdateStatus, updatedToastCopy } from "./updateStatus";
+import { applyUpdateProgress, applyUpdateStatus, pluginRefreshToast, updatedToastCopy } from "./updateStatus";
+import { ConsumePluginRefresh } from "../../../wailsjs/go/main/App";
 
 export type AppUpdateStatus = AppUpdateInfo;
 
@@ -144,6 +145,24 @@ export async function showInstalledUpdateToast(): Promise<void> {
     if (!to) return;
     const copy = updatedToastCopy(String(applied?.from || ""), to);
     toast.success(copy.title, { description: copy.description });
+  } catch {
+    // Launch still works if this IPC is missing on an older helper.
+  }
+}
+
+const PLUGIN_TOAST_ID = "plugin-refresh";
+
+export function showPluginRefreshToast(raw?: unknown): void {
+  const names = Array.isArray(raw) ? raw.filter((name): name is string => typeof name === "string") : [];
+  const copy = pluginRefreshToast(names);
+  if (!copy) return;
+  toast.success(copy.title, { id: PLUGIN_TOAST_ID, description: copy.description });
+}
+
+export async function showPluginRefreshFromLaunch(): Promise<void> {
+  try {
+    const names = await ConsumePluginRefresh();
+    showPluginRefreshToast(names);
   } catch {
     // Launch still works if this IPC is missing on an older helper.
   }

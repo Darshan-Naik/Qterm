@@ -30,7 +30,15 @@ func (adapter) Binaries() []string { return []string{"codex"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) Installed() bool    { return pluginInstalled() }
+func (adapter) PluginRoot() string { return pluginRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{
+		filepath.Join(home(), "plugins"),
+		filepath.Join(home(), "installed-plugins"),
+		filepath.Join(core.UserHomeDir(), ".agents", "plugins"),
+	}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(pluginRoot(), "hooks", "relay.sh")
 }
@@ -117,12 +125,27 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	_ = stripQtermFromUserHooksJSON(userHooksJSON())
 	_ = removeMCPToml(configToml())
 	_ = os.RemoveAll(legacyMarketplaceRoot())
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
+		return core.InstallResult{CLI: "codex"}, err
+	}
+	refreshCodexPlugin(marketName)
 
 	return core.InstallResult{
 		CLI:       "codex",
 		Installed: true,
 		Message:   "Installed ~/.codex/plugins/qterm (hooks + MCP, auto-approved). Restart Codex.",
 	}, nil
+}
+
+func refreshCodexPlugin(marketName string) {
+	go func() {
+		bin, err := core.FirstBinary("codex")
+		if err != nil {
+			return
+		}
+		core.RefreshCLI(bin, "plugin", "marketplace", "upgrade", marketName)
+		core.RefreshCLI(bin, "plugin", "add", core.PluginName+"@"+marketName)
+	}()
 }
 
 func uninstall() error {

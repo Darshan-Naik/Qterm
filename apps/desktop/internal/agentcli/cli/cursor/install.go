@@ -28,7 +28,11 @@ func (adapter) Binaries() []string { return []string{"cursor-agent"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) Installed() bool    { return pluginInstalled() }
+func (adapter) PluginRoot() string { return pluginRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{filepath.Join(core.UserHomeDir(), ".cursor", "plugins")}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(pluginRoot(), "scripts", "relay.sh")
 }
@@ -131,6 +135,9 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 		return core.InstallResult{CLI: "cursor"}, err
 	}
 	if err := ensureQtermPermissions(); err != nil {
+		return core.InstallResult{CLI: "cursor"}, err
+	}
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
 		return core.InstallResult{CLI: "cursor"}, err
 	}
 

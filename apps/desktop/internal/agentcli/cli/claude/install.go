@@ -22,13 +22,17 @@ type adapter struct{}
 // New returns the Claude Code CLI adapter.
 func New() core.Adapter { return adapter{} }
 
-func (adapter) ID() string          { return "claude" }
-func (adapter) Name() string        { return "Claude Code" }
-func (adapter) Binaries() []string  { return []string{"claude"} }
+func (adapter) ID() string         { return "claude" }
+func (adapter) Name() string       { return "Claude Code" }
+func (adapter) Binaries() []string { return []string{"claude"} }
 func (a adapter) Available() (string, bool) {
 	return core.LookPath(a.Binaries())
 }
-func (adapter) Installed() bool { return pluginInstalled() }
+func (adapter) Installed() bool    { return pluginInstalled() }
+func (adapter) PluginRoot() string { return pluginRoot() }
+func (adapter) SnapshotRoots() []string {
+	return []string{pluginsDir()}
+}
 func (adapter) RelayPath() string {
 	return filepath.Join(pluginRoot(), "hooks", "relay.sh")
 }
@@ -37,7 +41,9 @@ func (adapter) MapHook(raw map[string]any) []core.Intent {
 }
 
 func (a adapter) Install(ctx core.InstallCtx) (core.InstallResult, error) {
-	if err := core.RequireCLI(a); err != nil {
+	// An already-connected plugin can be refreshed from disk when `claude` is
+	// missing from the GUI PATH. A first connect still needs the CLI.
+	if err := core.RequireCLI(a); err != nil && !pluginInstalled() {
 		return core.InstallResult{CLI: a.ID()}, err
 	}
 	return install(ctx)
@@ -133,6 +139,15 @@ func install(ctx core.InstallCtx) (core.InstallResult, error) {
 	_ = core.RemoveMCP(userMCPJSON())
 	_ = disablePluginKey("qterm@skills-dir")
 	_ = os.RemoveAll(legacySkillsPluginRoot())
+	// Claude loads the copy under plugins/cache, not the marketplace source.
+	// `plugin install` is a no-op while that copy is registered, which is why a
+	// version bump alone never reached Claude until the user reconnected.
+	if err := forceClaudePluginReinstall(root); err != nil {
+		return core.InstallResult{CLI: "claude"}, err
+	}
+	if err := core.PublishQtermPlugin(root, (adapter{}).SnapshotRoots()); err != nil {
+		return core.InstallResult{CLI: "claude"}, err
+	}
 
 	return core.InstallResult{
 		CLI:       "claude",

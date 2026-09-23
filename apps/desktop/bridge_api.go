@@ -152,9 +152,19 @@ func (a *App) UpdateAgentTool(cliID, kind, toolID string) error {
 	return agentcli.UpdateTool(cliID, agentcli.ToolKind(kind), toolID)
 }
 
+// upgradeOutdatedAgentCLIs runs on launch after an app update (or any time the
+// installed Qterm plugin is older than this build). Connected CLIs get a fresh
+// skills, hooks, and MCP package, including copies the CLI cached at install time.
 func (a *App) upgradeOutdatedAgentCLIs() {
+	if a == nil {
+		return
+	}
+	var names []string
 	for _, cli := range a.ListAgentCLIs() {
-		if !cli.Installed || !cli.Outdated {
+		if !cli.Installed {
+			continue
+		}
+		if !cli.Outdated && !agentcli.PluginSnapshotsStale(cli.ID) {
 			continue
 		}
 		if _, err := a.InstallAgentCLI(cli.ID); err != nil {
@@ -162,7 +172,40 @@ func (a *App) upgradeOutdatedAgentCLIs() {
 			continue
 		}
 		println("agent plugin upgraded:", cli.ID, "→", agentcli.PluginVersion())
+		if cli.Name != "" {
+			names = append(names, cli.Name)
+		}
 	}
+	a.notePluginRefresh(names)
+}
+
+func (a *App) notePluginRefresh(names []string) {
+	if a == nil || len(names) == 0 {
+		return
+	}
+	cp := append([]string{}, names...)
+	a.pluginRefreshMu.Lock()
+	a.pluginRefresh = cp
+	a.pluginRefreshMu.Unlock()
+	if a.ctx != nil && !a.shuttingDown {
+		runtime.EventsEmit(a.ctx, "app:plugins-refreshed", cp)
+	}
+}
+
+// ConsumePluginRefresh returns CLI names whose Qterm plugin was refreshed on this
+// launch, once. The UI shows that after an update.
+func (a *App) ConsumePluginRefresh() []string {
+	if a == nil {
+		return []string{}
+	}
+	a.pluginRefreshMu.Lock()
+	defer a.pluginRefreshMu.Unlock()
+	out := a.pluginRefresh
+	a.pluginRefresh = nil
+	if out == nil {
+		return []string{}
+	}
+	return out
 }
 
 type bridgeAPI struct{ app *App }

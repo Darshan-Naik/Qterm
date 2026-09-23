@@ -175,6 +175,19 @@ func ExtractJSON(s string) string {
 	return strings.TrimSpace(s[i:])
 }
 
+// PluginRefreshTimeout bounds CLI plugin-update commands during an app launch.
+// Connect stays off the PTY path, but it must not stall session restore.
+const PluginRefreshTimeout = 8 * time.Second
+
+// RefreshCLI runs a plugin update command and ignores failure (missing binary,
+// older CLI, or a non-interactive refusal). File sync is the source of truth.
+func RefreshCLI(binary string, args ...string) {
+	if binary == "" {
+		return
+	}
+	_, _ = RunCLI(PluginRefreshTimeout, binary, args...)
+}
+
 // FirstBinary returns the first of names found on PATH.
 func FirstBinary(names ...string) (string, error) {
 	path, ok := LookPath(names)
