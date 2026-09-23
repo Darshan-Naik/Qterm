@@ -41,6 +41,13 @@ jobs:
         with:
           node-version: 22
 
+      - name: Ensure contributor labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node .github/scripts/contributors/labels.mjs
+
       - name: Recognize contribution
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

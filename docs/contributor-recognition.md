@@ -2,7 +2,7 @@
 
 Qterm thanks people when they show up, and again when their work lands. The messages are short on purpose. Badges mark personal milestones. They are not a leaderboard, and contributors are never ranked against each other.
 
-The contributors page reads generated data. It does not hand-maintain a list of names.
+The contributors page reads the public GitHub API. It does not hand-maintain a list of names, and it does not keep a generated snapshot in the repo.
 
 ## What contributors see
 
@@ -54,8 +54,7 @@ Before posting, the workflow reads existing comments. A second run for the same 
 | File | When it runs | Permissions |
 | --- | --- | --- |
 | `.github/workflows/contributor-recognition.yml` | Pull request opened, reopened, or merged; review submitted; issue opened | `contents: read`, `pull-requests: write`, `issues: write` |
-| `.github/workflows/contributor-sync.yml` | Push to `main` (except the data commit itself), daily, or manual | `contents: write`, `issues: write` |
-| `.github/workflows/release.yml` | Existing release path | Appends contributor credits. Skips a release build when a push only updates contributor data |
+| `.github/workflows/release.yml` | Existing release path | Appends contributor credits from merged pull requests |
 
 Recognition uses `pull_request_target` so a pull request from a fork can still receive a comment. The job checks out the default branch only (`persist-credentials: false`) and runs the script already on that branch. It does not checkout the pull request head, and it does not install or execute pull request code.
 
@@ -96,7 +95,7 @@ To add a milestone, append an entry:
     merged_prs: 100
 ```
 
-The next sync and the next merge comment pick it up. Ship the config change before you expect the comment to mention it, because recognition runs the workflow from the default branch.
+The next merge comment picks it up. Ship the config change before you expect the comment to mention it, because recognition runs the workflow from the default branch.
 
 Category badges come from `categories`. The first matching label wins. A pull request with no matching label is stored as `contribution` and does not earn a category badge. Set `badges.category` to `false` to keep the categories for stats but hide the badges.
 
@@ -112,15 +111,7 @@ Avoid the em dash character in this copy. Use a period, comma, or colon.
 
 ## Contributor data
 
-`.github/workflows/contributor-sync.yml` reads merged pull requests and writes `apps/web/data/contributors.json`.
-
-The file is committed only when the people, pull requests, or badges change. The commit message is `chore: update contributor recognition data`. That commit does not publish a desktop release: the release workflow ignores a push that only touches this file.
-
-The push uses the `CONTRIBUTOR_SYNC_TOKEN` Actions secret, a fine-grained personal access token for a repository admin. The default Actions token cannot push to `main` while that branch requires a pull request. Create the token under GitHub Settings, Developer settings, Personal access tokens, Fine-grained tokens. Limit it to this repository and set Contents to Read and write. Then save it as that secret. Do not commit the token.
-
-The website does not read that file. `/contributors` is server-rendered and asks GitHub for merged pull requests and for the maintainer profile (the configured login and the repository owner). Next caches those responses for 12 hours (`CONTRIBUTOR_CACHE_SECONDS` in `apps/web/lib/contributor-data.ts`). Names and avatars come from that response. The page does not keep them in source, and it does not show the GitHub bio.
-
-If the API history is cut off, sync fails instead of replacing the page with a partial list.
+`/contributors` is server-rendered and asks the public GitHub API for merged pull requests and for the maintainer profile (the configured login and the repository owner). Next caches those responses for 12 hours (`CONTRIBUTOR_CACHE_SECONDS` in `apps/web/lib/contributor-data.ts`). Names and avatars come from that response. The page does not keep them in source, and it does not show the GitHub bio.
 
 ## Contributors page
 
@@ -129,7 +120,7 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 - `/contributors/<username>` is the share page for someone GitHub shows as a merged contributor. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 
-Category counts stay in the JSON for release notes. The page does not render them.
+The page does not render category counts. Release notes group people from GitHub when a release is published.
 
 ## Share card
 
@@ -137,7 +128,7 @@ The SVG is generated in `apps/web/lib/contributor-present.mjs`. It uses Qterm co
 
 The first-merge comment links to the share page and includes text in a code block. There is also a link to post on X. Nothing is posted to a contributor's social accounts.
 
-The share page is available after the site deploys with updated JSON, which follows the sync commit.
+The share page uses the same GitHub data as `/contributors`, cached for 12 hours.
 
 ## Release notes
 
@@ -159,7 +150,7 @@ The window is every merged pull request after the previous release's `published_
 
 ## Labels
 
-The sync workflow creates labels from the `labels` list when the name is missing. It does not edit color or description afterward, so maintainer changes stick. It also does not remove labels from pull requests.
+The recognition workflow creates labels from the `labels` list when the name is missing. It does not edit color or description afterward, so maintainer changes stick. It also does not remove labels from pull requests.
 
 Useful labels:
 
@@ -185,7 +176,6 @@ The bot may add `first-contribution` on a first pull request. It does not add ca
 
 - Recognition never checks out pull request code.
 - Permissions stay limited to reading the repo and writing comments, labels, and issues.
-- Sync can push to `main` because it commits generated JSON. It runs only from the default branch, on a schedule, or by hand. It does not run `npm ci` or any pull request script.
 - Treat pull request titles as untrusted. They are not executed, and release notes escape them.
 - Do not put secrets in contributor comments. The workflows only pass `GITHUB_TOKEN`.
 
