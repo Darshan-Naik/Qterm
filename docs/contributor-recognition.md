@@ -122,7 +122,7 @@ If the API history is cut off, sync fails instead of replacing the page with a p
 
 ## Contributors page
 
-- `/contributors` lists people, newest activity first. It does not show project-wide count tiles.
+- `/contributors` lists people, newest activity first. Each card is family membership and the badges they have earned. It does not show pull request counts.
 - `/contributors/<username>` is the share page for someone in that file. Unknown names 404. The page will not mint a card for a person who has not merged anything.
 - `/contributors/card/<username>` returns the SVG.
 

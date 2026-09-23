@@ -64,8 +64,8 @@ export function renderContributorCard({ username, mergedPRs, firstContribution, 
   const when = escapeXml(monthYear(firstContribution));
   const first = Number(mergedPRs) <= 1;
   const headline = first ? "Welcome to the family" : "Thanks for building Qterm";
-  const detail = first ? `First contribution · ${when}` : `${escapeXml(contributionCountLabel(mergedPRs))} · since ${when}`;
-  const label = escapeXml(`${headline}. @${username}. ${first ? "First contribution" : contributionCountLabel(mergedPRs)}. ${when}.`);
+  const detail = first ? `First contribution · ${when}` : `Qterm family · since ${when}`;
+  const label = escapeXml(`${headline}. @${username}. ${first ? "First contribution" : "Qterm family"}. ${when}.`);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${label}">

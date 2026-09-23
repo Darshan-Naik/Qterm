@@ -55,7 +55,7 @@ export default async function ContributorSharePage({ params }: { params: Promise
           <a className="text-foreground underline-offset-4 hover:underline" href={person.profileUrl}>
             @{person.username}
           </a>
-          {first ? " made a first contribution" : ` · ${person.mergedPRs} contributions`}
+          {first ? " made a first contribution" : " is part of the Qterm family"}
           {person.firstContribution ? ` · ${monthYear(person.firstContribution)}` : ""}
         </p>
         <img

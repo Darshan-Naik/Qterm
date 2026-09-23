@@ -493,7 +493,8 @@ test("share card escapes text and uses the family wording", () => {
     repoPath: "Darshan-Naik/Qterm",
   });
   assert.match(later, /Thanks for building Qterm/);
-  assert.match(later, /3 PRs merged/);
+  assert.match(later, /Qterm family · since January 2026/);
+  assert.doesNotMatch(later, /PRs merged/);
 });
 
 test("seeded contributor data does not invent people", () => {

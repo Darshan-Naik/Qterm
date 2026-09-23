@@ -12,7 +12,7 @@ export default async function ContributorOgImage({ params }: { params: Promise<{
   const first = !person || person.mergedPRs <= 1;
   const headline = first ? "Welcome to the family" : "Thanks for building Qterm";
   const when = person ? monthYear(person.firstContribution) : "";
-  const detail = first ? `First contribution · ${when}` : `${person?.mergedPRs ?? 0} contributions · since ${when}`;
+  const detail = first ? `First contribution · ${when}` : `Qterm family · since ${when}`;
 
   return new ImageResponse(
     (

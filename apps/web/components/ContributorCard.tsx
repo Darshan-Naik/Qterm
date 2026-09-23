@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { contributorPath, type Contributor } from "@/lib/contributors";
-import { contributionCountLabel, shortMonth } from "@/lib/contributor-present.mjs";
+import { shortMonth } from "@/lib/contributor-present.mjs";
 
 export function ContributorCard({ person }: { person: Contributor }) {
   const since = shortMonth(person.firstContribution);
@@ -18,13 +18,12 @@ export function ContributorCard({ person }: { person: Contributor }) {
         <span>
           <span className="block text-[16px] font-medium tracking-tight group-hover:underline">@{person.username}</span>
           <span className="mt-1 block text-[13px] text-muted-foreground">
-            Qterm contributor{since ? ` since ${since}` : ""}
+            Qterm family{since ? ` since ${since}` : ""}
           </span>
         </span>
       </a>
-      <p className="mt-5 text-[14px] text-foreground/90">{contributionCountLabel(person.mergedPRs)}</p>
       {person.badges.length > 0 ? (
-        <ul className="mt-4 flex flex-wrap gap-2">
+        <ul className="mt-5 flex flex-wrap gap-2">
           {person.badges.map((badge) => (
             <li
               key={badge.id}
