@@ -132,7 +132,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </WithTooltip>
             <button
               type="button"
-              className="min-w-0 flex-1 overflow-hidden rounded-lg px-1.5 py-1 text-left text-[13px] leading-snug text-sidebar-foreground"
+              className="min-w-0 flex-1 overflow-hidden rounded-lg py-1 pl-1.5 pr-16 text-left text-[13px] leading-snug text-sidebar-foreground"
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void setActiveScope(id);
