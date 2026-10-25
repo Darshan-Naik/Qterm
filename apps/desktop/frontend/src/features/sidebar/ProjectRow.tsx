@@ -132,7 +132,11 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </WithTooltip>
             <button
               type="button"
-              className="min-w-0 flex-1 overflow-hidden rounded-lg py-1 pl-1.5 pr-16 text-left text-[13px] leading-snug text-sidebar-foreground"
+              className={cn(
+                "flex min-w-0 flex-1 items-center rounded-lg py-1 pl-1.5 text-left text-[13px] leading-snug text-sidebar-foreground",
+                "pr-1.5 group-hover:pr-16",
+                rowActive && "pr-16"
+              )}
               onClick={() => {
                 if (collapsed) toggleProjectCollapsed(id);
                 void setActiveScope(id);
@@ -140,7 +144,7 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
               onDoubleClick={() => toggleProjectCollapsed(id)}
             >
               <WithTooltip label={name} side="right">
-                <span className="flex min-w-0 items-center gap-1.5">
+                <span className="flex min-w-0 flex-1 items-center gap-1.5">
                   <span className="min-w-0 truncate font-normal">{name}</span>
                   {git?.dirty ? <GitDirtyDot /> : null}
                 </span>
@@ -148,8 +152,8 @@ export function ProjectRow({ id, name, path }: { id: string; name: string; path:
             </button>
             <div
               className={cn(
-                "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-md pl-2 opacity-0 group-hover:bg-sidebar-accent group-hover:opacity-100",
-                rowActive && "bg-sidebar-accent opacity-100"
+                "absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-sidebar opacity-0 group-hover:bg-sidebar-accent/50 group-hover:opacity-100",
+                rowActive && "bg-sidebar-accent/50 opacity-100"
               )}
             >
               <WithTooltip label={`New terminal (${ProjectShortcuts.newTerminal.label})`}>
