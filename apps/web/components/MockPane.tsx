@@ -1,5 +1,4 @@
 import { cn } from "@/lib/cn";
-import { AgentStatusOrb } from "./AgentStatusOrb";
 import { MockAgentIcon } from "./MockAgentIcon";
 import { MockGitChip } from "./MockGitChip";
 import { MockPaneMenu } from "./MockPaneMenu";
@@ -11,7 +10,6 @@ export function MockPane({
   agent,
   lines,
   caret = false,
-  thinking = false,
   needsInput = false,
   reveal = false,
   working = false,
@@ -23,7 +21,6 @@ export function MockPane({
   agent?: string;
   lines: Array<{ text: string; tone: "muted" | "fg" | "dim" | "cmd" }>;
   caret?: boolean;
-  thinking?: boolean;
   needsInput?: boolean;
   reveal?: boolean;
   working?: boolean;
@@ -40,15 +37,7 @@ export function MockPane({
             active || needsInput ? "text-foreground/90" : "opacity-45"
           )}
         >
-          <span className="flex size-5 shrink-0 items-center justify-center">
-            {needsInput ? (
-              <AgentStatusOrb state="action_required" />
-            ) : thinking ? (
-              <AgentStatusOrb state="thinking" />
-            ) : (
-              <MockAgentIcon agent={agent} size={14} />
-            )}
-          </span>
+          <MockAgentIcon agent={agent} size={14} />
           <span className="truncate">{title}</span>
           {needsInput ? (
             <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-1.5 py-px text-[10px] tracking-wide text-amber-100/80">

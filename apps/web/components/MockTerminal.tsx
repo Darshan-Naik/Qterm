@@ -1,5 +1,3 @@
-import { AgentStatusOrb } from "./AgentStatusOrb";
-
 const TONE: Record<"muted" | "fg" | "dim" | "cmd", string> = {
   muted: "text-muted-foreground",
   fg: "text-foreground/90",
@@ -29,12 +27,7 @@ export function MockTerminal({
           {line.text}
         </div>
       ))}
-      {working ? (
-        <div className="flex items-center gap-1.5 text-muted-foreground/80">
-          <AgentStatusOrb state="thinking" />
-          Working
-        </div>
-      ) : null}
+      {working ? <div className="text-muted-foreground/80">Working</div> : null}
       {caret ? (
         <div className="text-muted-foreground">
           ~/acme % <span className="term-caret" />

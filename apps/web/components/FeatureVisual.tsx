@@ -1,5 +1,5 @@
 import { AGENTS } from "@/lib/site";
-import { AgentStatusOrb, type AgentStatus } from "./AgentStatusOrb";
+import { AgentStatusOrb } from "./AgentStatusOrb";
 
 export type FeatureVisualKind = "projects" | "splits" | "flow" | "agents";
 
@@ -59,30 +59,14 @@ export function FeatureVisual({ kind }: { kind: FeatureVisualKind }) {
 
   return (
     <div className="flex h-[92px] items-center justify-center gap-2 rounded-xl border border-white/8 bg-background/70 px-3">
-      {AGENTS.slice(0, 5).map((agent, index) => {
-        const status: AgentStatus | null =
-          index === 1
-            ? "action_required"
-            : index === 2
-              ? "thinking"
-              : index === 3
-                ? "tool_use"
-                : index === 4
-                  ? "background"
-                  : null;
-        return (
-          <span
-            key={agent.id}
-            className="flex size-9 items-center justify-center rounded-lg border border-white/8 bg-white/4"
-          >
-            {status ? (
-              <AgentStatusOrb state={status} />
-            ) : (
-              <img src={agent.src} alt="" width={16} height={16} className="size-4 rounded-[3px] object-contain" />
-            )}
-          </span>
-        );
-      })}
+      {AGENTS.slice(0, 5).map((agent) => (
+        <span
+          key={agent.id}
+          className="flex size-9 items-center justify-center rounded-lg border border-white/8 bg-white/4"
+        >
+          <img src={agent.src} alt="" width={16} height={16} className="size-4 rounded-[3px] object-contain" />
+        </span>
+      ))}
     </div>
   );
 }
