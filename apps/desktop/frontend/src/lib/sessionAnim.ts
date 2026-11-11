@@ -1,6 +1,20 @@
 import { uiStore, type AnimateState } from "@/store/ui";
 import { clearSessionNotice } from "@/lib/jumpUnread";
 
+const WORKING: ReadonlySet<AnimateState> = new Set([
+  "thinking",
+  "searching",
+  "tool_use",
+  "editing",
+  "running",
+  "background",
+  "connecting",
+]);
+
+export function isWorkingAnim(state: AnimateState | undefined) {
+  return !!state && WORKING.has(state);
+}
+
 export function isAckableAnim(state: AnimateState | undefined) {
   return state === "action_required" || state === "task_complete";
 }
@@ -41,8 +55,8 @@ export function nextAnimateState(
   incoming: AnimateState,
   focused: boolean
 ): AnimateState | null {
-  // Unread needs-input: ignore thinking pulses until they visit and answer.
-  if (current === "action_required" && incoming === "thinking" && !focused) return null;
+  // Unread needs-input: ignore in-progress work until they visit and answer.
+  if (current === "action_required" && isWorkingAnim(incoming) && !focused) return null;
   // Idle (session start / back at prompt) must not wipe needs-input or the done flash.
   if (incoming === "idle" && (current === "action_required" || current === "task_complete")) return null;
   if (current === incoming) return null;

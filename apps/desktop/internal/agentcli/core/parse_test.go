@@ -28,8 +28,38 @@ func TestParseHookPreToolUseRequestUserInput(t *testing.T) {
 		SessionID: "s1",
 		Raw:       map[string]any{"tool_name": "Bash"},
 	})
-	if len(other) != 1 || payloadState(other[0]) != "thinking" {
+	if len(other) != 1 || payloadState(other[0]) != "running" {
 		t.Fatalf("bash pre_tool: %#v", other)
+	}
+}
+
+func TestParseHookToolActivities(t *testing.T) {
+	cases := []struct {
+		event string
+		raw   map[string]any
+		want  string
+	}{
+		{"PreToolUse", map[string]any{"tool_name": "Grep"}, "searching"},
+		{"PreToolUse", map[string]any{"tool_name": "Read"}, "searching"},
+		{"PreToolUse", map[string]any{"tool_name": "search_replace"}, "editing"},
+		{"PreToolUse", map[string]any{"tool_name": "ApplyPatch"}, "editing"},
+		{"PreToolUse", map[string]any{"tool_name": "WebFetch"}, "searching"},
+		{"PreToolUse", map[string]any{"tool_name": "CallMcpTool"}, "connecting"},
+		{"PreToolUse", map[string]any{"tool_name": "TodoWrite"}, "tool_use"},
+		{"beforeShellExecution", map[string]any{"command": "ls"}, "running"},
+		{"PreToolUse", map[string]any{"tool_name": "Bash", "tool_input": map[string]any{"run_in_background": true}}, "background"},
+		{"PreToolUse", map[string]any{"tool_name": "Task", "tool_input": map[string]any{"subagent_type": "explore"}}, "background"},
+		{"PostToolUse", map[string]any{"tool_name": "Bash", "tool_input": map[string]any{"run_in_background": true}}, "background"},
+		{"PostToolUse", map[string]any{"tool_name": "Grep"}, "thinking"},
+		{"PostToolUseFailure", map[string]any{"tool_name": "Bash"}, "thinking"},
+		{"beforeMCPExecution", nil, "connecting"},
+		{"afterFileEdit", map[string]any{"file_path": "main.go"}, "editing"},
+	}
+	for _, tc := range cases {
+		out := ParseHook(ParseInput{Source: "claude", Event: tc.event, SessionID: "s1", Raw: tc.raw})
+		if len(out) != 1 || payloadState(out[0]) != tc.want {
+			t.Fatalf("%s %#v: got %#v want %s", tc.event, tc.raw, out, tc.want)
+		}
 	}
 }
 

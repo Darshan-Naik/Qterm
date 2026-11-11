@@ -28,8 +28,7 @@ import { useGitStatus } from "@/queries";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
-import { AgentIcon, agentLabel } from "./AgentIcon";
-import { AgentStatusOrb } from "./AgentStatusOrb";
+import { AgentMark } from "./AgentMark";
 import { SessionFlowTitle } from "./SessionFlowTitle";
 
 export function SessionRow({
@@ -182,19 +181,8 @@ export function SessionRow({
               }
             }}
           >
-            <span className="flex h-5 shrink-0 items-center gap-1.5">
-              <span className="relative flex size-4 items-center justify-center">
-                {agent ? (
-                  <WithTooltip label={agentLabel(agent)} side="right">
-                    <span className="inline-flex">
-                      <AgentIcon agent={agent} />
-                    </span>
-                  </WithTooltip>
-                ) : (
-                  <AgentIcon />
-                )}
-              </span>
-              <AgentStatusOrb state={anim} />
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <AgentMark agent={agent} state={anim} side="right" />
             </span>
             <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
               <span className="flex h-5 min-w-0 items-center gap-1.5">

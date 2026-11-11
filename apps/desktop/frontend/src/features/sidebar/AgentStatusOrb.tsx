@@ -1,25 +1,29 @@
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
 import type { AnimateState } from "@/store/ui";
 
-/** Live agent statuses that already have a visible indication. */
-type LiveStatus = "thinking" | "action_required" | "task_complete";
+/** Statuses that replace the agent icon with a thinking orb. Idle and none keep the icon. */
+type LiveStatus = Exclude<AnimateState, "none" | "idle">;
 
 const STATUS: Record<LiveStatus, { state: OrbState; color?: string; label: string }> = {
   thinking: { state: "working", label: "Agent working" },
+  searching: { state: "searching", label: "Searching" },
+  tool_use: { state: "weaving", label: "Using a tool" },
+  editing: { state: "composing", label: "Editing" },
+  running: { state: "shaping", label: "Running a command" },
+  background: { state: "breathing", label: "Running in the background" },
+  connecting: { state: "connecting", label: "Connecting" },
   action_required: { state: "listening", color: "#fbbf24", label: "Needs input" },
-  task_complete: { state: "solving", color: "#34d399", label: "Task complete" },
+  task_complete: { state: "solving", color: "#34d399", label: "Turn complete" },
 };
 
-function liveStatus(state: AnimateState): LiveStatus | null {
-  if (state === "thinking" || state === "action_required" || state === "task_complete") return state;
-  return null;
+export function isLiveAgentStatus(state: AnimateState): state is LiveStatus {
+  return state !== "none" && state !== "idle";
 }
 
-/** Inline thinking-orb for the session's current agent status. */
+/** Thinking orb that stands in for the agent icon while a status is live. */
 export function AgentStatusOrb({ state }: { state: AnimateState }) {
-  const live = liveStatus(state);
-  if (!live) return null;
-  const spec = STATUS[live];
+  if (!isLiveAgentStatus(state)) return null;
+  const spec = STATUS[state];
   return (
     <ThinkingOrb
       state={spec.state}

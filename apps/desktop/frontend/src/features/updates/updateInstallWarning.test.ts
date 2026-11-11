@@ -52,10 +52,18 @@ describe("updateInstallWarning", () => {
 });
 
 describe("countAgentTasks", () => {
-  it("counts thinking and needs-input panes", () => {
+  it("counts in-progress agents, including tools and background work", () => {
     assert.equal(
-      countAgentTasks({ a: "thinking", b: "action_required", c: "idle", d: "none" }),
-      2,
+      countAgentTasks({
+        a: "thinking",
+        b: "action_required",
+        c: "idle",
+        d: "none",
+        e: "tool_use",
+        f: "background",
+        g: "task_complete",
+      }),
+      4,
     );
     assert.equal(countAgentTasks(undefined), 0);
   });

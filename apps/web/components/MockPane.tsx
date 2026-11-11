@@ -40,9 +40,15 @@ export function MockPane({
             active || needsInput ? "text-foreground/90" : "opacity-45"
           )}
         >
-          <MockAgentIcon agent={agent} size={14} />
-          {thinking ? <AgentStatusOrb state="thinking" /> : null}
-          {needsInput ? <AgentStatusOrb state="action_required" /> : null}
+          <span className="flex size-5 shrink-0 items-center justify-center">
+            {needsInput ? (
+              <AgentStatusOrb state="action_required" />
+            ) : thinking ? (
+              <AgentStatusOrb state="thinking" />
+            ) : (
+              <MockAgentIcon agent={agent} size={14} />
+            )}
+          </span>
           <span className="truncate">{title}</span>
           {needsInput ? (
             <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-1.5 py-px text-[10px] tracking-wide text-amber-100/80">

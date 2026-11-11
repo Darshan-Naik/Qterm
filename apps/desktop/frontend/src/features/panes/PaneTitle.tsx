@@ -1,8 +1,6 @@
 import { useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
-import { WithTooltip } from "@/components/ui/tooltip";
-import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
-import { AgentStatusOrb } from "@/features/sidebar/AgentStatusOrb";
+import { AgentMark } from "@/features/sidebar/AgentMark";
 
 export const RENAME_SESSION_EVENT = "qterm:rename-session";
 
@@ -27,16 +25,9 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
         active && "opacity-100"
       )}
     >
-      {agent ? (
-        <WithTooltip label={agentLabel(agent)} side="bottom">
-          <span className="inline-flex shrink-0">
-            <AgentIcon agent={agent} className="size-3.5" />
-          </span>
-        </WithTooltip>
-      ) : (
-        <AgentIcon className="size-3.5 shrink-0" />
-      )}
-      <AgentStatusOrb state={anim} />
+      <span className="flex size-5 shrink-0 items-center justify-center">
+        <AgentMark agent={agent} state={anim} iconClassName="size-3.5" side="bottom" />
+      </span>
       <span className="min-w-0 truncate leading-5">{name}</span>
     </span>
   );

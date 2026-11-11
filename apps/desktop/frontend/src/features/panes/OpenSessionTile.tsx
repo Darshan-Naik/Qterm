@@ -27,8 +27,7 @@ import { ProjectShortcuts, TerminalShortcuts } from "@/lib/menuShortcuts";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
-import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
-import { AgentStatusOrb } from "@/features/sidebar/AgentStatusOrb";
+import { AgentMark } from "@/features/sidebar/AgentMark";
 import { SessionFlowTitle } from "@/features/sidebar/SessionFlowTitle";
 
 /** Compact session tile for the open-workspace grid (sidebar menu + agent states). */
@@ -121,19 +120,8 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
               if (!editing) void focusSession(session.id);
             }}
           >
-            <span className="flex shrink-0 items-center gap-1.5">
-              <span className="relative flex size-4 items-center justify-center">
-                {agent ? (
-                  <WithTooltip label={agentLabel(agent)}>
-                    <span className="inline-flex">
-                      <AgentIcon agent={agent} />
-                    </span>
-                  </WithTooltip>
-                ) : (
-                  <AgentIcon />
-                )}
-              </span>
-              <AgentStatusOrb state={anim} />
+            <span className="flex size-5 shrink-0 items-center justify-center">
+              <AgentMark agent={agent} state={anim} />
             </span>
             {pinned ? (
               <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />

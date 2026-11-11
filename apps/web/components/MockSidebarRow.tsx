@@ -10,6 +10,7 @@ export function MockSidebarRow({
   indent = false,
   thinking = false,
   needsInput = false,
+  status,
 }: {
   label: string;
   agent?: string;
@@ -18,8 +19,9 @@ export function MockSidebarRow({
   indent?: boolean;
   thinking?: boolean;
   needsInput?: boolean;
+  status?: AgentStatus;
 }) {
-  const status: AgentStatus | null = needsInput ? "action_required" : thinking ? "thinking" : null;
+  const live: AgentStatus | null = status ?? (needsInput ? "action_required" : thinking ? "thinking" : null);
 
   return (
     <div
@@ -32,10 +34,9 @@ export function MockSidebarRow({
         !focused && !open && "text-muted-foreground"
       )}
     >
-      <span className="flex size-[18px] shrink-0 items-center justify-center">
-        <MockAgentIcon agent={agent} size={18} />
+      <span className="flex size-5 shrink-0 items-center justify-center">
+        {live ? <AgentStatusOrb state={live} /> : <MockAgentIcon agent={agent} size={18} />}
       </span>
-      {status ? <AgentStatusOrb state={status} /> : null}
       <span className="min-w-0 flex-1 truncate leading-4">{label}</span>
     </div>
   );

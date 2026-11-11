@@ -67,13 +67,18 @@ func ParseHook(in ParseInput) []Intent {
 	case "permission", "elicitation":
 		out = []Intent{anim("action_required")}
 	case "pre_tool", "before_tool":
-		if isRequestUserInputTool(in.Raw) {
-			out = []Intent{anim("action_required")}
-		} else {
+		out = []Intent{anim(toolActivity(in))}
+	case "post_tool", "after_tool", "post_invocation":
+		// A background task keeps running after the hook returns.
+		// A file-edit hook is the edit itself, so keep the editing orb until the next event.
+		switch {
+		case isBackgroundTool(in.Raw):
+			out = []Intent{anim("background")}
+		case isFileEditEvent(in.Event):
+			out = []Intent{anim("editing")}
+		default:
 			out = []Intent{anim("thinking")}
 		}
-	case "post_tool", "after_tool", "post_invocation":
-		out = []Intent{anim("thinking")}
 		// Do not adopt OSC titles from shell printf — those are process/cwd noise.
 	default:
 		out = nil
@@ -100,6 +105,164 @@ func ParseHook(in ParseInput) []Intent {
 		out = append(out, ri)
 	}
 	return out
+}
+
+// toolActivity picks the sidebar orb for a tool hook.
+// thinking stays the model turn; these are the other live statuses.
+func toolActivity(in ParseInput) string {
+	if isRequestUserInputTool(in.Raw) {
+		return "action_required"
+	}
+	if isBackgroundTool(in.Raw) {
+		return "background"
+	}
+	name := compactHookName(toolNameFromRaw(in.Raw))
+	if name == "" && isShellEvent(in.Event) {
+		return "running"
+	}
+	if name == "" && isMcpEvent(in.Event) {
+		return "connecting"
+	}
+	return classifyToolName(name)
+}
+
+func toolInput(raw map[string]any) map[string]any {
+	if raw == nil {
+		return nil
+	}
+	for _, key := range []string{"tool_input", "toolInput", "input", "arguments", "args"} {
+		if m, ok := raw[key].(map[string]any); ok {
+			return m
+		}
+	}
+	tool, ok := raw["tool"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	if m, ok := tool["input"].(map[string]any); ok {
+		return m
+	}
+	return tool
+}
+
+func truthy(m map[string]any, keys ...string) bool {
+	if m == nil {
+		return false
+	}
+	for _, key := range keys {
+		switch v := m[key].(type) {
+		case bool:
+			if v {
+				return true
+			}
+		case string:
+			if v == "true" || v == "1" {
+				return true
+			}
+		case float64:
+			if v != 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isBackgroundTool(raw map[string]any) bool {
+	if truthy(raw, "run_in_background", "is_background", "background") {
+		return true
+	}
+	input := toolInput(raw)
+	if truthy(input, "run_in_background", "is_background", "background") {
+		return true
+	}
+	if FirstString(input, "subagent_type", "subagentType") != "" || FirstString(raw, "subagent_type", "subagentType") != "" {
+		return true
+	}
+	switch compactHookName(toolNameFromRaw(raw)) {
+	case "subagent", "background", "background_shell", "run_background":
+		return true
+	default:
+		return false
+	}
+}
+
+func compactEvent(event string) string {
+	e := strings.ToLower(strings.TrimSpace(event))
+	return strings.ReplaceAll(e, "-", "_")
+}
+
+func isShellEvent(event string) bool {
+	switch compactEvent(event) {
+	case "beforeshellexecution", "before_shell_execution", "aftershellexecution", "after_shell_execution":
+		return true
+	default:
+		return false
+	}
+}
+
+func isMcpEvent(event string) bool {
+	switch compactEvent(event) {
+	case "beforemcpexecution", "before_mcp_execution", "aftermcpexecution", "after_mcp_execution":
+		return true
+	default:
+		return false
+	}
+}
+
+func isFileEditEvent(event string) bool {
+	switch compactEvent(event) {
+	case "afterfileedit", "after_file_edit":
+		return true
+	default:
+		return false
+	}
+}
+
+func classifyToolName(name string) string {
+	switch {
+	case name == "":
+		return "tool_use"
+	case isEditTool(name):
+		return "editing"
+	case isSearchTool(name):
+		return "searching"
+	case isShellTool(name):
+		return "running"
+	case strings.Contains(name, "mcp"):
+		return "connecting"
+	default:
+		return "tool_use"
+	}
+}
+
+func isSearchTool(name string) bool {
+	switch name {
+	case "grep", "glob", "rg", "search", "read", "read_file", "webfetch", "web_fetch",
+		"websearch", "web_search", "codebase_search", "semantic_search", "find_files", "list_dir", "ls":
+		return true
+	default:
+		return strings.Contains(name, "search") || strings.Contains(name, "grep")
+	}
+}
+
+func isEditTool(name string) bool {
+	switch name {
+	case "edit", "write", "strreplace", "str_replace", "apply_patch", "multiedit", "notebookedit",
+		"search_replace", "edit_file", "write_file", "create_file":
+		return true
+	default:
+		return strings.Contains(name, "edit") || strings.HasPrefix(name, "write") || strings.Contains(name, "patch")
+	}
+}
+
+func isShellTool(name string) bool {
+	switch name {
+	case "bash", "shell", "powershell", "zsh", "run_terminal_cmd", "run_command", "execute_command", "shell_command":
+		return true
+	default:
+		return strings.Contains(name, "shell") || strings.Contains(name, "bash")
+	}
 }
 
 func toolNameFromRaw(raw map[string]any) string {
@@ -188,7 +351,7 @@ func normalizeEvent(event string) string {
 		return "request_user_input"
 	case "pretooluse", "beforetool", "beforeshellexecution", "beforemcpexecution":
 		return "pre_tool"
-	case "posttooluse", "aftertool", "aftershellexecution", "aftermcpexecution", "afterfileedit":
+	case "posttooluse", "posttoolusefailure", "aftertool", "aftershellexecution", "aftermcpexecution", "afterfileedit":
 		return "post_tool"
 	case "beforeagent":
 		return "before_agent"
