@@ -28,9 +28,8 @@ import { useGitStatus } from "@/queries";
 import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
-import { AgentIcon, agentLabel } from "./AgentIcon";
+import { AgentMark } from "./AgentMark";
 import { SessionFlowTitle } from "./SessionFlowTitle";
-import { SessionStatusDot } from "./SessionStatusDot";
 
 export function SessionRow({
   session,
@@ -118,8 +117,6 @@ export function SessionRow({
   };
 
   const needsInput = anim === "action_required";
-  const thinking = anim === "thinking";
-  const complete = anim === "task_complete";
 
   const onDragStart = (e: DragEvent) => {
     if (editing || !canDrag) {
@@ -159,9 +156,7 @@ export function SessionRow({
             focused &&
               "bg-sidebar-accent font-medium text-sidebar-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-primary",
             rowActive && !focused && "bg-sidebar-accent/35 text-sidebar-foreground",
-            dragging && "opacity-50",
-            needsInput && "session-needs-input",
-            complete && "session-complete"
+            dragging && "opacity-50"
           )}
         >
           <div
@@ -186,17 +181,8 @@ export function SessionRow({
               }
             }}
           >
-            <span className="relative mt-0.5 flex size-4 shrink-0 items-center justify-center">
-              {agent ? (
-                <WithTooltip label={agentLabel(agent)} side="right">
-                  <span className="inline-flex">
-                    <AgentIcon agent={agent} thinking={thinking} />
-                  </span>
-                </WithTooltip>
-              ) : (
-                <AgentIcon />
-              )}
-              {needsInput || complete ? <SessionStatusDot /> : null}
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+              <AgentMark agent={agent} state={anim} side="right" />
             </span>
             <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
               <span className="flex h-5 min-w-0 items-center gap-1.5">
@@ -228,7 +214,6 @@ export function SessionRow({
                 ) : (
                   <SessionFlowTitle
                     name={session.name}
-                    thinking={thinking}
                     onDoubleClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

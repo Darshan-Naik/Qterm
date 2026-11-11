@@ -27,7 +27,7 @@ export function MockTerminal({
           {line.text}
         </div>
       ))}
-      {working ? <div className="session-logo-pulse text-muted-foreground/80">Working</div> : null}
+      {working ? <div className="text-muted-foreground/80">Working</div> : null}
       {caret ? (
         <div className="text-muted-foreground">
           ~/acme % <span className="term-caret" />

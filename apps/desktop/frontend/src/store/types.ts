@@ -8,7 +8,18 @@ export const THEME_MODES: ThemeMode[] = ["system", "dark", "modern-dark", "light
 export function isThemeMode(value: string): value is ThemeMode {
   return (THEME_MODES as string[]).includes(value);
 }
-export type AnimateState = "none" | "idle" | "action_required" | "task_complete" | "thinking";
+export type AnimateState =
+  | "none"
+  | "idle"
+  | "thinking"
+  | "searching"
+  | "tool_use"
+  | "editing"
+  | "running"
+  | "background"
+  | "connecting"
+  | "action_required"
+  | "task_complete";
 export type SettingsPage = "appearance" | "terminal" | "agent" | "shortcuts" | "snippets" | "updates";
 export type AppMode = "workspace" | "settings" | "setup";
 export type SidebarFooterId = "palette" | "agent" | "theme" | "settings";

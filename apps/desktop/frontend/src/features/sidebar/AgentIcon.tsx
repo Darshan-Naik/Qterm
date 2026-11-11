@@ -51,22 +51,12 @@ export function normalizeAgentId(id: string) {
   return key;
 }
 
-export function AgentIcon({
-  agent,
-  className,
-  thinking,
-}: {
-  agent?: string;
-  className?: string;
-  thinking?: boolean;
-}) {
+export function AgentIcon({ agent, className }: { agent?: string; className?: string }) {
   const id = normalizeAgentId(agent || "");
   const src = id ? AGENT_ICONS[id] : undefined;
 
   if (!src) {
-    return (
-      <TerminalSquare className={cn("size-4 opacity-50", thinking && "session-logo-pulse", className)} />
-    );
+    return <TerminalSquare className={cn("size-4 opacity-50", className)} />;
   }
 
   return (
@@ -74,7 +64,7 @@ export function AgentIcon({
       src={src}
       alt=""
       draggable={false}
-      className={cn("size-4 shrink-0 rounded-[3px] object-contain", thinking && "session-logo-pulse", className)}
+      className={cn("size-4 shrink-0 rounded-[3px] object-contain", className)}
     />
   );
 }

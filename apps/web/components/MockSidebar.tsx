@@ -24,7 +24,7 @@ export function MockSidebar({ claude }: { claude: "thinking" | "input" }) {
             thinking={claude === "thinking"}
             needsInput={claude === "input"}
           />
-          <MockSidebarRow label="cursor" agent="cursor" indent thinking />
+          <MockSidebarRow label="cursor" agent="cursor" indent status="background" />
         </div>
         <div className="mt-2">
           <MockProjectRow name="notes" />

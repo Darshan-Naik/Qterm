@@ -86,11 +86,10 @@ func (a *App) maybeNotifyAgent(intent agentcli.Intent) {
 		a.clearAttentionText(sid)
 		a.notifyKind(notify.KindTaskComplete, sid, "finished", "The agent finished a turn.")
 	default:
-		if state == "none" || state == "thinking" || state == "idle" {
-			a.markWaiting(sid, false)
-			if state == "none" {
-				a.clearAttentionText(sid)
-			}
+		// Tool use, search, edits, commands, and background work are not waiting.
+		a.markWaiting(sid, false)
+		if state == "none" {
+			a.clearAttentionText(sid)
 		}
 	}
 }

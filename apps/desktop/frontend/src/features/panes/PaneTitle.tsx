@@ -16,7 +16,6 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
   // pane swaps sessions without a further store write (e.g. until you re-focus).
   const sessions = useUI((s) => s.sessions);
   const agent = useUI((s) => s.sessionAgents[sessionId] || "");
-  const thinking = useUI((s) => (s.paneAnimations[sessionId] || "none") === "thinking");
   const name = sessions.find((x) => x.id === sessionId)?.name || "Terminal";
 
   return (
@@ -29,11 +28,11 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
       {agent ? (
         <WithTooltip label={agentLabel(agent)} side="bottom">
           <span className="inline-flex shrink-0">
-            <AgentIcon agent={agent} thinking={thinking} className="size-3.5" />
+            <AgentIcon agent={agent} className="size-3.5" />
           </span>
         </WithTooltip>
       ) : (
-        <AgentIcon thinking={thinking} className="size-3.5 shrink-0" />
+        <AgentIcon className="size-3.5 shrink-0" />
       )}
       <span className="min-w-0 truncate leading-5">{name}</span>
     </span>

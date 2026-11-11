@@ -39,7 +39,8 @@
     "react-dom": "^19.1.0",
     "react-hotkeys-hook": "^5.3.3",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "thinking-orbs": "^0.3.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

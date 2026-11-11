@@ -116,7 +116,18 @@ export function countAgentTasks(anims: Record<string, string> | undefined): numb
   if (!anims) return 0;
   let n = 0;
   for (const state of Object.values(anims)) {
-    if (state === "thinking" || state === "action_required") n += 1;
+    if (
+      state === "thinking" ||
+      state === "searching" ||
+      state === "tool_use" ||
+      state === "editing" ||
+      state === "running" ||
+      state === "background" ||
+      state === "connecting" ||
+      state === "action_required"
+    ) {
+      n += 1;
+    }
   }
   return n;
 }

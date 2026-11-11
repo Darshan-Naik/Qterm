@@ -18,7 +18,6 @@ export function MockSplit({ claude }: { claude: "thinking" | "input" }) {
         title="claude"
         agent="claude"
         branch="main"
-        thinking={claude === "thinking"}
         needsInput={claude === "input"}
         reveal
         lines={[
