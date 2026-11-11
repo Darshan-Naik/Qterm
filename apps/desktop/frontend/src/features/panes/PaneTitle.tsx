@@ -2,6 +2,7 @@ import { useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
+import { AgentStatusOrb } from "@/features/sidebar/AgentStatusOrb";
 
 export const RENAME_SESSION_EVENT = "qterm:rename-session";
 
@@ -16,7 +17,7 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
   // pane swaps sessions without a further store write (e.g. until you re-focus).
   const sessions = useUI((s) => s.sessions);
   const agent = useUI((s) => s.sessionAgents[sessionId] || "");
-  const thinking = useUI((s) => (s.paneAnimations[sessionId] || "none") === "thinking");
+  const anim = useUI((s) => s.paneAnimations[sessionId] || "none");
   const name = sessions.find((x) => x.id === sessionId)?.name || "Terminal";
 
   return (
@@ -29,12 +30,13 @@ export function PaneTitle({ sessionId, active = false }: { sessionId: string; ac
       {agent ? (
         <WithTooltip label={agentLabel(agent)} side="bottom">
           <span className="inline-flex shrink-0">
-            <AgentIcon agent={agent} thinking={thinking} className="size-3.5" />
+            <AgentIcon agent={agent} className="size-3.5" />
           </span>
         </WithTooltip>
       ) : (
-        <AgentIcon thinking={thinking} className="size-3.5 shrink-0" />
+        <AgentIcon className="size-3.5 shrink-0" />
       )}
+      <AgentStatusOrb state={anim} />
       <span className="min-w-0 truncate leading-5">{name}</span>
     </span>
   );

@@ -1,5 +1,6 @@
 import { AGENTS } from "@/lib/site";
 import { cn } from "@/lib/cn";
+import { AgentStatusOrb, type AgentStatus } from "./AgentStatusOrb";
 
 export type FeatureVisualKind = "projects" | "splits" | "flow" | "agents";
 
@@ -17,7 +18,8 @@ export function FeatureVisual({ kind }: { kind: FeatureVisualKind }) {
           zsh
         </div>
         <div className="ml-3 flex items-center gap-2 rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] text-foreground/80">
-          <img src="/agents/claude.png" alt="" width={12} height={12} className="session-logo-pulse size-3 rounded-[2px]" />
+          <img src="/agents/claude.png" alt="" width={12} height={12} className="size-3 rounded-[2px]" />
+          <AgentStatusOrb state="thinking" />
           claude
         </div>
       </div>
@@ -59,24 +61,22 @@ export function FeatureVisual({ kind }: { kind: FeatureVisualKind }) {
 
   return (
     <div className="flex h-[92px] items-center justify-center gap-2 rounded-xl border border-white/8 bg-background/70 px-3">
-      {AGENTS.slice(0, 5).map((agent, index) => (
-        <span
-          key={agent.id}
-          className={cn(
-            "flex size-9 items-center justify-center rounded-lg border border-white/8 bg-white/4",
-            index === 1 && "session-needs-input border-amber-400/20",
-            index === 2 && "ring-1 ring-white/10"
-          )}
-        >
-          <img
-            src={agent.src}
-            alt=""
-            width={16}
-            height={16}
-            className={cn("size-4 rounded-[3px] object-contain", index === 2 && "session-logo-pulse")}
-          />
-        </span>
-      ))}
+      {AGENTS.slice(0, 5).map((agent, index) => {
+        const status: AgentStatus | null =
+          index === 1 ? "action_required" : index === 2 ? "thinking" : null;
+        return (
+          <span
+            key={agent.id}
+            className={cn(
+              "flex h-9 items-center justify-center rounded-lg border border-white/8 bg-white/4",
+              status ? "gap-1 px-1.5" : "size-9"
+            )}
+          >
+            <img src={agent.src} alt="" width={16} height={16} className="size-4 shrink-0 rounded-[3px] object-contain" />
+            {status ? <AgentStatusOrb state={status} /> : null}
+          </span>
+        );
+      })}
     </div>
   );
 }

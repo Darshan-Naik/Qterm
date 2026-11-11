@@ -28,8 +28,8 @@ import { RENAME_SESSION_EVENT } from "@/features/panes/PaneTitle";
 import { dismissExclusiveMenus, useExclusiveMenu } from "@/hooks/useExclusiveMenu";
 import { useMenuTooltipGate } from "@/hooks/useMenuTooltipGate";
 import { AgentIcon, agentLabel } from "@/features/sidebar/AgentIcon";
+import { AgentStatusOrb } from "@/features/sidebar/AgentStatusOrb";
 import { SessionFlowTitle } from "@/features/sidebar/SessionFlowTitle";
-import { SessionStatusDot } from "@/features/sidebar/SessionStatusDot";
 
 /** Compact session tile for the open-workspace grid (sidebar menu + agent states). */
 export function OpenSessionTile({ session }: { session: SessionInfo }) {
@@ -48,10 +48,6 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
   const rowActive = menuOpen || gitOpen;
   const { suppressTip, suppressTipAfterMenuClose, tipTriggerProps } = useMenuTooltipGate();
   const pendingRename = useRef(false);
-
-  const needsInput = anim === "action_required";
-  const thinking = anim === "thinking";
-  const complete = anim === "task_complete";
 
   useEffect(() => {
     if (!editing) setDraft(session.name);
@@ -111,9 +107,7 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
           className={cn(
             "group relative flex min-h-10 w-full min-w-0 items-center rounded-lg bg-accent/20 px-2.5 py-2 text-left",
             "transition-colors hover:bg-accent/45",
-            rowActive && "bg-accent/45",
-            needsInput && "session-needs-input",
-            complete && "session-complete"
+            rowActive && "bg-accent/45"
           )}
         >
           <button
@@ -127,17 +121,19 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
               if (!editing) void focusSession(session.id);
             }}
           >
-            <span className="relative flex size-4 shrink-0 items-center justify-center">
-              {agent ? (
-                <WithTooltip label={agentLabel(agent)}>
-                  <span className="inline-flex">
-                    <AgentIcon agent={agent} thinking={thinking} />
-                  </span>
-                </WithTooltip>
-              ) : (
-                <AgentIcon />
-              )}
-              {needsInput || complete ? <SessionStatusDot /> : null}
+            <span className="flex shrink-0 items-center gap-1.5">
+              <span className="relative flex size-4 items-center justify-center">
+                {agent ? (
+                  <WithTooltip label={agentLabel(agent)}>
+                    <span className="inline-flex">
+                      <AgentIcon agent={agent} />
+                    </span>
+                  </WithTooltip>
+                ) : (
+                  <AgentIcon />
+                )}
+              </span>
+              <AgentStatusOrb state={anim} />
             </span>
             {pinned ? (
               <Pin className="size-3 shrink-0 fill-current opacity-60" aria-hidden />
@@ -167,7 +163,6 @@ export function OpenSessionTile({ session }: { session: SessionInfo }) {
             ) : (
               <SessionFlowTitle
                 name={session.name}
-                thinking={thinking}
                 className="text-[13px] font-medium text-muted-foreground"
                 onDoubleClick={(e) => {
                   e.preventDefault();

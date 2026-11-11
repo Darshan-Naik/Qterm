@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
+import { AgentStatusOrb, type AgentStatus } from "./AgentStatusOrb";
 import { MockAgentIcon } from "./MockAgentIcon";
-import { MockStatusDot } from "./MockStatusDot";
 
 export function MockSidebarRow({
   label,
@@ -19,6 +19,8 @@ export function MockSidebarRow({
   thinking?: boolean;
   needsInput?: boolean;
 }) {
+  const status: AgentStatus | null = needsInput ? "action_required" : thinking ? "thinking" : null;
+
   return (
     <div
       className={cn(
@@ -27,15 +29,14 @@ export function MockSidebarRow({
         focused &&
           "bg-white/8 font-medium text-foreground before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-primary",
         open && !focused && "bg-white/5 text-foreground/80",
-        !focused && !open && "text-muted-foreground",
-        needsInput && "session-needs-input"
+        !focused && !open && "text-muted-foreground"
       )}
     >
-      <span className="relative flex size-[18px] shrink-0 items-center justify-center">
-        <MockAgentIcon agent={agent} thinking={thinking} size={18} />
-        {needsInput ? <MockStatusDot /> : null}
+      <span className="flex size-[18px] shrink-0 items-center justify-center">
+        <MockAgentIcon agent={agent} size={18} />
       </span>
-      <span className={cn("min-w-0 flex-1 truncate leading-4", thinking && "session-flow-title")}>{label}</span>
+      {status ? <AgentStatusOrb state={status} /> : null}
+      <span className="min-w-0 flex-1 truncate leading-4">{label}</span>
     </div>
   );
 }
