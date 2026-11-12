@@ -75,7 +75,7 @@ jobs:
   build-macos:
     needs: meta
     if: needs.meta.outputs.skip != 'true'
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: Checkout
